@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { CaseSensitive, Check, LogOut, Palette } from 'lucide-react'
+import { CaseSensitive, Check, LogOut, Palette, Settings2 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -49,39 +49,47 @@ export function UserMenu() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="size-sm">
-            <AvatarImage
-              src={user.avatar_url}
-              alt={user.name || user.username}
-            />
-            <AvatarFallback className="bg-primary text-primary-foreground">
-              {getInitials(user.name || user.username)}
-            </AvatarFallback>
-          </Avatar>
+        <Button
+          variant="ghost"
+          className="relative h-10 w-10 rounded-full"
+          aria-label={isLocalMode ? 'Appearance settings' : 'User menu'}
+        >
+          {isLocalMode ? (
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+              <Settings2 className="h-5 w-5" />
+            </span>
+          ) : (
+            <Avatar className="size-sm">
+              <AvatarImage
+                src={user.avatar_url}
+                alt={user.name || user.username}
+              />
+              <AvatarFallback className="bg-primary text-primary-foreground">
+                {getInitials(user.name || user.username)}
+              </AvatarFallback>
+            </Avatar>
+          )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <div className="flex items-center justify-start gap-2 p-2">
-          <div className="flex flex-col space-y-1 leading-none">
-            {user.name && <p className="font-medium">{user.name}</p>}
-            <p className="text-xs text-muted-foreground">{user.username}</p>
-            {isLocalMode ? (
-              <p className="text-xs text-muted-foreground">Local desktop mode</p>
-            ) : (
+        {!isLocalMode && (
+          <div className="flex items-center justify-start gap-2 p-2">
+            <div className="flex flex-col space-y-1 leading-none">
+              {user.name && <p className="font-medium">{user.name}</p>}
+              <p className="text-xs text-muted-foreground">{user.username}</p>
               <p className="text-xs text-muted-foreground capitalize">
                 via {user.provider}
               </p>
-            )}
-            {user.roles && user.roles.length > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Role: {user.roles.map((role) => role.name).join(', ')}
-              </p>
-            )}
+              {user.roles && user.roles.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Role: {user.roles.map((role) => role.name).join(', ')}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        <DropdownMenuSeparator />
+        {!isLocalMode && <DropdownMenuSeparator />}
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

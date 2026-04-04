@@ -11,7 +11,7 @@ import type { AuthProviderCatalog, CredentialProvider } from '@/lib/api'
 import { isDesktopMode } from '@/lib/desktop'
 import { withSubPath } from '@/lib/subpath'
 
-interface User {
+interface UserData {
   id: string
   username: string
   name: string
@@ -19,7 +19,9 @@ interface User {
   provider: string
   roles?: { name: string }[]
   sidebar_preference?: string
+}
 
+interface User extends UserData {
   isAdmin(): boolean
 
   Key(): string
@@ -68,17 +70,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   >([])
   const [oauthProviders, setOAuthProviders] = useState<string[]>([])
 
-  const attachUserHelpers = (rawUser: User): User => {
-    rawUser.isAdmin = function () {
-      return (
-        this.roles?.some((role: { name: string }) => role.name === 'admin') ||
-        false
-      )
+  const attachUserHelpers = (rawUser: UserData): User => {
+    return {
+      ...rawUser,
+      isAdmin() {
+        return (
+          this.roles?.some((role: { name: string }) => role.name === 'admin') ||
+          false
+        )
+      },
+      Key() {
+        return this.username || this.id
+      },
     }
-    rawUser.Key = function () {
-      return this.username || this.id
-    }
-    return rawUser
   }
 
   const createLocalUser = (): User =>
@@ -91,7 +95,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       roles: [{ name: 'admin' }],
     })
 
-  const normalizeLocalUser = (rawUser: User): User =>
+  const normalizeLocalUser = (rawUser: UserData): User =>
     attachUserHelpers({
       ...rawUser,
       username: 'local',
@@ -136,8 +140,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (response.ok) {
         const data = await response.json()
         const user = localMode
-          ? normalizeLocalUser(data.user as User)
-          : attachUserHelpers(data.user as User)
+          ? normalizeLocalUser(data.user as UserData)
+          : attachUserHelpers(data.user as UserData)
         setGlobalSidebarPreference(String(data.globalSidebarPreference || ''))
         setUser(user)
       } else if (localMode) {
