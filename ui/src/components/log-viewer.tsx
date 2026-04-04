@@ -29,7 +29,7 @@ import {
   parseAnsi,
 } from '@/lib/ansi-parser'
 import { useLogsWebSocket } from '@/lib/api'
-import { saveNativeFile } from '@/lib/desktop'
+import { saveTextFile } from '@/lib/desktop'
 import { toSimpleContainer } from '@/lib/k8s'
 import { MonacoEditor } from '@/lib/monaco-loader'
 import { defineMonacoLogThemes } from '@/lib/monaco-theme'
@@ -427,7 +427,7 @@ export function LogViewer({
       const content = model.getValue()
       const podFileName = selectPodName || 'all-pods'
       const fileName = `${podFileName}-${selectedContainer || 'pod'}-logs.txt`
-      const nativeResult = await saveNativeFile({
+      await saveTextFile({
         title: 'Save Logs',
         message: 'Choose where to save the exported logs',
         buttonText: 'Save',
@@ -440,19 +440,6 @@ export function LogViewer({
           },
         ],
       })
-      if (nativeResult) {
-        return
-      }
-
-      const blob = new Blob([content], { type: 'text/plain' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = fileName
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
     }
   }
 

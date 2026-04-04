@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react'
 import { toast } from 'sonner'
 
+import { copyTextToClipboard } from '@/lib/desktop'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -48,8 +49,8 @@ export function KeyValueDataViewer({
     setRevealedKeys(allRevealed ? new Set() : new Set(keys))
   }
 
-  const copyToClipboard = (value: string) => {
-    navigator.clipboard.writeText(value)
+  const copyToClipboard = async (value: string) => {
+    await copyTextToClipboard(value)
     toast.success('Copied to clipboard')
   }
 

@@ -2,10 +2,9 @@ import { FormEvent, useEffect, useState } from 'react'
 import Logo from '@/assets/icon.svg'
 import { useAuth } from '@/contexts/auth-context'
 import { useTranslation } from 'react-i18next'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 
 import type { CredentialProvider } from '@/lib/api'
-import { withSubPath } from '@/lib/subpath'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -32,6 +31,7 @@ export function LoginPage() {
     isLoading,
     isLocalMode,
   } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [loginLoading, setLoginLoading] = useState<string | null>(null)
   const [username, setUsername] = useState('')
@@ -224,7 +224,7 @@ export function LoginPage() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          window.location.href = withSubPath('/login')
+                          navigate('/login', { replace: true })
                         }}
                         className="w-full"
                       >

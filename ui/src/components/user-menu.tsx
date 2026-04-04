@@ -1,7 +1,17 @@
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { CaseSensitive, Check, LogOut, Palette, Settings2 } from 'lucide-react'
+import {
+  CaseSensitive,
+  Check,
+  FolderCog,
+  Logs,
+  LogOut,
+  Palette,
+  Settings2,
+} from 'lucide-react'
+import { toast } from 'sonner'
 
+import { openConfigDir, openLogsDir } from '@/lib/desktop'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +54,24 @@ export function UserMenu() {
     } catch (error) {
       console.error('Logout failed:', error)
     }
+  }
+
+  const handleOpenConfigDir = () => {
+    void openConfigDir().catch((error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to open config directory'
+      )
+    })
+  }
+
+  const handleOpenLogsDir = () => {
+    void openLogsDir().catch((error) => {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to open logs directory'
+      )
+    })
   }
 
   return (
@@ -90,6 +118,20 @@ export function UserMenu() {
         )}
 
         {!isLocalMode && <DropdownMenuSeparator />}
+
+        {isLocalMode && (
+          <>
+            <DropdownMenuItem onClick={handleOpenConfigDir}>
+              <FolderCog className="mr-2 h-4 w-4" />
+              <span>Open Config Directory</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleOpenLogsDir}>
+              <Logs className="mr-2 h-4 w-4" />
+              <span>Open Logs Directory</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        )}
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>

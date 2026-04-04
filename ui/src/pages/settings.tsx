@@ -8,6 +8,7 @@ import { APIKeyManagement } from '@/components/settings/apikey-management'
 import { AuditLog } from '@/components/settings/audit-log'
 import { AuthenticationManagement } from '@/components/settings/authentication-management'
 import { ClusterManagement } from '@/components/settings/cluster-management'
+import { DesktopManagement } from '@/components/settings/desktop-management'
 import { GeneralManagement } from '@/components/settings/general-management'
 import { RBACManagement } from '@/components/settings/rbac-management'
 import { TemplateManagement } from '@/components/settings/template-management'
@@ -24,6 +25,11 @@ export function SettingsPage() {
     label: string
     content: ReactNode
   }> = [
+    {
+      value: 'desktop',
+      label: t('settings.tabs.desktop', 'Desktop'),
+      content: <DesktopManagement />,
+    },
     {
       value: 'general',
       label: t('settings.tabs.general', 'General'),

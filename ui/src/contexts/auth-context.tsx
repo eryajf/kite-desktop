@@ -8,7 +8,7 @@ import {
 } from 'react'
 
 import type { AuthProviderCatalog, CredentialProvider } from '@/lib/api'
-import { getDesktopStatus, type DesktopStatus } from '@/lib/desktop'
+import { DESKTOP_LOCAL_RUNTIME, getDesktopStatus } from '@/lib/desktop'
 import { withSubPath } from '@/lib/subpath'
 
 interface UserData {
@@ -233,13 +233,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const desktopStatus = await getDesktopStatus().catch(
-        (): DesktopStatus => ({
-          enabled: false,
-        })
-      )
+      const desktopStatus = await getDesktopStatus().catch(() => null)
       const desktopMode =
-        desktopStatus.enabled && desktopStatus.runtime === 'desktop-local'
+        desktopStatus?.enabled === true &&
+        desktopStatus.runtime === DESKTOP_LOCAL_RUNTIME
       setIsLocalMode(desktopMode)
 
       if (!desktopMode) {

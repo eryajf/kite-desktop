@@ -13,7 +13,7 @@ import {
 } from '@/types/api'
 
 import { API_BASE_URL, apiClient } from '../api-client'
-import { openURL } from '../desktop'
+import { downloadNativeFile, openURL } from '../desktop'
 import { withSubPath } from '../subpath'
 import { fetchAPI } from './shared'
 
@@ -569,7 +569,19 @@ export const podDownloadFile = (
   const url = withSubPath(
     `${API_BASE_URL}/pods/${namespace}/${podName}/files/download?${params.toString()}`
   )
-  void openURL(url)
+  const suggestedName = path.split('/').filter(Boolean).pop() || 'download'
+
+  void downloadNativeFile({
+    title: 'Save File',
+    message: 'Choose where to save the downloaded file',
+    buttonText: 'Save',
+    suggestedName,
+    url,
+  }).then((result) => {
+    if (result === null) {
+      void openURL(url)
+    }
+  })
 }
 
 export const podPreviewFile = (

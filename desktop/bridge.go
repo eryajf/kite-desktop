@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,6 +17,7 @@ import (
 
 type desktopBridge struct {
 	app         *application.App
+	host        *desktopHost
 	baseURL     *url.URL
 	windowIndex atomic.Uint64
 }
@@ -32,6 +34,26 @@ type desktopStatusResponse struct {
 	Enabled      bool                `json:"enabled"`
 	Runtime      string              `json:"runtime"`
 	Capabilities desktopCapabilities `json:"capabilities"`
+}
+
+type desktopActionResponse struct {
+	OK bool `json:"ok"`
+}
+
+type desktopAppPaths struct {
+	ConfigDir string `json:"configDir"`
+	LogsDir   string `json:"logsDir"`
+	CacheDir  string `json:"cacheDir"`
+	TempDir   string `json:"tempDir"`
+}
+
+type desktopAppInfoResponse struct {
+	Name      string          `json:"name"`
+	Runtime   string          `json:"runtime"`
+	Version   string          `json:"version"`
+	BuildDate string          `json:"buildDate"`
+	CommitID  string          `json:"commitId"`
+	Paths     desktopAppPaths `json:"paths"`
 }
 
 type openURLRequest struct {
@@ -79,7 +101,35 @@ type saveFileResponse struct {
 	Path     string `json:"path,omitempty"`
 }
 
-func newDesktopBridge(app *application.App, baseURL string) (*desktopBridge, error) {
+type downloadToPathRequest struct {
+	Title         string           `json:"title"`
+	Message       string           `json:"message"`
+	ButtonText    string           `json:"buttonText"`
+	Directory     string           `json:"directory"`
+	SuggestedName string           `json:"suggestedName"`
+	URL           string           `json:"url"`
+	Filters       []openFileFilter `json:"filters"`
+}
+
+type downloadToPathResponse struct {
+	Canceled     bool   `json:"canceled"`
+	Path         string `json:"path,omitempty"`
+	BytesWritten int64  `json:"bytesWritten,omitempty"`
+}
+
+type desktopPathRequest struct {
+	Path string `json:"path"`
+}
+
+type desktopCopyRequest struct {
+	Text string `json:"text"`
+}
+
+type desktopImportKubeconfigRequest struct {
+	Content string `json:"content"`
+}
+
+func newDesktopBridge(app *application.App, baseURL string, host *desktopHost) (*desktopBridge, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse desktop base url failed: %w", err)
@@ -87,6 +137,7 @@ func newDesktopBridge(app *application.App, baseURL string) (*desktopBridge, err
 
 	return &desktopBridge{
 		app:     app,
+		host:    host,
 		baseURL: parsed,
 	}, nil
 }
@@ -95,23 +146,42 @@ func (d *desktopBridge) registerRoutes(engine *gin.Engine) {
 	base := engine.Group(common.Base)
 	api := base.Group("/api/desktop")
 	api.GET("/status", d.handleStatus)
+	api.GET("/app-info", d.handleAppInfo)
 	api.POST("/open-url", d.handleOpenURL)
 	api.POST("/open-file", d.handleOpenFile)
 	api.POST("/save-file", d.handleSaveFile)
+	api.POST("/download-to-path", d.handleDownloadToPath)
+	api.POST("/open-path", d.handleOpenPath)
+	api.POST("/reveal-path", d.handleRevealPath)
+	api.POST("/open-logs-dir", d.handleOpenLogsDir)
+	api.POST("/open-config-dir", d.handleOpenConfigDir)
+	api.POST("/window/focus", d.handleFocusWindow)
+	api.POST("/window/hide", d.handleHideWindow)
+	api.POST("/window/quit", d.handleQuitWindow)
+	api.POST("/copy-to-clipboard", d.handleCopyToClipboard)
+	api.POST("/import-kubeconfig", d.handleImportKubeconfig)
 }
 
 func (d *desktopBridge) handleStatus(c *gin.Context) {
+	capabilities := desktopCapabilities{}
+	if d.host != nil {
+		capabilities = d.host.capabilities()
+	}
+
 	c.JSON(http.StatusOK, desktopStatusResponse{
-		Enabled: common.DesktopLocalMode,
-		Runtime: common.AppRuntime,
-		Capabilities: desktopCapabilities{
-			NativeFileDialog: true,
-			NativeSaveDialog: true,
-			Tray:             false,
-			Menu:             false,
-			SingleInstance:   false,
-		},
+		Enabled:      common.DesktopLocalMode,
+		Runtime:      common.AppRuntime,
+		Capabilities: capabilities,
 	})
+}
+
+func (d *desktopBridge) handleAppInfo(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	c.JSON(http.StatusOK, d.host.appInfo())
 }
 
 func (d *desktopBridge) handleOpenURL(c *gin.Context) {
@@ -256,6 +326,207 @@ func (d *desktopBridge) handleSaveFile(c *gin.Context) {
 	})
 }
 
+func (d *desktopBridge) handleDownloadToPath(c *gin.Context) {
+	var req downloadToPathRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid download-to-path payload"})
+		return
+	}
+	if strings.TrimSpace(req.URL) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	targetURL, _, err := d.resolveURL(req.URL)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	dialog := d.app.Dialog.SaveFile().CanCreateDirectories(true)
+	if req.Message != "" {
+		dialog.SetMessage(req.Message)
+	}
+	if req.ButtonText != "" {
+		dialog.SetButtonText(req.ButtonText)
+	}
+	if req.Directory != "" {
+		dialog.SetDirectory(req.Directory)
+	}
+	if req.SuggestedName != "" {
+		dialog.SetFilename(req.SuggestedName)
+	} else if name := filepath.Base(targetURL.Path); name != "" && name != "." && name != "/" {
+		dialog.SetFilename(name)
+	}
+	if window, ok := d.app.Window.GetByName("main"); ok {
+		dialog.AttachToWindow(window)
+	}
+	for _, filter := range req.Filters {
+		if filter.DisplayName == "" || filter.Pattern == "" {
+			continue
+		}
+		dialog.AddFilter(filter.DisplayName, filter.Pattern)
+	}
+
+	path, err := dialog.PromptForSingleSelection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if path == "" {
+		c.JSON(http.StatusOK, downloadToPathResponse{Canceled: true})
+		return
+	}
+
+	bytesWritten, err := d.downloadToPath(targetURL.String(), path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, downloadToPathResponse{
+		Canceled:     false,
+		Path:         path,
+		BytesWritten: bytesWritten,
+	})
+}
+
+func (d *desktopBridge) handleOpenPath(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopPathRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid open-path payload"})
+		return
+	}
+	if err := d.host.openPath(req.Path); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleRevealPath(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopPathRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid reveal-path payload"})
+		return
+	}
+	if err := d.host.revealPath(req.Path); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleOpenLogsDir(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+	if err := d.host.openLogsDir(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleOpenConfigDir(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+	if err := d.host.openConfigDir(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleFocusWindow(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+	d.host.focusMainWindow()
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleHideWindow(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+	d.host.hideMainWindow()
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleQuitWindow(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+	d.host.quit()
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleCopyToClipboard(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopCopyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid copy-to-clipboard payload"})
+		return
+	}
+	if err := d.host.copyToClipboard(req.Text); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleImportKubeconfig(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopImportKubeconfigRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid import-kubeconfig payload"})
+		return
+	}
+
+	var err error
+	if strings.TrimSpace(req.Content) != "" {
+		err = d.host.importKubeconfigContent(req.Content)
+	} else {
+		err = d.host.importKubeconfigFromDialog()
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
 func (d *desktopBridge) resolveURL(rawURL string) (*url.URL, bool, error) {
 	target, err := url.Parse(rawURL)
 	if err != nil {
@@ -307,6 +578,26 @@ func (d *desktopBridge) openInternalWindow(targetURL string, req openURLRequest)
 		MinWidth:  minWidth,
 		MinHeight: minHeight,
 	}))
+}
+
+func (d *desktopBridge) downloadToPath(rawURL, path string) (int64, error) {
+	response, err := http.Get(rawURL)
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return 0, fmt.Errorf("download failed with status %d", response.StatusCode)
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	return io.Copy(file, response.Body)
 }
 
 func sameOrigin(left *url.URL, right *url.URL) bool {

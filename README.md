@@ -73,6 +73,23 @@ Build the desktop app:
 make desktop-build
 ```
 
+## Current Desktop Capabilities
+
+The current desktop runtime already includes:
+
+- explicit runtime identity via `APP_RUNTIME=desktop-local`
+- backend-driven local desktop user identity
+- single instance activation
+- tray and application menu
+- window hide-on-close and window state restore
+- native file open/save flows for desktop-specific actions
+- open config/log directories from the desktop host
+
+Reference docs:
+
+- [Desktop Runtime Contract](./docs/desktop-runtime-contract.md)
+- [Desktop Feature Boundary](./docs/desktop-feature-boundary.md)
+
 ## Release Targets
 
 The project is being prepared around desktop distribution, including:

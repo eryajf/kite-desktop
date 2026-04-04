@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 
 import { APIKey } from '@/types/api'
 import { createAPIKey, deleteAPIKey, useAPIKeyList } from '@/lib/api'
+import { copyTextToClipboard } from '@/lib/desktop'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -48,8 +49,8 @@ export function APIKeyManagement() {
   }, [])
 
   const copyToClipboard = useCallback(
-    (text: string) => {
-      navigator.clipboard.writeText(text)
+    async (text: string) => {
+      await copyTextToClipboard(text)
       toast.success(t('common.copied', 'Copied to clipboard'))
     },
     [t]
