@@ -127,6 +127,9 @@ func configureDesktopEnv(port int) error {
 	if err := os.Setenv("HOST", fmt.Sprintf("http://127.0.0.1:%d", port)); err != nil {
 		return fmt.Errorf("set HOST failed: %w", err)
 	}
+	if err := os.Setenv("ANONYMOUS_USER_ENABLED", "true"); err != nil {
+		return fmt.Errorf("set ANONYMOUS_USER_ENABLED failed: %w", err)
+	}
 
 	return nil
 }

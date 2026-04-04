@@ -20,7 +20,7 @@ import { ColorTheme, colorThemes } from '@/components/color-theme-provider'
 import { SidebarCustomizer } from './sidebar-customizer'
 
 export function UserMenu() {
-  const { user, logout, hasGlobalSidebarPreference } = useAuth()
+  const { user, logout, hasGlobalSidebarPreference, isLocalMode } = useAuth()
   const { colorTheme, setColorTheme, font, setFont } = useAppearance()
   const [open, setOpen] = useState(false)
 
@@ -36,6 +36,9 @@ export function UserMenu() {
   }
 
   const handleLogout = async () => {
+    if (isLocalMode) {
+      return
+    }
     try {
       await logout()
     } catch (error) {
@@ -63,7 +66,9 @@ export function UserMenu() {
           <div className="flex flex-col space-y-1 leading-none">
             {user.name && <p className="font-medium">{user.name}</p>}
             <p className="text-xs text-muted-foreground">{user.username}</p>
-            {user.provider && (
+            {isLocalMode ? (
+              <p className="text-xs text-muted-foreground">Local desktop mode</p>
+            ) : (
               <p className="text-xs text-muted-foreground capitalize">
                 via {user.provider}
               </p>
@@ -155,7 +160,7 @@ export function UserMenu() {
           <SidebarCustomizer onOpenChange={(d) => setOpen(d)} />
         )}
 
-        {user.provider !== 'Anonymous' && (
+        {!isLocalMode && user.provider !== 'Anonymous' && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem

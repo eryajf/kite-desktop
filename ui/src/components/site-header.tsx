@@ -31,14 +31,15 @@ const CreateResourceDialog = lazy(async () => {
 export function SiteHeader() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, isLocalMode } = useAuth()
   const { toggleTerminal, isOpen } = useTerminal()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const isAdmin = user?.isAdmin() ?? false
   const { data: generalSetting } = useGeneralSetting({
-    enabled: isAdmin,
+    enabled: isLocalMode || isAdmin,
   })
   const kubectlEnabled = generalSetting?.kubectlEnabled ?? true
+  const canManageSettings = isLocalMode || isAdmin
 
   return (
     <>
@@ -57,7 +58,7 @@ export function SiteHeader() {
               onClick={() => setCreateDialogOpen(true)}
               aria-label="Create new resource"
             />
-            {isAdmin && kubectlEnabled && (
+            {canManageSettings && kubectlEnabled && (
               <button
                 onClick={toggleTerminal}
                 title="Kubectl Terminal"
@@ -77,7 +78,7 @@ export function SiteHeader() {
                   orientation="vertical"
                   className="mx-2 data-[orientation=vertical]:h-4"
                 />
-                {isAdmin && (
+                {canManageSettings && (
                   <Button
                     variant="ghost"
                     size="icon"

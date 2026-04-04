@@ -30,6 +30,7 @@ export function LoginPage() {
     credentialProviders,
     oauthProviders,
     isLoading,
+    isLocalMode,
   } = useAuth()
   const [searchParams] = useSearchParams()
   const [loginLoading, setLoginLoading] = useState<string | null>(null)
@@ -51,7 +52,7 @@ export function LoginPage() {
     }
   }, [credentialProviders, credentialsProvider])
 
-  if (user && !isLoading) {
+  if ((user || isLocalMode) && !isLoading) {
     return <Navigate to="/" replace />
   }
 
