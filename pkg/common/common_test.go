@@ -16,6 +16,8 @@ func TestLoadEnvs(t *testing.T) {
 		DBDSN                string
 		DBType               string
 		KiteEncryptKey       string
+		AppRuntime           string
+		DesktopLocalMode     bool
 		AnonymousUserEnabled bool
 		Host                 string
 		DisableGZIP          bool
@@ -32,6 +34,8 @@ func TestLoadEnvs(t *testing.T) {
 		DBDSN:                DBDSN,
 		DBType:               DBType,
 		KiteEncryptKey:       KiteEncryptKey,
+		AppRuntime:           AppRuntime,
+		DesktopLocalMode:     DesktopLocalMode,
 		AnonymousUserEnabled: AnonymousUserEnabled,
 		Host:                 Host,
 		DisableGZIP:          DisableGZIP,
@@ -49,6 +53,8 @@ func TestLoadEnvs(t *testing.T) {
 		DBDSN = old.DBDSN
 		DBType = old.DBType
 		KiteEncryptKey = old.KiteEncryptKey
+		AppRuntime = old.AppRuntime
+		DesktopLocalMode = old.DesktopLocalMode
 		AnonymousUserEnabled = old.AnonymousUserEnabled
 		Host = old.Host
 		DisableGZIP = old.DisableGZIP
@@ -121,6 +127,44 @@ func TestLoadEnvs(t *testing.T) {
 	wantOrigins := []string{"http://localhost:5173", "https://example.com"}
 	if !reflect.DeepEqual(CORSAllowedOrigins, wantOrigins) {
 		t.Fatalf("CORSAllowedOrigins = %#v, want %#v", CORSAllowedOrigins, wantOrigins)
+	}
+}
+
+func TestLoadEnvs_DesktopLocalRuntime(t *testing.T) {
+	old := struct {
+		KiteEncryptKey       string
+		AppRuntime           string
+		DesktopLocalMode     bool
+		AnonymousUserEnabled bool
+		CORSAllowedOrigins   []string
+	}{
+		KiteEncryptKey:       KiteEncryptKey,
+		AppRuntime:           AppRuntime,
+		DesktopLocalMode:     DesktopLocalMode,
+		AnonymousUserEnabled: AnonymousUserEnabled,
+		CORSAllowedOrigins:   append([]string(nil), CORSAllowedOrigins...),
+	}
+	defer func() {
+		KiteEncryptKey = old.KiteEncryptKey
+		AppRuntime = old.AppRuntime
+		DesktopLocalMode = old.DesktopLocalMode
+		AnonymousUserEnabled = old.AnonymousUserEnabled
+		CORSAllowedOrigins = append([]string(nil), old.CORSAllowedOrigins...)
+	}()
+
+	t.Setenv("KITE_ENCRYPT_KEY", "test-encrypt-key")
+	t.Setenv("APP_RUNTIME", RuntimeDesktopLocal)
+
+	LoadEnvs()
+
+	if AppRuntime != RuntimeDesktopLocal {
+		t.Fatalf("AppRuntime = %q, want %q", AppRuntime, RuntimeDesktopLocal)
+	}
+	if !DesktopLocalMode {
+		t.Fatal("DesktopLocalMode = false, want true")
+	}
+	if AnonymousUserEnabled {
+		t.Fatal("AnonymousUserEnabled = true, want false")
 	}
 }
 

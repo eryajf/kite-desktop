@@ -8,7 +8,7 @@ import {
 } from 'react'
 
 import type { AuthProviderCatalog, CredentialProvider } from '@/lib/api'
-import { isDesktopMode } from '@/lib/desktop'
+import { getDesktopStatus, type DesktopStatus } from '@/lib/desktop'
 import { withSubPath } from '@/lib/subpath'
 
 interface UserData {
@@ -85,25 +85,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const createLocalUser = (): User =>
-    attachUserHelpers({
-      id: 'local',
-      username: 'local',
-      name: 'Local User',
-      avatar_url: '',
-      provider: 'Local',
-      roles: [{ name: 'admin' }],
-    })
-
-  const normalizeLocalUser = (rawUser: UserData): User =>
-    attachUserHelpers({
-      ...rawUser,
-      username: 'local',
-      name: rawUser.name || 'Local User',
-      avatar_url: rawUser.avatar_url || '',
-      provider: 'Local',
-    })
-
   const loadProviders = async () => {
     try {
       const response = await fetch(withSubPath('/api/auth/providers'))
@@ -131,7 +112,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const checkAuth = async (localMode = isLocalMode) => {
+  const checkAuth = async () => {
     try {
       const response = await fetch(withSubPath('/api/auth/user'), {
         credentials: 'include',
@@ -139,21 +120,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json()
-        const user = localMode
-          ? normalizeLocalUser(data.user as UserData)
-          : attachUserHelpers(data.user as UserData)
+        const user = attachUserHelpers(data.user as UserData)
         setGlobalSidebarPreference(String(data.globalSidebarPreference || ''))
         setUser(user)
-      } else if (localMode) {
-        setUser(createLocalUser())
-        setGlobalSidebarPreference('')
       } else {
         setUser(null)
         setGlobalSidebarPreference('')
       }
     } catch (error) {
       console.error('Auth check failed:', error)
-      setUser(localMode ? createLocalUser() : null)
+      setUser(null)
       setGlobalSidebarPreference('')
     } finally {
       setIsLoading(false)
@@ -257,7 +233,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const desktopMode = await isDesktopMode().catch(() => false)
+      const desktopStatus = await getDesktopStatus().catch(
+        (): DesktopStatus => ({
+          enabled: false,
+        })
+      )
+      const desktopMode =
+        desktopStatus.enabled && desktopStatus.runtime === 'desktop-local'
       setIsLocalMode(desktopMode)
 
       if (!desktopMode) {
@@ -267,7 +249,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setOAuthProviders([])
       }
 
-      await checkAuth(desktopMode)
+      await checkAuth()
     }
     initAuth()
   }, [])

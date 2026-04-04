@@ -9,10 +9,12 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 	appserver "github.com/zxh326/kite/internal/server"
 	"github.com/zxh326/kite/pkg/common"
 )
@@ -41,7 +43,7 @@ func main() {
 			}
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
 
@@ -61,22 +63,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:               "main",
-		Title:              "Kite",
-		Width:              1480,
-		Height:             960,
-		MinWidth:           1100,
-		MinHeight:          760,
-		BackgroundColour:   application.NewRGB(250, 250, 248),
-		DevToolsEnabled:    true,
-		EnableFileDrop:     true,
-		UseApplicationMenu: true,
-		URL:                serverStartURL(baseURL),
-		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBarHiddenInset,
-		},
-	})
+	mainWindow := app.Window.NewWithOptions(desktopWindowOptions(application.WebviewWindowOptions{
+		Name:           "main",
+		Title:          "Kite",
+		Width:          1480,
+		Height:         960,
+		MinWidth:       1100,
+		MinHeight:      760,
+		EnableFileDrop: true,
+		URL:            serverStartURL(baseURL),
+	}))
+	registerMainWindowHooks(app, mainWindow)
 
 	if err := app.Run(); err != nil {
 		log.Fatal(err)
@@ -114,6 +111,15 @@ func configureDesktopEnv(port int) error {
 	if err := os.MkdirAll(dataDir, 0o755); err != nil {
 		return fmt.Errorf("create desktop data dir failed: %w", err)
 	}
+	for _, dir := range []string{
+		filepath.Join(dataDir, "logs"),
+		filepath.Join(dataDir, "cache"),
+		filepath.Join(dataDir, "tmp"),
+	} {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return fmt.Errorf("create desktop subdirectory %q failed: %w", dir, err)
+		}
+	}
 
 	if os.Getenv("DB_DSN") == "" {
 		if err := os.Setenv("DB_DSN", filepath.Join(dataDir, "kite.db")); err != nil {
@@ -127,8 +133,8 @@ func configureDesktopEnv(port int) error {
 	if err := os.Setenv("HOST", fmt.Sprintf("http://127.0.0.1:%d", port)); err != nil {
 		return fmt.Errorf("set HOST failed: %w", err)
 	}
-	if err := os.Setenv("ANONYMOUS_USER_ENABLED", "true"); err != nil {
-		return fmt.Errorf("set ANONYMOUS_USER_ENABLED failed: %w", err)
+	if err := os.Setenv("APP_RUNTIME", common.RuntimeDesktopLocal); err != nil {
+		return fmt.Errorf("set APP_RUNTIME failed: %w", err)
 	}
 
 	return nil
@@ -172,4 +178,31 @@ func serverHealthURL(baseURL string) string {
 		return baseURL + "/healthz"
 	}
 	return baseURL + common.Base + "/healthz"
+}
+
+func desktopWindowOptions(opts application.WebviewWindowOptions) application.WebviewWindowOptions {
+	opts.BackgroundColour = application.NewRGB(250, 250, 248)
+	opts.DevToolsEnabled = desktopDevMode()
+	opts.UseApplicationMenu = true
+	opts.Mac = application.MacWindow{}
+	return opts
+}
+
+func desktopDevMode() bool {
+	return os.Getenv("DEV") == "true"
+}
+
+func registerMainWindowHooks(app *application.App, window *application.WebviewWindow) {
+	if runtime.GOOS != "darwin" {
+		return
+	}
+
+	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		window.Hide()
+		event.Cancel()
+	})
+
+	app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(event *application.ApplicationEvent) {
+		window.Show()
+	})
 }

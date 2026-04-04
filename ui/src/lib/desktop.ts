@@ -1,5 +1,19 @@
 import { withSubPath } from './subpath'
 
+export interface DesktopCapabilities {
+  nativeFileDialog: boolean
+  nativeSaveDialog: boolean
+  tray: boolean
+  menu: boolean
+  singleInstance: boolean
+}
+
+export interface DesktopStatus {
+  enabled: boolean
+  runtime?: string
+  capabilities?: Partial<DesktopCapabilities>
+}
+
 export interface DesktopWindowOptions {
   title?: string
   width?: number
@@ -29,11 +43,36 @@ export interface NativeFileSelection {
   content?: string
 }
 
+export interface NativeSaveFileOptions {
+  title?: string
+  message?: string
+  buttonText?: string
+  directory?: string
+  suggestedName?: string
+  content: string
+  filters?: NativeFileFilter[]
+}
+
+export interface NativeSaveFileResult {
+  canceled: boolean
+  path?: string
+}
+
 let desktopModePromise: Promise<boolean> | null = null
+let desktopStatusPromise: Promise<DesktopStatus> | null = null
+
+export function getDesktopStatus(): Promise<DesktopStatus> {
+  if (!desktopStatusPromise) {
+    desktopStatusPromise = fetchDesktopStatus()
+  }
+  return desktopStatusPromise
+}
 
 export function isDesktopMode(): Promise<boolean> {
   if (!desktopModePromise) {
-    desktopModePromise = fetchDesktopMode()
+    desktopModePromise = getDesktopStatus().then(
+      (status) => status.enabled && status.runtime === 'desktop-local'
+    )
   }
   return desktopModePromise
 }
@@ -68,6 +107,16 @@ export async function openNativeFile(
     readContent: true,
     ...options,
   })
+}
+
+export async function saveNativeFile(
+  options: NativeSaveFileOptions
+): Promise<NativeSaveFileResult | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  return postDesktop<NativeSaveFileResult>('/api/desktop/save-file', options)
 }
 
 export function installDesktopTargetBlankInterceptor(): () => void {
@@ -122,21 +171,20 @@ export function installDesktopTargetBlankInterceptor(): () => void {
   }
 }
 
-async function fetchDesktopMode(): Promise<boolean> {
+async function fetchDesktopStatus(): Promise<DesktopStatus> {
   try {
     const response = await fetch(withSubPath('/api/desktop/status'), {
       credentials: 'include',
     })
     if (!response.ok) {
-      return false
+      return { enabled: false }
     }
 
-    const data = (await response.json().catch(() => ({}))) as {
-      enabled?: boolean
-    }
-    return data.enabled === true
+    return (await response.json().catch(() => ({
+      enabled: false,
+    }))) as DesktopStatus
   } catch {
-    return false
+    return { enabled: false }
   }
 }
 

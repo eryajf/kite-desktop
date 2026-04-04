@@ -108,6 +108,12 @@ func GetAnonymousUser() *User {
 	return user
 }
 
+func GetLocalDesktopUser() User {
+	user := LocalDesktopUser
+	user.Roles = append([]common.Role(nil), LocalDesktopUser.Roles...)
+	return user
+}
+
 func FindWithSubOrUpsertUser(user *User) error {
 	if user.Sub == "" {
 		return errors.New("user sub is empty")
@@ -360,6 +366,25 @@ var (
 		},
 		Username: "anonymous",
 		Provider: "Anonymous",
+		Roles: []common.Role{
+			{
+				Name:       "admin",
+				Clusters:   []string{"*"},
+				Resources:  []string{"*"},
+				Namespaces: []string{"*"},
+				Verbs:      []string{"*"},
+			},
+		},
+	}
+
+	LocalDesktopUser = User{
+		Model: Model{
+			ID: 0,
+		},
+		Username: "local",
+		Name:     "Local User",
+		Provider: "DesktopLocal",
+		Enabled:  true,
 		Roles: []common.Role{
 			{
 				Name:       "admin",

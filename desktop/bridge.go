@@ -20,6 +20,20 @@ type desktopBridge struct {
 	windowIndex atomic.Uint64
 }
 
+type desktopCapabilities struct {
+	NativeFileDialog bool `json:"nativeFileDialog"`
+	NativeSaveDialog bool `json:"nativeSaveDialog"`
+	Tray             bool `json:"tray"`
+	Menu             bool `json:"menu"`
+	SingleInstance   bool `json:"singleInstance"`
+}
+
+type desktopStatusResponse struct {
+	Enabled      bool                `json:"enabled"`
+	Runtime      string              `json:"runtime"`
+	Capabilities desktopCapabilities `json:"capabilities"`
+}
+
 type openURLRequest struct {
 	URL       string `json:"url"`
 	Title     string `json:"title"`
@@ -50,6 +64,21 @@ type openFileResponse struct {
 	Content  string `json:"content,omitempty"`
 }
 
+type saveFileRequest struct {
+	Title         string           `json:"title"`
+	Message       string           `json:"message"`
+	ButtonText    string           `json:"buttonText"`
+	Directory     string           `json:"directory"`
+	SuggestedName string           `json:"suggestedName"`
+	Content       string           `json:"content"`
+	Filters       []openFileFilter `json:"filters"`
+}
+
+type saveFileResponse struct {
+	Canceled bool   `json:"canceled"`
+	Path     string `json:"path,omitempty"`
+}
+
 func newDesktopBridge(app *application.App, baseURL string) (*desktopBridge, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
@@ -68,10 +97,21 @@ func (d *desktopBridge) registerRoutes(engine *gin.Engine) {
 	api.GET("/status", d.handleStatus)
 	api.POST("/open-url", d.handleOpenURL)
 	api.POST("/open-file", d.handleOpenFile)
+	api.POST("/save-file", d.handleSaveFile)
 }
 
 func (d *desktopBridge) handleStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"enabled": true})
+	c.JSON(http.StatusOK, desktopStatusResponse{
+		Enabled: common.DesktopLocalMode,
+		Runtime: common.AppRuntime,
+		Capabilities: desktopCapabilities{
+			NativeFileDialog: true,
+			NativeSaveDialog: true,
+			Tray:             false,
+			Menu:             false,
+			SingleInstance:   false,
+		},
+	})
 }
 
 func (d *desktopBridge) handleOpenURL(c *gin.Context) {
@@ -166,6 +206,56 @@ func (d *desktopBridge) handleOpenFile(c *gin.Context) {
 	c.JSON(http.StatusOK, resp)
 }
 
+func (d *desktopBridge) handleSaveFile(c *gin.Context) {
+	var req saveFileRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid save-file payload"})
+		return
+	}
+
+	dialog := d.app.Dialog.SaveFile().CanCreateDirectories(true)
+	if req.Message != "" {
+		dialog.SetMessage(req.Message)
+	}
+	if req.ButtonText != "" {
+		dialog.SetButtonText(req.ButtonText)
+	}
+	if req.Directory != "" {
+		dialog.SetDirectory(req.Directory)
+	}
+	if req.SuggestedName != "" {
+		dialog.SetFilename(req.SuggestedName)
+	}
+	if window, ok := d.app.Window.GetByName("main"); ok {
+		dialog.AttachToWindow(window)
+	}
+	for _, filter := range req.Filters {
+		if filter.DisplayName == "" || filter.Pattern == "" {
+			continue
+		}
+		dialog.AddFilter(filter.DisplayName, filter.Pattern)
+	}
+
+	path, err := dialog.PromptForSingleSelection()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if path == "" {
+		c.JSON(http.StatusOK, saveFileResponse{Canceled: true})
+		return
+	}
+	if err := os.WriteFile(path, []byte(req.Content), 0o644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, saveFileResponse{
+		Canceled: false,
+		Path:     path,
+	})
+}
+
 func (d *desktopBridge) resolveURL(rawURL string) (*url.URL, bool, error) {
 	target, err := url.Parse(rawURL)
 	if err != nil {
@@ -208,21 +298,15 @@ func (d *desktopBridge) openInternalWindow(targetURL string, req openURLRequest)
 		minHeight = 680
 	}
 
-	d.app.Window.NewWithOptions(application.WebviewWindowOptions{
-		Name:               fmt.Sprintf("desktop-%d", index),
-		Title:              title,
-		URL:                targetURL,
-		Width:              width,
-		Height:             height,
-		MinWidth:           minWidth,
-		MinHeight:          minHeight,
-		BackgroundColour:   application.NewRGB(250, 250, 248),
-		DevToolsEnabled:    true,
-		UseApplicationMenu: true,
-		Mac: application.MacWindow{
-			TitleBar: application.MacTitleBarHiddenInset,
-		},
-	})
+	d.app.Window.NewWithOptions(desktopWindowOptions(application.WebviewWindowOptions{
+		Name:      fmt.Sprintf("desktop-%d", index),
+		Title:     title,
+		URL:       targetURL,
+		Width:     width,
+		Height:    height,
+		MinWidth:  minWidth,
+		MinHeight: minHeight,
+	}))
 }
 
 func sameOrigin(left *url.URL, right *url.URL) bool {

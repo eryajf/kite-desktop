@@ -52,6 +52,11 @@ func (h *AuthHandler) RequireAPIKeyAuth(c *gin.Context, token string) {
 
 func (h *AuthHandler) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if common.DesktopLocalMode {
+			c.Set("user", model.GetLocalDesktopUser())
+			c.Next()
+			return
+		}
 		if common.AnonymousUserEnabled {
 			u := model.GetAnonymousUser()
 			if u == nil {

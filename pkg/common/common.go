@@ -11,6 +11,8 @@ import (
 const (
 	JWTExpirationSeconds = 24 * 60 * 60 // 24 hours
 	DefaultJWTSecret     = "kite-default-jwt-secret-key-change-in-production"
+	RuntimeServer        = "server"
+	RuntimeDesktopLocal  = "desktop-local"
 
 	NodeTerminalPodName    = "kite-node-terminal-agent"
 	KubectlTerminalPodName = "kite-kubectl-agent"
@@ -37,6 +39,9 @@ var (
 
 	KiteEncryptKey = "kite-default-encryption-key-change-in-production"
 
+	AppRuntime       = RuntimeServer
+	DesktopLocalMode = false
+
 	AnonymousUserEnabled = false
 
 	CookieExpirationSeconds = 2 * JWTExpirationSeconds // double jwt
@@ -55,6 +60,11 @@ var (
 )
 
 func LoadEnvs() {
+	AppRuntime = RuntimeServer
+	DesktopLocalMode = false
+	AnonymousUserEnabled = false
+	CORSAllowedOrigins = nil
+
 	if secret := os.Getenv("JWT_SECRET"); secret != "" {
 		JwtSecret = secret
 	}
@@ -93,6 +103,14 @@ func LoadEnvs() {
 		KiteEncryptKey = key
 	} else {
 		klog.Warningf("KITE_ENCRYPT_KEY is not set, using default key, this is not secure for production!")
+	}
+
+	if v := strings.TrimSpace(os.Getenv("APP_RUNTIME")); v != "" {
+		AppRuntime = v
+	}
+	if AppRuntime == RuntimeDesktopLocal {
+		DesktopLocalMode = true
+		klog.Infof("Running in desktop local mode")
 	}
 
 	if v := os.Getenv("ANONYMOUS_USER_ENABLED"); v == "true" {

@@ -50,3 +50,28 @@ func TestCheckPassword(t *testing.T) {
 		t.Fatal("CheckPassword() returned true for non-matching password")
 	}
 }
+
+func TestGetLocalDesktopUser(t *testing.T) {
+	user := GetLocalDesktopUser()
+
+	if user.Username != "local" {
+		t.Fatalf("Username = %q, want %q", user.Username, "local")
+	}
+	if user.Name != "Local User" {
+		t.Fatalf("Name = %q, want %q", user.Name, "Local User")
+	}
+	if user.Provider != "DesktopLocal" {
+		t.Fatalf("Provider = %q, want %q", user.Provider, "DesktopLocal")
+	}
+	if !user.Enabled {
+		t.Fatal("Enabled = false, want true")
+	}
+	if len(user.Roles) != 1 || user.Roles[0].Name != "admin" {
+		t.Fatalf("Roles = %#v, want one admin role", user.Roles)
+	}
+
+	user.Roles[0].Name = "changed"
+	if LocalDesktopUser.Roles[0].Name != "admin" {
+		t.Fatalf("LocalDesktopUser role mutated: %#v", LocalDesktopUser.Roles)
+	}
+}
