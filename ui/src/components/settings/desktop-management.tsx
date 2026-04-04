@@ -17,13 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 
-function DetailRow({
-  label,
-  value,
-}: {
-  label: string
-  value?: string
-}) {
+function DetailRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex items-start justify-between gap-3 rounded-lg border p-3">
       <Label className="text-xs text-muted-foreground">{label}</Label>

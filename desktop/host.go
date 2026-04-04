@@ -403,7 +403,9 @@ func (h *desktopHost) importKubeconfigContent(content string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
@@ -414,9 +416,9 @@ func (h *desktopHost) importKubeconfigContent(content string) error {
 			Error string `json:"error"`
 		}
 		if json.Unmarshal(body, &errResp) == nil && strings.TrimSpace(errResp.Error) != "" {
-			return fmt.Errorf(errResp.Error)
+			return fmt.Errorf("%s", errResp.Error)
 		}
-		return fmt.Errorf(strings.TrimSpace(string(body)))
+		return fmt.Errorf("%s", strings.TrimSpace(string(body)))
 	}
 
 	return nil

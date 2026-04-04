@@ -38,7 +38,7 @@ WAILS3_DEFAULT := $(or $(shell command -v wails3 2>/dev/null),$(shell find "$$HO
 WAILS3 ?= $(WAILS3_DEFAULT)
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
-GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
+GOLANGCI_LINT = $(or $(shell command -v golangci-lint 2>/dev/null),$(LOCALBIN)/golangci-lint)
 
 # Help target
 help: ## Show this help message

@@ -32,7 +32,9 @@ func main() {
 	if err != nil {
 		failDesktopStartup(err)
 	}
-	defer listener.Close()
+	defer func() {
+		_ = listener.Close()
+	}()
 
 	var host *desktopHost
 

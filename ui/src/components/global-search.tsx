@@ -143,7 +143,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         searchText: `${overviewTitle} overview dashboard /`.toLowerCase(),
         isPinned: false,
       },
-      ...((isLocalMode || user?.isAdmin())
+      ...(isLocalMode || user?.isAdmin()
         ? [
             {
               id: 'settings',

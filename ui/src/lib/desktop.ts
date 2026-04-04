@@ -113,8 +113,7 @@ export function getDesktopStatus(): Promise<DesktopStatus> {
 export function isDesktopMode(): Promise<boolean> {
   if (!desktopModePromise) {
     desktopModePromise = getDesktopStatus().then(
-      (status) =>
-        status.enabled && status.runtime === DESKTOP_LOCAL_RUNTIME
+      (status) => status.enabled && status.runtime === DESKTOP_LOCAL_RUNTIME
     )
   }
   return desktopModePromise
@@ -319,7 +318,9 @@ async function fetchDesktopStatus(): Promise<DesktopStatus> {
       return normalizeDesktopStatus()
     }
 
-    const data = (await response.json().catch(() => ({}))) as Partial<DesktopStatus>
+    const data = (await response
+      .json()
+      .catch(() => ({}))) as Partial<DesktopStatus>
     return normalizeDesktopStatus(data)
   } catch {
     return normalizeDesktopStatus()

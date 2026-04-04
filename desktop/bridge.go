@@ -585,7 +585,9 @@ func (d *desktopBridge) downloadToPath(rawURL, path string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		_ = response.Body.Close()
+	}()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return 0, fmt.Errorf("download failed with status %d", response.StatusCode)
@@ -595,7 +597,9 @@ func (d *desktopBridge) downloadToPath(rawURL, path string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	return io.Copy(file, response.Body)
 }

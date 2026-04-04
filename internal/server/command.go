@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 	"os"
@@ -27,7 +28,7 @@ func RunUntilSignal(pprofAddr string) error {
 	}
 
 	go func() {
-		if err := runtime.Start(); err != nil && err != http.ErrServerClosed {
+		if err := runtime.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			klog.Fatalf("Failed to start server: %v", err)
 		}
 	}()

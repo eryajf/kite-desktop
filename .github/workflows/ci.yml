@@ -13,29 +13,28 @@ on:
   push:
     branches: [main]
     paths:
-      - "**/*.go"
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/*.css"
+      - ".github/workflows/ci.yml"
+      - ".golangci.yml"
+      - "Makefile"
       - "go.mod"
-      - "ui/package.json"
-      - "ui/vite.config.ts"
-      - "ui/tsconfig*.json"
-      - "ui/eslint.config.js"
+      - "go.sum"
+      - "scripts/**"
+      - "desktop/**"
+      - "ui/**"
+      - "**/*.go"
       - "Dockerfile*"
   pull_request:
     branches: [main]
     paths:
-      - "**/*.go"
-      - "**/*.ts"
-      - "**/*.tsx"
-      - "**/*.css"
       - ".github/workflows/ci.yml"
+      - ".golangci.yml"
+      - "Makefile"
       - "go.mod"
-      - "ui/package.json"
-      - "ui/vite.config.ts"
-      - "ui/tsconfig*.json"
-      - "ui/eslint.config.js"
+      - "go.sum"
+      - "scripts/**"
+      - "desktop/**"
+      - "ui/**"
+      - "**/*.go"
       - "Dockerfile*"
 
 env:
@@ -81,6 +80,10 @@ jobs:
 
       - name: Install deps
         run: make deps
+      - name: Build desktop bootstrap frontend
+        run: |
+          npm --prefix desktop/frontend ci
+          npm --prefix desktop/frontend run build
       - name: Build
         run: make build
       - name: golangci-lint

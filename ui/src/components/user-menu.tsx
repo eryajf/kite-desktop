@@ -4,8 +4,8 @@ import {
   CaseSensitive,
   Check,
   FolderCog,
-  Logs,
   LogOut,
+  Logs,
   Palette,
   Settings2,
 } from 'lucide-react'

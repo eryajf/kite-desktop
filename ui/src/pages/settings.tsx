@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 import { useTranslation } from 'react-i18next'
 
 import { usePageTitle } from '@/hooks/use-page-title'
-import { useAuth } from '@/contexts/auth-context'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
 import { APIKeyManagement } from '@/components/settings/apikey-management'
 import { AuditLog } from '@/components/settings/audit-log'
