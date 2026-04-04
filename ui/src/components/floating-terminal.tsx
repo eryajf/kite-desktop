@@ -17,12 +17,12 @@ const MIN_HEIGHT = 120
 const DEFAULT_HEIGHT_VH = 40
 
 export function FloatingTerminal() {
-  const { user } = useAuth()
+  const { user, isLocalMode } = useAuth()
   const { isOpen, isMinimized, closeTerminal, minimizeTerminal, openTerminal } =
     useTerminal()
   const isAdmin = user?.isAdmin() ?? false
   const { data: generalSetting } = useGeneralSetting({
-    enabled: isAdmin && isOpen,
+    enabled: (isLocalMode || isAdmin) && isOpen,
   })
   const kubectlEnabled = generalSetting?.kubectlEnabled ?? true
   const [isFullscreen, setIsFullscreen] = useState(false)

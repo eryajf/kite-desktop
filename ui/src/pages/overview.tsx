@@ -12,7 +12,7 @@ import { SettingsHint } from '@/components/settings-hint'
 
 export function Overview() {
   const { t } = useTranslation()
-  const { user } = useAuth()
+  const { user, isLocalMode } = useAuth()
   const [isDismissed] = useState(() => {
     const dismissed = localStorage.getItem('settings-hint-dismissed')
     if (dismissed === 'true') {
@@ -51,6 +51,7 @@ export function Overview() {
 
       <ClusterStatsCards stats={overview} isLoading={isLoading} />
       {!isDismissed &&
+        !isLocalMode &&
         user?.provider !== 'Anonymous' &&
         user?.roles?.some((role) => role.name === 'admin') && <SettingsHint />}
 

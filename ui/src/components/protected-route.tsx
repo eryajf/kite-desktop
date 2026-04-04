@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading, isLocalMode } = useAuth()
   const location = useLocation()
 
   if (isLoading) {
@@ -18,7 +18,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     )
   }
 
-  if (!user) {
+  if (!user && !isLocalMode) {
     // Redirect to login page with return URL
     return <Navigate to="/login" state={{ from: location }} replace />
   }

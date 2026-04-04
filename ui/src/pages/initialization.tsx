@@ -286,91 +286,92 @@ export function InitializationPage() {
                 </Alert>
               )}
 
-              {/* Step 1: Create Super Admin User */}
-              <InitStep
-                step={1}
-                currentStep={actualCurrentStep}
-                title={t('initialization.step1.title')}
-                description={t('initialization.step1.description')}
-                icon={IconUser}
-                completed={step >= 1}
-              >
-                <form onSubmit={handleCreateUser} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="username">
-                      {t('initialization.step1.usernameRequired')}
-                    </Label>
-                    <Input
-                      id="username"
-                      type="text"
-                      placeholder={t(
-                        'initialization.step1.usernamePlaceholder'
+              {!desktopMode && (
+                <InitStep
+                  step={1}
+                  currentStep={actualCurrentStep}
+                  title={t('initialization.step1.title')}
+                  description={t('initialization.step1.description')}
+                  icon={IconUser}
+                  completed={step >= 1}
+                >
+                  <form onSubmit={handleCreateUser} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="username">
+                        {t('initialization.step1.usernameRequired')}
+                      </Label>
+                      <Input
+                        id="username"
+                        type="text"
+                        placeholder={t(
+                          'initialization.step1.usernamePlaceholder'
+                        )}
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="name">
+                        {t('initialization.step1.displayName')}
+                      </Label>
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder={t(
+                          'initialization.step1.displayNamePlaceholder'
+                        )}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">
+                        {t('initialization.step1.passwordRequired')}
+                      </Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder={t(
+                          'initialization.step1.passwordPlaceholder'
+                        )}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">
+                        {t('initialization.step1.confirmPasswordRequired')}
+                      </Label>
+                      <Input
+                        id="confirmPassword"
+                        type="password"
+                        placeholder={t(
+                          'initialization.step1.confirmPasswordPlaceholder'
+                        )}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full"
+                    >
+                      {isSubmitting ? (
+                        <div className="flex items-center space-x-2">
+                          <IconLoader className="h-4 w-4 animate-spin" />
+                          <span>{t('initialization.step1.creating')}</span>
+                        </div>
+                      ) : (
+                        t('initialization.step1.createButton')
                       )}
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">
-                      {t('initialization.step1.displayName')}
-                    </Label>
-                    <Input
-                      id="name"
-                      type="text"
-                      placeholder={t(
-                        'initialization.step1.displayNamePlaceholder'
-                      )}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">
-                      {t('initialization.step1.passwordRequired')}
-                    </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder={t(
-                        'initialization.step1.passwordPlaceholder'
-                      )}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">
-                      {t('initialization.step1.confirmPasswordRequired')}
-                    </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder={t(
-                        'initialization.step1.confirmPasswordPlaceholder'
-                      )}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full"
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center space-x-2">
-                        <IconLoader className="h-4 w-4 animate-spin" />
-                        <span>{t('initialization.step1.creating')}</span>
-                      </div>
-                    ) : (
-                      t('initialization.step1.createButton')
-                    )}
-                  </Button>
-                </form>
-              </InitStep>
+                    </Button>
+                  </form>
+                </InitStep>
+              )}
 
               {/* Step 2: Import Cluster */}
               <InitStep
