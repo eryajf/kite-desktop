@@ -83,7 +83,7 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className="relative h-10 w-10 rounded-full"
+          className="relative h-10 w-10 rounded-full text-muted-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground hover:text-foreground"
           aria-label={
             isLocalMode
               ? t('userMenu.appearanceSettings')
@@ -91,7 +91,7 @@ export function UserMenu() {
           }
         >
           {isLocalMode ? (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full">
               <Settings2 className="h-5 w-5" />
             </span>
           ) : (

@@ -229,7 +229,7 @@ func UpdateSidebarPreference(c *gin.Context) {
 		return
 	}
 	user.SidebarPreference = req.SidebarPreference
-	if err := model.UpdateUser(&user); err != nil {
+	if err := model.UpdateUserSidebarPreference(&user, req.SidebarPreference); err != nil {
 		klog.Errorf("failed to update sidebar preference for user %s: %v", user.Username, err)
 		c.JSON(500, gin.H{"error": "failed to update sidebar preference"})
 		return

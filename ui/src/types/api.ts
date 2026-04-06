@@ -433,10 +433,12 @@ export interface ResourceHistory {
   success: boolean
   errorMessage: string
   operatorId: number
-  operator: {
-    username: string
-    provider: string
-  }
+  operator:
+    | {
+        username: string
+        provider: string
+      }
+    | null
   createdAt: string
   updatedAt: string
 }

@@ -105,15 +105,42 @@ samp {
 }
 
 html {
-  scrollbar-gutter: stable;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/*
+  Radix Select uses react-remove-scroll, which locks body scroll and injects
+  scrollbar compensation on open. In the desktop shell this causes the whole
+  page to shift horizontally whenever a select menu opens.
+*/
+body[data-scroll-locked] {
+  margin-right: 0 !important;
+  padding-right: 0 !important;
+  --removed-body-scroll-bar-size: 0px;
+}
+
+body[data-scroll-locked] .right-scroll-bar-position {
+  right: 0 !important;
+}
+
+body[data-scroll-locked] .width-before-scroll-bar {
+  margin-right: 0 !important;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body,
+  #root {
+    @apply h-full w-full overflow-hidden;
+  }
   body {
     @apply bg-background text-foreground;
+    margin: 0;
   }
 }
 

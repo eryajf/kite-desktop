@@ -22,6 +22,10 @@ interface ResourceHistoryTableProps<T extends ResourceType> {
   currentResource?: ResourceTypeMap[T]
 }
 
+export function getResourceHistoryOperatorName(item: ResourceHistory): string {
+  return item.operator?.username || '-'
+}
+
 export function ResourceHistoryTable<T extends ResourceType>({
   resourceType,
   name,
@@ -151,8 +155,8 @@ export function ResourceHistoryTable<T extends ResourceType>({
           const item = value as ResourceHistory
           return (
             <div className="font-medium">
-              {item.operator.username}
-              {item.operator.provider === 'api_key' && (
+              {getResourceHistoryOperatorName(item)}
+              {item.operator?.provider === 'api_key' && (
                 <span className="ml-2 text-xs text-muted-foreground italic">
                   apikey
                 </span>

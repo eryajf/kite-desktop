@@ -111,6 +111,18 @@ func GetAnonymousUser() *User {
 func GetLocalDesktopUser() User {
 	user := LocalDesktopUser
 	user.Roles = append([]common.Role(nil), LocalDesktopUser.Roles...)
+	if DB != nil {
+		var existing User
+		if err := DB.Where("username = ? AND provider = ?", user.Username, user.Provider).First(&existing).Error; err == nil {
+			user.Model = existing.Model
+			user.Name = existing.Name
+			user.AvatarURL = existing.AvatarURL
+			user.LastLoginAt = existing.LastLoginAt
+			user.Enabled = existing.Enabled
+			user.Sub = existing.Sub
+			user.SidebarPreference = existing.SidebarPreference
+		}
+	}
 	return user
 }
 
@@ -225,6 +237,73 @@ func DeleteUserByID(id uint) error {
 func UpdateUser(user *User) error {
 	err := DB.Save(user).Error
 	InvalidateUserCache(uint64(user.ID))
+	return err
+}
+
+func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
+	if user == nil {
+		return errors.New("user is nil")
+	}
+
+	sidebarPreference = strings.TrimSpace(sidebarPreference)
+
+	if user.ID > 0 {
+		err := DB.Model(&User{}).
+			Where("id = ?", user.ID).
+			Update("sidebar_preference", sidebarPreference).Error
+		if err == nil {
+			user.SidebarPreference = sidebarPreference
+			InvalidateUserCache(uint64(user.ID))
+		}
+		return err
+	}
+
+	if strings.TrimSpace(user.Username) == "" {
+		return errors.New("user username is empty")
+	}
+
+	query := DB.Where("username = ?", user.Username)
+	if strings.TrimSpace(user.Provider) != "" {
+		query = query.Where("provider = ?", user.Provider)
+	}
+
+	var existing User
+	if err := query.First(&existing).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		toCreate := &User{
+			Username:          user.Username,
+			Name:              user.Name,
+			Provider:          user.Provider,
+			Enabled:           user.Enabled,
+			SidebarPreference: sidebarPreference,
+		}
+		if strings.TrimSpace(toCreate.Name) == "" {
+			toCreate.Name = toCreate.Username
+		}
+		if err := DB.Create(toCreate).Error; err != nil {
+			return err
+		}
+		user.ID = toCreate.ID
+		user.CreatedAt = toCreate.CreatedAt
+		user.UpdatedAt = toCreate.UpdatedAt
+		user.SidebarPreference = sidebarPreference
+		InvalidateUserCache(uint64(toCreate.ID))
+		return nil
+	}
+
+	err := DB.Model(&User{}).
+		Where("id = ?", existing.ID).
+		Update("sidebar_preference", sidebarPreference).Error
+	if err == nil {
+		user.ID = existing.ID
+		user.CreatedAt = existing.CreatedAt
+		user.UpdatedAt = existing.UpdatedAt
+		user.SidebarPreference = sidebarPreference
+		InvalidateUserCache(uint64(existing.ID))
+	}
 	return err
 }
 

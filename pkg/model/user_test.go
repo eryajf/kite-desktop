@@ -1,10 +1,27 @@
 package model
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/utils"
 )
+
+func TestMain(m *testing.M) {
+	tempDir, err := os.MkdirTemp("", "kite-model-tests-*")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	common.DBType = "sqlite"
+	common.DBDSN = filepath.Join(tempDir, "model-test.db")
+	InitDB()
+
+	os.Exit(m.Run())
+}
 
 func TestUserKey(t *testing.T) {
 	tests := []struct {
@@ -73,5 +90,43 @@ func TestGetLocalDesktopUser(t *testing.T) {
 	user.Roles[0].Name = "changed"
 	if LocalDesktopUser.Roles[0].Name != "admin" {
 		t.Fatalf("LocalDesktopUser role mutated: %#v", LocalDesktopUser.Roles)
+	}
+}
+
+func TestUpdateUserSidebarPreference_LocalDesktopUser(t *testing.T) {
+	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
+		t.Fatalf("cleanup local desktop user failed: %v", err)
+	}
+
+	user := GetLocalDesktopUser()
+	if err := UpdateUserSidebarPreference(&user, `{"groups":[]}`); err != nil {
+		t.Fatalf("UpdateUserSidebarPreference() create path error = %v", err)
+	}
+	if user.ID == 0 {
+		t.Fatal("UpdateUserSidebarPreference() did not hydrate local user ID")
+	}
+
+	reloaded, err := GetUserByUsername(LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() error = %v", err)
+	}
+	if reloaded.Provider != LocalDesktopUser.Provider {
+		t.Fatalf("Provider = %q, want %q", reloaded.Provider, LocalDesktopUser.Provider)
+	}
+	if reloaded.SidebarPreference != `{"groups":[]}` {
+		t.Fatalf("SidebarPreference = %q, want %q", reloaded.SidebarPreference, `{"groups":[]}`)
+	}
+
+	user = GetLocalDesktopUser()
+	if err := UpdateUserSidebarPreference(&user, `{"hiddenItems":["deployments"]}`); err != nil {
+		t.Fatalf("UpdateUserSidebarPreference() update path error = %v", err)
+	}
+
+	reloaded, err = GetUserByUsername(LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() second reload error = %v", err)
+	}
+	if reloaded.SidebarPreference != `{"hiddenItems":["deployments"]}` {
+		t.Fatalf("SidebarPreference after update = %q, want %q", reloaded.SidebarPreference, `{"hiddenItems":["deployments"]}`)
 	}
 }

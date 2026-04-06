@@ -262,7 +262,6 @@ func (h *desktopHost) focusMainWindow() {
 	h.mainWindow.Restore()
 	h.mainWindow.Show()
 	h.mainWindow.Focus()
-	_ = h.openApp()
 }
 
 func (h *desktopHost) hideMainWindow() {
@@ -586,11 +585,4 @@ func apiPath(route string) string {
 		return route
 	}
 	return common.Base + route
-}
-
-func (h *desktopHost) openApp() error {
-	if runtime.GOOS != "darwin" {
-		return nil
-	}
-	return h.app.Browser.OpenURL("file:///")
 }
