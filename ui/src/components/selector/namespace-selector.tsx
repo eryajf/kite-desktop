@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Namespace } from 'kubernetes-types/core/v1'
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { useResources } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,7 @@ export function NamespaceSelector({
   handleNamespaceChange: (namespace: string) => void
   showAll?: boolean
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const { data, isLoading } = useResources('namespaces')
 
@@ -51,8 +53,8 @@ export function NamespaceSelector({
         >
           <span className="truncate">
             {selectedNamespace === '_all'
-              ? 'All Namespaces'
-              : selectedNamespace || 'Select namespace...'}
+              ? t('selector.allNamespaces')
+              : selectedNamespace || t('selector.selectNamespace')}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -63,16 +65,16 @@ export function NamespaceSelector({
         align="start"
       >
         <Command>
-          <CommandInput placeholder="Search..." className="h-9" />
+          <CommandInput placeholder={t('selector.search')} className="h-9" />
           <CommandList className="max-h-[300px] overflow-x-hidden overflow-y-auto [ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {isLoading ? (
               <div className="flex items-center justify-center p-6 text-sm">
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                Loading...
+                {t('common.loading')}
               </div>
             ) : (
               <>
-                <CommandEmpty>No results.</CommandEmpty>
+                <CommandEmpty>{t('selector.noResults')}</CommandEmpty>
                 <CommandGroup>
                   {showAll && (
                     <CommandItem
@@ -90,7 +92,9 @@ export function NamespaceSelector({
                             : 'opacity-0'
                         )}
                       />
-                      <span className="truncate">All Namespaces</span>
+                      <span className="truncate">
+                        {t('selector.allNamespaces')}
+                      </span>
                     </CommandItem>
                   )}
 

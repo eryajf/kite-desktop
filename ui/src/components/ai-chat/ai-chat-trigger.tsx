@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Bot } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -18,6 +19,7 @@ function getViewportHeight() {
 }
 
 export function AIChatTrigger({ onOpen }: { onOpen: () => void }) {
+  const { t } = useTranslation()
   const [viewportHeight, setViewportHeight] = useState(() =>
     getViewportHeight()
   )
@@ -169,7 +171,7 @@ export function AIChatTrigger({ onOpen }: { onOpen: () => void }) {
           <Bot className="h-5 w-5" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side="left">AI Assistant</TooltipContent>
+      <TooltipContent side="left">{t('aiChat.title')}</TooltipContent>
     </Tooltip>
   )
 }

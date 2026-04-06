@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { UsageDataPoint } from '@/types/api'
@@ -24,18 +25,22 @@ interface CpuUsageChartProps {
   syncId?: string
 }
 
-const cpuChartConfig = {
-  cpu: {
-    label: 'CPU (cores)',
-    theme: {
-      light: 'hsl(220, 70%, 50%)',
-      dark: 'hsl(210, 80%, 60%)',
-    },
-  },
-} satisfies ChartConfig
-
 const CPUUsageChart = React.memo((prop: CpuUsageChartProps) => {
+  const { t } = useTranslation()
   const { data, isLoading, error, syncId } = prop
+  const cpuChartConfig = React.useMemo(
+    () =>
+      ({
+        cpu: {
+          label: 'CPU (cores)',
+          theme: {
+            light: 'hsl(220, 70%, 50%)',
+            dark: 'hsl(210, 80%, 60%)',
+          },
+        },
+      }) satisfies ChartConfig,
+    []
+  )
 
   const cpuChartData = React.useMemo(() => {
     if (!data) return []
@@ -63,7 +68,7 @@ const CPUUsageChart = React.memo((prop: CpuUsageChartProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            CPU Usage
+            {t('monitoring.cpuUsage')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -80,7 +85,7 @@ const CPUUsageChart = React.memo((prop: CpuUsageChartProps) => {
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>CPU Usage</CardTitle>
+          <CardTitle>{t('monitoring.cpuUsage')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -97,11 +102,11 @@ const CPUUsageChart = React.memo((prop: CpuUsageChartProps) => {
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>CPU Usage</CardTitle>
+          <CardTitle>{t('monitoring.cpuUsage')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">
-            <p>No CPU usage data available</p>
+            <p>{t('charts.noCpuUsageData')}</p>
           </div>
         </CardContent>
       </Card>
@@ -111,7 +116,7 @@ const CPUUsageChart = React.memo((prop: CpuUsageChartProps) => {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>CPU Usage</CardTitle>
+        <CardTitle>{t('monitoring.cpuUsage')}</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={cpuChartConfig} className="h-[250px] w-full">

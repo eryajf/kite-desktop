@@ -5,6 +5,7 @@ import {
   ContainerStatus,
 } from 'kubernetes-types/core/v1'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -15,16 +16,18 @@ const sectionLabelClassName =
   'text-balance text-xs font-medium text-muted-foreground uppercase'
 const bodyTextClassName = 'text-sm text-pretty'
 
-function renderState(state: ContainerState) {
+function renderState(state: ContainerState, t: (key: string, options?: Record<string, unknown>) => string) {
   if (state.running) {
     return (
       <div className="flex items-center gap-2">
         <Badge variant="default" className="bg-green-600">
-          Running
+          {t('containerInfo.running')}
         </Badge>
         {state.running.startedAt && (
           <span className="text-xs text-muted-foreground">
-            since {formatDate(state.running.startedAt)}
+            {t('containerInfo.since', {
+              time: formatDate(state.running.startedAt),
+            })}
           </span>
         )}
       </div>
@@ -33,7 +36,7 @@ function renderState(state: ContainerState) {
   if (state.waiting) {
     return (
       <div className="flex items-center gap-2">
-        <Badge variant="secondary">Waiting</Badge>
+        <Badge variant="secondary">{t('containerInfo.waiting')}</Badge>
         {state.waiting.reason && (
           <span className={bodyTextClassName}>{state.waiting.reason}</span>
         )}
@@ -52,14 +55,18 @@ function renderState(state: ContainerState) {
           variant={state.terminated.exitCode === 0 ? 'default' : 'destructive'}
           className="tabular-nums"
         >
-          Terminated (exit: {state.terminated.exitCode})
+          {t('containerInfo.terminatedExit', {
+            code: state.terminated.exitCode,
+          })}
         </Badge>
         {state.terminated.reason && (
           <span className={bodyTextClassName}>{state.terminated.reason}</span>
         )}
         {state.terminated.finishedAt && (
           <span className="text-xs text-muted-foreground">
-            finished {formatDate(state.terminated.finishedAt)}
+            {t('containerInfo.finished', {
+              time: formatDate(state.terminated.finishedAt),
+            })}
           </span>
         )}
       </div>
@@ -77,6 +84,7 @@ export function ContainerInfoCard({
   status?: ContainerStatus
   init?: boolean
 }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
 
   const hasMore =
@@ -102,24 +110,26 @@ export function ContainerInfoCard({
           </Badge>
           {init && container.restartPolicy !== 'Always' && (
             <Badge variant="outline" className="text-xs">
-              Init
+              {t('containerInfo.init')}
             </Badge>
           )}
           {init && container.restartPolicy === 'Always' && (
             <Badge variant="secondary" className="text-xs">
-              Sidecar
+              {t('containerInfo.sidecar')}
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
           {status && (
             <Badge variant={status.ready ? 'default' : 'secondary'}>
-              {status.ready ? 'Ready' : 'Not Ready'}
+              {status.ready
+                ? t('containerInfo.ready')
+                : t('containerInfo.notReady')}
             </Badge>
           )}
           {status && status.restartCount > 0 && (
             <Badge variant="destructive" className="tabular-nums">
-              {status.restartCount} restarts
+              {t('containerInfo.restarts', { count: status.restartCount })}
             </Badge>
           )}
         </div>
@@ -130,26 +140,34 @@ export function ContainerInfoCard({
         {/* Image row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className={sectionLabelClassName}>Image</Label>
+            <Label className={sectionLabelClassName}>
+              {t('containerInfo.image')}
+            </Label>
             <p className="text-sm font-mono mt-1 break-all">
               {container.image}
             </p>
           </div>
           <div>
-            <Label className={sectionLabelClassName}>Image Pull Policy</Label>
+            <Label className={sectionLabelClassName}>
+              {t('containerInfo.imagePullPolicy')}
+            </Label>
             <p className={cn(bodyTextClassName, 'mt-1')}>
               {container.imagePullPolicy || 'IfNotPresent'}
             </p>
           </div>
           {container.workingDir && (
             <div>
-              <Label className={sectionLabelClassName}>Working Directory</Label>
+              <Label className={sectionLabelClassName}>
+                {t('containerInfo.workingDirectory')}
+              </Label>
               <p className="text-sm font-mono mt-1">{container.workingDir}</p>
             </div>
           )}
           {(container.stdin || container.tty) && (
             <div>
-              <Label className={sectionLabelClassName}>TTY / Stdin</Label>
+              <Label className={sectionLabelClassName}>
+                {t('containerInfo.ttyStdin')}
+              </Label>
               <div className="flex gap-2 mt-1">
                 {container.tty && (
                   <Badge variant="outline" className="text-xs">
@@ -169,7 +187,9 @@ export function ContainerInfoCard({
         {/* Command */}
         {container.command && container.command.length > 0 && (
           <div>
-            <Label className={sectionLabelClassName}>Command</Label>
+            <Label className={sectionLabelClassName}>
+              {t('containerInfo.command')}
+            </Label>
             <div className="mt-1 bg-muted rounded px-3 py-2">
               {container.command.map((part, i) => (
                 <div
@@ -186,7 +206,9 @@ export function ContainerInfoCard({
         {/* Args */}
         {container.args && container.args.length > 0 && (
           <div>
-            <Label className={sectionLabelClassName}>Args</Label>
+            <Label className={sectionLabelClassName}>
+              {t('containerInfo.args')}
+            </Label>
             <div className="mt-1 bg-muted rounded px-3 py-2">
               {container.args.map((part, i) => (
                 <div
@@ -203,8 +225,10 @@ export function ContainerInfoCard({
         {/* State */}
         {status?.state && (
           <div>
-            <Label className={sectionLabelClassName}>State</Label>
-            <div className="mt-1">{renderState(status.state)}</div>
+            <Label className={sectionLabelClassName}>
+              {t('containerInfo.state')}
+            </Label>
+            <div className="mt-1">{renderState(status.state, t)}</div>
           </div>
         )}
 
@@ -219,12 +243,12 @@ export function ContainerInfoCard({
             {expanded ? (
               <>
                 <ChevronDown className="size-3 mr-1" />
-                Show less
+                {t('containerInfo.showLess')}
               </>
             ) : (
               <>
                 <ChevronRight className="size-3 mr-1" />
-                Show more
+                {t('containerInfo.showMore')}
               </>
             )}
           </Button>
@@ -235,7 +259,9 @@ export function ContainerInfoCard({
             {/* Ports */}
             {container.ports && container.ports.length > 0 && (
               <div className="border-t pt-3">
-                <Label className={sectionLabelClassName}>Ports</Label>
+                <Label className={sectionLabelClassName}>
+                  {t('containerInfo.ports')}
+                </Label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {container.ports.map((port, i) => (
                     <div key={i} className="flex items-center gap-1 text-sm">
@@ -266,7 +292,7 @@ export function ContainerInfoCard({
               (container.envFrom && container.envFrom.length > 0)) && (
               <div className="border-t pt-3">
                 <Label className={sectionLabelClassName}>
-                  Environment Variables
+                  {t('containerInfo.environmentVariables')}
                   {container.env && container.env.length > 0 && (
                     <span className="ml-1 tabular-nums normal-case">
                       ({container.env.length})
@@ -283,8 +309,9 @@ export function ContainerInfoCard({
                               variant="outline"
                               className="text-xs bg-blue-50 dark:bg-blue-950"
                             >
-                              ConfigMap: {src.configMapRef.name}
-                              {src.prefix && ` (prefix: ${src.prefix})`}
+                              {t('containerInfo.configMap')}: {src.configMapRef.name}
+                              {src.prefix &&
+                                ` (${t('containerInfo.prefix')}: ${src.prefix})`}
                             </Badge>
                           )}
                           {src.secretRef && (
@@ -292,8 +319,9 @@ export function ContainerInfoCard({
                               variant="outline"
                               className="text-xs bg-green-50 dark:bg-green-950"
                             >
-                              Secret: {src.secretRef.name}
-                              {src.prefix && ` (prefix: ${src.prefix})`}
+                              {t('containerInfo.secret')}: {src.secretRef.name}
+                              {src.prefix &&
+                                ` (${t('containerInfo.prefix')}: ${src.prefix})`}
                             </Badge>
                           )}
                         </div>
@@ -319,7 +347,7 @@ export function ContainerInfoCard({
                         )}
                         {envVar.valueFrom && (
                           <span className="text-orange-600 dark:text-orange-400">
-                            = (from{' '}
+                            = ({t('containerInfo.from')}{' '}
                             {envVar.valueFrom.secretKeyRef
                               ? `secret:${envVar.valueFrom.secretKeyRef.name}/${envVar.valueFrom.secretKeyRef.key}`
                               : envVar.valueFrom.configMapKeyRef
@@ -328,7 +356,7 @@ export function ContainerInfoCard({
                                   ? `field:${envVar.valueFrom.fieldRef.fieldPath}`
                                   : envVar.valueFrom.resourceFieldRef
                                     ? `resource:${envVar.valueFrom.resourceFieldRef.resource}`
-                                    : 'ref'}
+                                    : t('containerInfo.ref')}
                             )
                           </span>
                         )}
@@ -342,7 +370,7 @@ export function ContainerInfoCard({
             {container.volumeMounts && container.volumeMounts.length > 0 && (
               <div className="border-t pt-3">
                 <Label className={sectionLabelClassName}>
-                  Volume Mounts (
+                  {t('containerInfo.volumeMounts')} (
                   <span className="tabular-nums">
                     {container.volumeMounts.length}
                   </span>
@@ -362,7 +390,7 @@ export function ContainerInfoCard({
                       </span>
                       {mount.subPath && (
                         <span className="text-muted-foreground">
-                          subPath: {mount.subPath}
+                          {t('containerInfo.subPath')}: {mount.subPath}
                         </span>
                       )}
                       {mount.readOnly && (
@@ -380,12 +408,14 @@ export function ContainerInfoCard({
             {container.resources &&
               (container.resources.requests || container.resources.limits) && (
                 <div className="border-t pt-3">
-                  <Label className={sectionLabelClassName}>Resources</Label>
+                  <Label className={sectionLabelClassName}>
+                    {t('containerInfo.resources')}
+                  </Label>
                   <div className="mt-2 grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                     {container.resources.requests && (
                       <div>
                         <div className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
-                          Requests
+                          {t('monitoring.requests')}
                         </div>
                         {container.resources.requests.cpu && (
                           <div className="flex gap-2 text-xs">
@@ -398,7 +428,7 @@ export function ContainerInfoCard({
                         {container.resources.requests.memory && (
                           <div className="flex gap-2 text-xs">
                             <span className="text-muted-foreground">
-                              Memory:
+                              {t('detail.fields.memory')}:
                             </span>
                             <span className="font-mono tabular-nums">
                               {container.resources.requests.memory}
@@ -410,7 +440,7 @@ export function ContainerInfoCard({
                     {container.resources.limits && (
                       <div>
                         <div className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-                          Limits
+                          {t('monitoring.limits')}
                         </div>
                         {container.resources.limits.cpu && (
                           <div className="flex gap-2 text-xs">
@@ -423,7 +453,7 @@ export function ContainerInfoCard({
                         {container.resources.limits.memory && (
                           <div className="flex gap-2 text-xs">
                             <span className="text-muted-foreground">
-                              Memory:
+                              {t('detail.fields.memory')}:
                             </span>
                             <span className="font-mono tabular-nums">
                               {container.resources.limits.memory}
@@ -441,21 +471,23 @@ export function ContainerInfoCard({
               container.readinessProbe ||
               container.startupProbe) && (
               <div className="border-t pt-3">
-                <Label className={sectionLabelClassName}>Health Checks</Label>
+                <Label className={sectionLabelClassName}>
+                  {t('containerInfo.healthChecks')}
+                </Label>
                 <div className="mt-2 space-y-1">
                   {[
                     {
-                      label: 'Liveness',
+                      label: t('containerInfo.liveness'),
                       probe: container.livenessProbe,
                       color: 'bg-green-50 dark:bg-green-950',
                     },
                     {
-                      label: 'Readiness',
+                      label: t('containerInfo.readiness'),
                       probe: container.readinessProbe,
                       color: 'bg-blue-50 dark:bg-blue-950',
                     },
                     {
-                      label: 'Startup',
+                      label: t('containerInfo.startup'),
                       probe: container.startupProbe,
                       color: 'bg-yellow-50 dark:bg-yellow-950',
                     },
@@ -479,10 +511,10 @@ export function ContainerInfoCard({
                               ? `TCP :${probe!.tcpSocket.port}`
                               : probe!.exec
                                 ? `Exec: ${probe!.exec.command?.join(' ')}`
-                                : 'Custom'}
+                                : t('containerInfo.custom')}
                         </span>
                         <span className="text-muted-foreground tabular-nums">
-                          (initial: {probe!.initialDelaySeconds ?? 0}s, period:{' '}
+                          ({t('containerInfo.initial')}: {probe!.initialDelaySeconds ?? 0}s, {t('containerInfo.period')}:{' '}
                           {probe!.periodSeconds ?? 10}s)
                         </span>
                       </div>
@@ -496,7 +528,9 @@ export function ContainerInfoCard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t">
                 {status.imageID && (
                   <div>
-                    <Label className={sectionLabelClassName}>Image ID</Label>
+                    <Label className={sectionLabelClassName}>
+                      {t('containerInfo.imageId')}
+                    </Label>
                     <p className="text-xs font-mono mt-1 text-muted-foreground break-all">
                       {status.imageID}
                     </p>
@@ -505,7 +539,7 @@ export function ContainerInfoCard({
                 {status.containerID && (
                   <div>
                     <Label className={sectionLabelClassName}>
-                      Container ID
+                      {t('containerInfo.containerId')}
                     </Label>
                     <p className="text-xs font-mono mt-1 text-muted-foreground break-all">
                       {status.containerID}

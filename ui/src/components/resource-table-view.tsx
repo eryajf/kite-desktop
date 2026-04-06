@@ -4,6 +4,7 @@ import {
   PaginationState,
   Table as TableInstance,
 } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -58,6 +59,7 @@ export function ResourceTableView<T>({
   pagination,
   setPagination,
 }: ResourceTableViewProps<T>) {
+  const { t } = useTranslation()
   const renderRows = () => {
     const rows = table.getRowModel().rows
 
@@ -65,7 +67,7 @@ export function ResourceTableView<T>({
       return (
         <TableRow>
           <TableCell colSpan={columnCount} className="h-24 text-center">
-            No results.
+            {t('resourceTableView.noResults')}
           </TableCell>
         </TableRow>
       )
@@ -224,19 +226,28 @@ export function ResourceTableView<T>({
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {hasActiveFilters ? (
               <>
-                Showing {filteredRowCount} of {totalRowCount} row(s)
+                {t('resourceTableView.showingRows', {
+                  filtered: filteredRowCount,
+                  total: totalRowCount,
+                })}
                 {searchQuery && (
-                  <span className="ml-1">(filtered by "{searchQuery}")</span>
+                  <span className="ml-1">
+                    (
+                    {t('resourceTableView.filteredBy', {
+                      query: searchQuery,
+                    })}
+                    )
+                  </span>
                 )}
               </>
             ) : (
-              `${totalRowCount} row(s) total.`
+              t('resourceTableView.rowsTotal', { total: totalRowCount })
             )}
           </div>
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 lg:w-fit">
             <div className="flex items-center justify-between gap-2 sm:justify-start">
               <span className="text-sm text-muted-foreground">
-                Rows per page:
+                {t('resourceTableView.rowsPerPage')}
               </span>
               <Select
                 value={pagination.pageSize.toString()}

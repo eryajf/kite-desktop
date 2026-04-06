@@ -106,10 +106,10 @@ $(BINARY_NAME): $(GO_SOURCES) go.mod static
 	@echo "🏗️ Building backend..."
 	CGO_ENABLED=0 go build -trimpath $(LDFLAGS) -o $(BINARY_NAME) .
 
-desktop-build: ## Build desktop application with Wails v3
+desktop-build: static ## Build desktop application with Wails v3
 	cd desktop && $(WAILS3) build
 
-desktop-dev: ## Run desktop application in Wails dev mode
+desktop-dev: static ## Run desktop application in Wails dev mode
 	cd desktop && $(WAILS3) dev -config ./build/config.yml
 
 # Production targets

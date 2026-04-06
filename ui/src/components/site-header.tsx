@@ -2,6 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useTerminal } from '@/contexts/terminal-context'
 import { Plus, Settings, TerminalSquare } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
 import { useGeneralSetting } from '@/lib/api'
@@ -34,6 +35,7 @@ export function SiteHeader() {
   const { user, isLocalMode } = useAuth()
   const { toggleTerminal, isOpen } = useTerminal()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const { t } = useTranslation()
   const isAdmin = user?.isAdmin() ?? false
   const { data: generalSetting } = useGeneralSetting({
     enabled: isLocalMode || isAdmin,
@@ -56,13 +58,13 @@ export function SiteHeader() {
             <Plus
               className="h-5 w-5 cursor-pointer text-muted-foreground hover:text-foreground"
               onClick={() => setCreateDialogOpen(true)}
-              aria-label="Create new resource"
+              aria-label={t('siteHeader.createNewResource')}
             />
             {canManageSettings && kubectlEnabled && (
               <button
                 onClick={toggleTerminal}
-                title="Kubectl Terminal"
-                aria-label="Toggle Kubectl Terminal"
+                title={t('siteHeader.kubectlTerminal')}
+                aria-label={t('siteHeader.toggleKubectlTerminal')}
                 className={`flex items-center justify-center rounded-sm p-1 transition-colors ${
                   isOpen
                     ? 'text-green-500 hover:text-green-600'
@@ -86,7 +88,7 @@ export function SiteHeader() {
                     className="hidden sm:flex"
                   >
                     <Settings className="h-5 w-5" />
-                    <span className="sr-only">Settings</span>
+                    <span className="sr-only">{t('siteHeader.settings')}</span>
                   </Button>
                 )}
                 <LanguageToggle />

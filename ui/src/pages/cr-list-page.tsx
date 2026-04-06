@@ -3,6 +3,7 @@ import { createColumnHelper } from '@tanstack/react-table'
 import * as yaml from 'js-yaml'
 import { CustomResourceDefinition } from 'kubernetes-types/apiextensions/v1'
 import { Eye } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
 
 import { CustomResource, ResourceType } from '@/types/api'
@@ -20,6 +21,7 @@ import { ResourceTable } from '@/components/resource-table'
 import { YamlEditor } from '@/components/yaml-editor'
 
 export function CRListPage() {
+  const { t } = useTranslation()
   const [isYamlDialogOpen, setIsYamlDialogOpen] = useState(false)
   const [yamlContent, setYamlContent] = useState('')
   const { crd } = useParams<{ crd: string }>()
@@ -40,7 +42,7 @@ export function CRListPage() {
         }}
       >
         <Eye className="h-4 w-4 mr-1" />
-        View YAML
+        {t('yamlEditor.title')}
       </Button>,
     ]
   }, [crdData, handleViewYaml])
@@ -115,11 +117,11 @@ export function CRListPage() {
   }, [])
 
   if (isLoadingCRD) {
-    return <div>Loading...</div>
+    return <div>{t('common.loading')}</div>
   }
 
   if (!crdData) {
-    return <div>Error: CRD name is required</div>
+    return <div>{t('common.error')}: CRD name is required</div>
   }
 
   return (
@@ -137,7 +139,7 @@ export function CRListPage() {
         <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              YAML Configuration: {crdData?.metadata?.name ?? 'Unknown'}
+              {t('yamlEditor.title')}: {crdData?.metadata?.name ?? t('volumeTable.unknown')}
             </DialogTitle>
           </DialogHeader>
           <YamlEditor

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { IconAlertTriangle, IconInfoCircle, IconX } from '@tabler/icons-react'
-import { formatDistanceToNow } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 
 import { useResources } from '@/lib/api'
+import { formatRelativeTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import {
   Card,
@@ -81,11 +81,11 @@ export function RecentEvents() {
       <Card>
         <CardHeader>
           <CardTitle>{t('overview.recentEvents')}</CardTitle>
-          <CardDescription>Latest cluster events</CardDescription>
+          <CardDescription>{t('recentEvents.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-32 text-muted-foreground">
-            No recent events
+            {t('recentEvents.empty')}
           </div>
         </CardContent>
       </Card>
@@ -96,7 +96,7 @@ export function RecentEvents() {
     <Card>
       <CardHeader>
         <CardTitle>{t('overview.recentEvents')}</CardTitle>
-        <CardDescription>Latest cluster events</CardDescription>
+        <CardDescription>{t('recentEvents.description')}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="max-h-72 overflow-y-auto scrollbar-hide">
@@ -134,21 +134,18 @@ export function RecentEvents() {
                         </span>
                         {event.reportingComponent && (
                           <span className="text-xs">
-                            Reporter: {event.reportingComponent}
+                            {t('recentEvents.reporter', {
+                              name: event.reportingComponent,
+                            })}
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDistanceToNow(
-                        new Date(
-                          event.metadata.creationTimestamp ||
-                            event.firstTimestamp ||
-                            ''
-                        ),
-                        {
-                          addSuffix: true,
-                        }
+                      {formatRelativeTime(
+                        event.metadata.creationTimestamp ||
+                          event.firstTimestamp ||
+                          ''
                       )}
                     </div>
                   </div>

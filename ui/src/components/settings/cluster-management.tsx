@@ -88,7 +88,11 @@ export function ClusterManagement() {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-medium">{cluster.name}</span>
-              {cluster.isDefault && <Badge variant="secondary">Default</Badge>}
+              {cluster.isDefault && (
+                <Badge variant="secondary">
+                  {t('common.default', 'Default')}
+                </Badge>
+              )}
             </div>
             {cluster.description && (
               <div className="text-sm text-muted-foreground">
@@ -106,7 +110,7 @@ export function ClusterManagement() {
             return (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="destructive">Error</Badge>
+                  <Badge variant="destructive">{t('common.error', 'Error')}</Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs break-all">{cluster.error}</p>
@@ -133,10 +137,12 @@ export function ClusterManagement() {
       },
       {
         id: 'Prometheus',
-        header: t('clusterManagement.table.Prometheus', 'Prometheus'),
+        header: t('clusterManagement.table.prometheus', 'Prometheus'),
         cell: ({ row: { original: cluster } }) => (
           <div className="text-sm text-muted-foreground">
-            {cluster.prometheusURL ? 'Yes' : 'No'}
+            {cluster.prometheusURL
+              ? t('common.yes', 'Yes')
+              : t('common.no', 'No')}
           </div>
         ),
       },
@@ -337,7 +343,7 @@ export function ClusterManagement() {
         onOpenChange={() => setDeletingCluster(null)}
         onConfirm={handleDeleteCluster}
         resourceName={deletingCluster?.name || ''}
-        resourceType="cluster"
+        resourceType={t('clusterManagement.resourceType', 'cluster')}
         additionalNote={t(
           'clusterManagement.deleteConfirmation',
           "This action will only remove the current cluster's configuration in kite and will not delete any cluster resources."

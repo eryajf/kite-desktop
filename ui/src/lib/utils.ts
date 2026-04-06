@@ -1,5 +1,7 @@
+import i18n from '@/i18n'
 import { clsx, type ClassValue } from 'clsx'
-import { format, formatDistance } from 'date-fns'
+import { format, formatDistance, formatDistanceToNow } from 'date-fns'
+import { enUS, zhCN } from 'date-fns/locale'
 import { TFunction } from 'i18next'
 import { NodeCondition } from 'kubernetes-types/core/v1'
 import { twMerge } from 'tailwind-merge'
@@ -56,10 +58,22 @@ export function getAge(timestamp: string): string {
   }
 }
 
+function getDateFnsLocale() {
+  return i18n.resolvedLanguage?.startsWith('zh') ? zhCN : enUS
+}
+
 export function formatDate(timestamp: string, addTo = false): string {
   const date = new Date(timestamp)
   const s = format(date, 'yyyy-MM-dd HH:mm:ss')
-  return addTo ? `${s} (${formatDistance(new Date(), date)})` : s
+  const locale = getDateFnsLocale()
+  return addTo ? `${s} (${formatDistance(new Date(), date, { locale })})` : s
+}
+
+export function formatRelativeTime(timestamp: string): string {
+  return formatDistanceToNow(new Date(timestamp), {
+    addSuffix: true,
+    locale: getDateFnsLocale(),
+  })
 }
 
 export function formatChartXTicks(
@@ -236,6 +250,30 @@ export function translateError(error: Error | unknown, t: TFunction): string {
   }
 
   return error.message
+}
+
+export function translatePodStatus(status: string, t: TFunction): string {
+  const keyMap: Record<string, string> = {
+    Running: 'running',
+    Pending: 'pending',
+    Succeeded: 'succeeded',
+    Completed: 'succeeded',
+    Failed: 'failed',
+    Unknown: 'unknown',
+    Terminating: 'terminating',
+    CrashLoopBackOff: 'crashLoopBackOff',
+    ContainerCreating: 'containerCreating',
+    ImagePullBackOff: 'imagePullBackOff',
+    NotReady: 'notReady',
+    SchedulingGated: 'pending',
+  }
+
+  const key = keyMap[status]
+  if (!key) {
+    return status
+  }
+
+  return t(`status.${key}`, { defaultValue: status })
 }
 
 /**

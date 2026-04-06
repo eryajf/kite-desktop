@@ -56,7 +56,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
     setIsSavingYaml(true)
     try {
       await updateResource('services', name, namespace, content)
-      toast.success('YAML saved successfully')
+      toast.success(t('detail.status.yamlSaved'))
       // Refresh data after successful save
       await handleRefresh()
     } catch (error) {
@@ -83,7 +83,11 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <IconLoader className="animate-spin" />
-              <span>Loading service details...</span>
+              <span>
+                {t('detail.status.loading', {
+                  resource: t('resourceKind.service'),
+                })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -109,7 +113,8 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           <h1 className="text-lg font-bold">{name}</h1>
           {namespace && (
             <p className="text-muted-foreground">
-              Namespace: <span className="font-medium">{namespace}</span>
+              {t('detail.fields.namespace')}:{' '}
+              <span className="font-medium">{namespace}</span>
             </p>
           )}
         </div>
@@ -121,7 +126,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
             onClick={handleManualRefresh}
           >
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType={'services' as ResourceType}
@@ -134,7 +139,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -143,20 +148,20 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="capitalize">
-                      Service Information
+                    <CardTitle>
+                      {t('detail.sections.serviceInformation')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(data.metadata?.creationTimestamp || '')}
@@ -164,22 +169,22 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          UID
+                          {t('detail.fields.uid')}
                         </Label>
                         <p className="text-sm font-mono">
-                          {data.metadata?.uid || 'N/A'}
+                          {data.metadata?.uid || t('detail.fields.na')}
                         </p>
                       </div>
                       {getOwnerInfo(data.metadata) && (
                         <div>
                           <Label className="text-xs text-muted-foreground">
-                            Owner
+                            {t('detail.fields.owner')}
                           </Label>
                           <p className="text-sm">
                             {(() => {
                               const ownerInfo = getOwnerInfo(data.metadata)
                               if (!ownerInfo) {
-                                return 'No owner'
+                                return t('detail.fields.noOwner')
                               }
                               return (
                                 <Link to={ownerInfo.path} className="app-link">
@@ -192,7 +197,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
                       )}
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Ports
+                          {t('detail.fields.ports')}
                         </Label>
                         <div className="flex flex-wrap items-center gap-1">
                           {(data?.spec?.ports || []).map(
@@ -229,13 +234,13 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
                 <YamlEditor<'services'>
                   key={refreshKey}
                   value={yamlContent}
-                  title="YAML Configuration"
+                  title={t('yamlEditor.title')}
                   onSave={handleSaveYaml}
                   onChange={handleYamlChange}
                   isSaving={isSavingYaml}
@@ -245,7 +250,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           },
           {
             value: 'Related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource={'services'}
@@ -256,7 +261,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable
                 resource={'services'}
@@ -267,7 +272,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
           },
           {
             value: 'history',
-            label: 'History',
+            label: t('detail.tabs.history'),
             content: (
               <ResourceHistoryTable<'services'>
                 resourceType={'services'}

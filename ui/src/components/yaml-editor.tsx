@@ -2,6 +2,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { IconCheck, IconEdit, IconLoader, IconX } from '@tabler/icons-react'
 import * as yaml from 'js-yaml'
 import type { editor as monacoEditor } from 'monaco-editor'
+import { useTranslation } from 'react-i18next'
 
 import { ResourceType, ResourceTypeMap } from '@/types/api'
 import { MonacoEditor } from '@/lib/monaco-loader'
@@ -41,7 +42,7 @@ export function YamlEditor<T extends ResourceType>({
   value,
   readOnly = false,
   showControls = true,
-  title = 'YAML Configuration',
+  title,
   onChange,
   onSave,
   onCancel,
@@ -53,6 +54,8 @@ export function YamlEditor<T extends ResourceType>({
   const [isValidYaml, setIsValidYaml] = useState(true)
   const [validationError, setValidationError] = useState<string>('')
   const { actualTheme, colorTheme } = useAppearance()
+  const { t } = useTranslation()
+  const resolvedTitle = title || t('yamlEditor.title')
   const editorRef = useRef<monacoEditor.IStandaloneCodeEditor | null>(null)
   const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const themeMode = actualTheme === 'dark' ? 'dark' : 'light'
@@ -85,7 +88,9 @@ export function YamlEditor<T extends ResourceType>({
       // Delay showing the error message
       validationTimeoutRef.current = setTimeout(() => {
         setValidationError(
-          error instanceof Error ? error.message.split('\n')[0] : 'Invalid YAML'
+          error instanceof Error
+            ? error.message.split('\n')[0]
+            : t('yamlEditor.invalidYaml')
         )
       }, 1000) // 1 second delay only for error message display
     }
@@ -138,7 +143,7 @@ export function YamlEditor<T extends ResourceType>({
     <Card className={className}>
       <CardHeader className="flex flex-row items-center justify-between">
         <div className="space-y-1">
-          <CardTitle>{title}</CardTitle>
+          <CardTitle>{resolvedTitle}</CardTitle>
         </div>
         <div className="flex items-center gap-4">
           {showControls && (
@@ -155,7 +160,7 @@ export function YamlEditor<T extends ResourceType>({
                     ) : (
                       <IconCheck className="w-4 h-4 mr-2" />
                     )}
-                    Save
+                    {t('yamlEditor.save')}
                   </Button>
                   <Button
                     size="sm"
@@ -164,7 +169,7 @@ export function YamlEditor<T extends ResourceType>({
                     disabled={isSaving}
                   >
                     <IconX className="w-4 h-4 mr-2" />
-                    Cancel
+                    {t('yamlEditor.cancel')}
                   </Button>
                 </>
               ) : (
@@ -175,7 +180,7 @@ export function YamlEditor<T extends ResourceType>({
                   disabled={readOnly}
                 >
                   <IconEdit className="w-4 h-4 mr-2" />
-                  Edit
+                  {t('yamlEditor.edit')}
                 </Button>
               )}
             </div>
@@ -193,7 +198,7 @@ export function YamlEditor<T extends ResourceType>({
             <Suspense
               fallback={
                 <div className="flex h-full items-center justify-center text-muted-foreground">
-                  Loading editor...
+                  {t('yamlEditor.loadingEditor')}
                 </div>
               }
             >

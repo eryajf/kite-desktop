@@ -38,18 +38,13 @@ func main() {
 
 	var host *desktopHost
 
-	app := application.New(application.Options{
+	appOptions := application.Options{
 		Name:        "Kite",
 		Description: "Modern Kubernetes Dashboard",
 		Icon:        desktopTrayIcon,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
-		SingleInstance: desktopSingleInstanceOptions(func() {
-			if host != nil {
-				host.focusMainWindow()
-			}
-		}),
 		OnShutdown: func() {
 			if host != nil {
 				host.persistStateOnShutdown()
@@ -64,7 +59,17 @@ func main() {
 		Mac: application.MacOptions{
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
-	})
+	}
+
+	if !desktopDevMode() {
+		appOptions.SingleInstance = desktopSingleInstanceOptions(func() {
+			if host != nil {
+				host.focusMainWindow()
+			}
+		})
+	}
+
+	app := application.New(appOptions)
 
 	host = newDesktopHost(app, baseURL, paths)
 

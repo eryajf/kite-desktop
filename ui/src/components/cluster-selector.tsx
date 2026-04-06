@@ -1,4 +1,5 @@
 import { IconCheck, IconChevronDown, IconServer } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn } from '@/lib/utils'
 import { useCluster } from '@/hooks/use-cluster'
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 export function ClusterSelector() {
+  const { t } = useTranslation()
   const {
     clusters,
     currentCluster,
@@ -26,7 +28,7 @@ export function ClusterSelector() {
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
         {isSwitching && (
           <span className="ml-2 text-sm text-muted-foreground">
-            Switching cluster...
+            {t('clusterSelector.switching')}
           </span>
         )}
       </div>
@@ -47,8 +49,8 @@ export function ClusterSelector() {
           <IconServer className="h-4 w-4" />
           <span className="text-sm font-medium truncate">
             {isSwitching
-              ? 'Switching...'
-              : currentClusterData?.name || 'Select Cluster'}
+              ? t('clusterSelector.switching')
+              : currentClusterData?.name || t('clusterSelector.select')}
           </span>
           <IconChevronDown className="h-3 w-3 opacity-50" />
         </Button>
@@ -65,11 +67,13 @@ export function ClusterSelector() {
               <div className="flex items-center gap-2">
                 <span className="font-medium">{cluster.name}</span>
                 {cluster.isDefault && (
-                  <Badge className="text-xs">Default</Badge>
+                  <Badge className="text-xs">
+                    {t('clusterSelector.default')}
+                  </Badge>
                 )}
                 {cluster.error && (
                   <Badge variant="destructive" className="text-xs">
-                    Sync Error
+                    {t('clusterSelector.syncError')}
                   </Badge>
                 )}
               </div>

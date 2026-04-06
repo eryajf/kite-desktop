@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DialogDescription } from '@radix-ui/react-dialog'
 import { Container } from 'kubernetes-types/core/v1'
+import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 
 import { EnvironmentEditor, ImageEditor, ResourceEditor } from './editors'
@@ -49,6 +50,7 @@ function ContainerEditDialogContent({
   onOpenChange,
   onSave,
 }: Omit<ContainerEditDialogProps, 'open'>) {
+  const { t } = useTranslation()
   const { namespace } = useParams()
   const [editedContainer, setEditedContainer] = useState<Container>(() =>
     cloneContainer(container)
@@ -66,17 +68,25 @@ function ContainerEditDialogContent({
   return (
     <DialogContent className="!max-w-4xl max-h-[90vh] overflow-y-auto sm:!max-w-4xl">
       <DialogHeader>
-        <DialogTitle>Edit Container: {editedContainer.name}</DialogTitle>
+        <DialogTitle>
+          {t('containerEditor.title', { name: editedContainer.name })}
+        </DialogTitle>
         <DialogDescription className="text-sm text-muted-foreground">
-          More complex changes can be made by modifying in YAML.
+          {t('containerEditor.description')}
         </DialogDescription>
       </DialogHeader>
 
       <Tabs defaultValue="image" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="image">Image</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-          <TabsTrigger value="environment">Environment</TabsTrigger>
+          <TabsTrigger value="image">
+            {t('containerEditor.tabs.image')}
+          </TabsTrigger>
+          <TabsTrigger value="resources">
+            {t('containerEditor.tabs.resources')}
+          </TabsTrigger>
+          <TabsTrigger value="environment">
+            {t('containerEditor.tabs.environment')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="image" className="space-y-4">
@@ -98,9 +108,11 @@ function ContainerEditDialogContent({
 
       <DialogFooter>
         <Button variant="outline" onClick={() => onOpenChange(false)}>
-          Cancel
+          {t('common.cancel')}
         </Button>
-        <Button onClick={handleSave}>Save Changes</Button>
+        <Button onClick={handleSave}>
+          {t('containerEditor.saveChanges')}
+        </Button>
       </DialogFooter>
     </DialogContent>
   )

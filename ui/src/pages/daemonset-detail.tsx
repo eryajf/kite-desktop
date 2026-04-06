@@ -204,7 +204,11 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <IconLoader className="animate-spin" />
-              <span>Loading DaemonSet details...</span>
+              <span>
+                {t('detail.status.loading', {
+                  resource: t('resourceKind.daemonset'),
+                })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -238,7 +242,8 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
         <div className="min-w-0">
           <h1 className="text-lg font-bold">{metadata?.name}</h1>
           <p className="text-muted-foreground">
-            Namespace: <span className="font-medium">{namespace}</span>
+            {t('detail.fields.namespace')}:{' '}
+            <span className="font-medium">{namespace}</span>
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
@@ -249,7 +254,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             onClick={handleRefresh}
           >
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType={'daemonsets'}
@@ -263,16 +268,17 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm">
                 <IconReload className="w-4 h-4" />
-                Restart
+                {t('detail.buttons.restart')}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80" align="end">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h4 className="font-medium">Restart DaemonSet</h4>
+                  <h4 className="font-medium">
+                    {t('detail.dialogs.restartDaemonSet.title')}
+                  </h4>
                   <p className="text-sm text-muted-foreground">
-                    This will restart all pods managed by this DaemonSet. This
-                    action cannot be undone.
+                    {t('detail.dialogs.restartDaemonSet.description')}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -281,7 +287,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                     onClick={() => setIsRestartPopoverOpen(false)}
                     className="flex-1"
                   >
-                    Cancel
+                    {t('detail.buttons.cancel')}
                   </Button>
                   <Button
                     onClick={() => {
@@ -291,7 +297,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                     className="flex-1"
                   >
                     <IconReload className="w-4 h-4 mr-2" />
-                    Restart
+                    {t('detail.dialogs.restartDaemonSet.restartButton')}
                   </Button>
                 </div>
               </div>
@@ -303,7 +309,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -312,13 +318,13 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-6">
                 {/* Status Overview */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Status Overview</CardTitle>
+                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
@@ -334,21 +340,21 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">
-                            Status
+                            {t('common.status')}
                           </p>
                           <p className="text-sm font-medium">
                             {isPending
                               ? 'Pending'
                               : isAvailable
-                                ? 'Available'
-                                : 'In Progress'}
+                                ? t('deployments.available')
+                                : t('detail.status.inProgress')}
                           </p>
                         </div>
                       </div>
 
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Ready Replicas
+                          {t('detail.fields.readyReplicas')}
                         </p>
                         <p className="text-sm font-medium">
                           {readyReplicas} / {desiredReplicas}
@@ -357,14 +363,14 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
 
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Current Scheduled
+                          {t('detail.fields.currentScheduled')}
                         </p>
                         <p className="text-sm font-medium">{currentReplicas}</p>
                       </div>
 
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Desired Scheduled
+                          {t('detail.fields.desiredScheduled')}
                         </p>
                         <p className="text-sm font-medium">{desiredReplicas}</p>
                       </div>
@@ -374,13 +380,15 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 {/* DaemonSet Information */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>DaemonSet Information</CardTitle>
+                    <CardTitle>
+                      {t('detail.sections.daemonSetInformation')}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(metadata?.creationTimestamp || '', true)}
@@ -388,7 +396,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Strategy
+                          {t('detail.fields.strategy')}
                         </Label>
                         <p className="text-sm">
                           {spec?.updateStrategy?.type || 'RollingUpdate'}
@@ -406,7 +414,9 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 {spec?.template?.spec?.initContainers && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Init Containers</CardTitle>
+                      <CardTitle>
+                        {t('detail.sections.initContainers')}
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -429,7 +439,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 {spec?.template?.spec?.containers && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Containers</CardTitle>
+                      <CardTitle>{t('detail.sections.containers')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -451,7 +461,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
                 <YamlEditor
@@ -487,7 +497,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 },
                 {
                   value: 'logs',
-                  label: 'Logs',
+                  label: t('detail.tabs.logs'),
                   content: (
                     <div className="space-y-6">
                       <LogViewer
@@ -502,7 +512,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 },
                 {
                   value: 'terminal',
-                  label: 'Terminal',
+                  label: t('detail.tabs.terminal'),
                   content: (
                     <div className="space-y-6">
                       {relatedPods && relatedPods.length > 0 && (
@@ -547,7 +557,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             : []),
           {
             value: 'Related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource={'daemonsets'}
@@ -558,7 +568,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable
                 resource="daemonsets"
@@ -581,7 +591,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'monitor',
-            label: 'Monitor',
+            label: t('detail.tabs.monitor'),
             content: (
               <PodMonitoring
                 namespace={namespace}

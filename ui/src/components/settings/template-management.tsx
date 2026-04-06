@@ -327,7 +327,7 @@ export function TemplateManagement() {
         onOpenChange={() => setDeletingTemplate(null)}
         onConfirm={handleDelete}
         resourceName={deletingTemplate?.name || ''}
-        resourceType="template"
+        resourceType={t('templateManagement.resourceType', 'template')}
       />
     </div>
   )

@@ -317,7 +317,11 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <IconLoader className="animate-spin" />
-              <span>Loading cronjob details...</span>
+              <span>
+                {t('detail.status.loading', {
+                  resource: t('resourceKind.cronjob'),
+                })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -348,13 +352,14 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
         <div className="min-w-0">
           <h1 className="text-lg font-bold">{name}</h1>
           <p className="text-muted-foreground">
-            Namespace: <span className="font-medium">{namespace}</span>
+            {t('detail.fields.namespace')}:{' '}
+            <span className="font-medium">{namespace}</span>
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
           <Button variant="outline" size="sm" onClick={handleManualRefresh}>
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType={'cronjobs'}
@@ -389,7 +394,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -398,12 +403,12 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Status Overview</CardTitle>
+                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
@@ -425,7 +430,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Active Jobs
+                          {t('detail.fields.activeJobs')}
                         </Label>
                         <p className="text-sm font-medium">
                           {cronjob.status?.active?.length || 0}
@@ -433,7 +438,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Last Schedule
+                          {t('detail.fields.lastSchedule')}
                         </Label>
                         <p className="text-sm font-medium">
                           {cronjob.status?.lastScheduleTime
@@ -447,13 +452,15 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>CronJob Information</CardTitle>
+                    <CardTitle>
+                      {t('detail.sections.cronJobInformation')}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(
@@ -464,7 +471,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Concurrency Policy
+                          {t('detail.fields.concurrencyPolicy')}
                         </Label>
                         <p className="text-sm">
                           {cronjob.spec?.concurrencyPolicy || 'Allow'}
@@ -472,17 +479,17 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Starting Deadline
+                          {t('detail.fields.startingDeadline')}
                         </Label>
                         <p className="text-sm">
                           {cronjob.spec?.startingDeadlineSeconds
                             ? `${cronjob.spec.startingDeadlineSeconds} seconds`
-                            : 'Not set'}
+                            : t('detail.status.notSet')}
                         </p>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Successful Jobs History
+                          {t('detail.fields.successfulJobsHistory')}
                         </Label>
                         <p className="text-sm">
                           {cronjob.spec?.successfulJobsHistoryLimit ?? 3}
@@ -490,7 +497,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Failed Jobs History
+                          {t('detail.fields.failedJobsHistory')}
                         </Label>
                         <p className="text-sm">
                           {cronjob.spec?.failedJobsHistoryLimit ?? 1}
@@ -498,10 +505,10 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Time Zone
+                          {t('detail.fields.timeZone')}
                         </Label>
                         <p className="text-sm">
-                          {cronjob.spec?.timeZone || 'Cluster default'}
+                          {cronjob.spec?.timeZone || t('detail.status.notSet')}
                         </p>
                       </div>
                     </div>
@@ -514,13 +521,13 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Active Jobs</CardTitle>
+                    <CardTitle>{t('detail.sections.activeJobs')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {isLoadingJobs ? (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <IconLoader className="w-4 h-4 animate-spin" />
-                        Loading active jobs...
+                        {t('common.loading')}
                       </div>
                     ) : activeJobs.length > 0 ? (
                       <div className="flex flex-wrap gap-2">
@@ -547,7 +554,8 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                   <Card>
                     <CardHeader>
                       <CardTitle>
-                        Init Containers ({initContainers.length})
+                        {t('detail.sections.initContainers')} (
+                        {initContainers.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -584,12 +592,12 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <YamlEditor<'cronjobs'>
                 key={refreshKey}
                 value={yamlContent}
-                title="YAML Configuration"
+                title={t('yamlEditor.title')}
                 onSave={handleSaveYaml}
                 onChange={handleYamlChange}
                 isSaving={isSavingYaml}
@@ -625,7 +633,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource={'cronjobs'}
@@ -636,7 +644,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable
                 resource="cronjobs"

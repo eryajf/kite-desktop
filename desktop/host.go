@@ -197,7 +197,7 @@ func (h *desktopHost) registerMainWindow(window *application.WebviewWindow) {
 	h.mainWindow = window
 
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
-		if h.quitting.Load() {
+		if h.quitting.Load() || desktopDevMode() {
 			return
 		}
 		window.Hide()

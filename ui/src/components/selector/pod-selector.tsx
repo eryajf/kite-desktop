@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pod } from 'kubernetes-types/core/v1'
 import { Check, ChevronsUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { cn, getAge } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -32,11 +33,12 @@ export function PodSelector({
   onPodChange,
   showAllOption = false,
 }: PodSelectorProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   const allOption: Pod = {
     metadata: {
-      name: 'All Pods',
+      name: t('selector.allPods'),
       uid: 'all',
       creationTimestamp: undefined,
     },
@@ -57,16 +59,16 @@ export function PodSelector({
           className="w-full min-w-0 justify-between md:w-auto md:max-w-[300px]"
         >
           <span className="truncate">
-            {selectedOption ? selectedOption.metadata?.name : 'All'}
+            {selectedOption ? selectedOption.metadata?.name : t('common.all')}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[min(300px,calc(100vw-1rem))] p-0">
         <Command>
-          <CommandInput placeholder="Search pods..." />
+          <CommandInput placeholder={t('selector.searchPods')} />
           <CommandList>
-            <CommandEmpty>No pods found.</CommandEmpty>
+            <CommandEmpty>{t('selector.noPodsFound')}</CommandEmpty>
             <CommandGroup>
               {options.map((pod) => (
                 <CommandItem
@@ -97,8 +99,7 @@ export function PodSelector({
                     </span>
                     {pod.metadata?.creationTimestamp && (
                       <span className="truncate text-xs text-muted-foreground">
-                        Age: {getAge(pod.metadata?.creationTimestamp || '')},
-                        Node: {pod.spec?.nodeName}
+                        {`${t('pods.age')}: ${getAge(pod.metadata?.creationTimestamp || '')}, ${t('pods.node')}: ${pod.spec?.nodeName}`}
                       </span>
                     )}
                   </div>

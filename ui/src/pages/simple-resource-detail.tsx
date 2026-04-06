@@ -34,6 +34,9 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const { t } = useTranslation()
+  const resourceLabel = t(`resourceKind.${resourceType.slice(0, -1)}`, {
+    defaultValue: resourceType.slice(0, -1),
+  })
 
   const {
     data,
@@ -80,7 +83,9 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <IconLoader className="animate-spin" />
-              <span>Loading {resourceType.slice(0, -1)} details...</span>
+              <span>
+                {t('detail.status.loading', { resource: resourceLabel })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -106,7 +111,8 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           <h1 className="text-lg font-bold">{name}</h1>
           {namespace && (
             <p className="text-muted-foreground">
-              Namespace: <span className="font-medium">{namespace}</span>
+              {t('detail.fields.namespace')}:{' '}
+              <span className="font-medium">{namespace}</span>
             </p>
           )}
         </div>
@@ -118,7 +124,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
             onClick={handleManualRefresh}
           >
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType={resourceType}
@@ -131,7 +137,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -140,20 +146,20 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="capitalize">
-                      {resourceType.slice(0, -1)} Information
+                    <CardTitle>
+                      {t('detail.sections.resourceInformation')}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(data.metadata?.creationTimestamp || '')}
@@ -161,22 +167,22 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          UID
+                          {t('detail.fields.uid')}
                         </Label>
                         <p className="text-sm font-mono">
-                          {data.metadata?.uid || 'N/A'}
+                          {data.metadata?.uid || t('detail.fields.na')}
                         </p>
                       </div>
                       {getOwnerInfo(data.metadata) && (
                         <div>
                           <Label className="text-xs text-muted-foreground">
-                            Owner
+                            {t('detail.fields.owner')}
                           </Label>
                           <p className="text-sm">
                             {(() => {
                               const ownerInfo = getOwnerInfo(data.metadata)
                               if (!ownerInfo) {
-                                return 'No owner'
+                                return t('detail.fields.noOwner')
                               }
                               return (
                                 <Link to={ownerInfo.path} className="app-link">
@@ -199,13 +205,13 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
                 <YamlEditor
                   key={refreshKey}
                   value={yamlContent}
-                  title="YAML Configuration"
+                  title={t('yamlEditor.title')}
                   onSave={handleSaveYaml}
                   onChange={handleYamlChange}
                   isSaving={isSavingYaml}
@@ -215,7 +221,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           },
           {
             value: 'Related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource={resourceType}
@@ -226,7 +232,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable
                 resource={resourceType}
@@ -237,7 +243,7 @@ export function SimpleResourceDetail<T extends ResourceType>(props: {
           },
           {
             value: 'history',
-            label: 'History',
+            label: t('detail.tabs.history'),
             content: (
               <ResourceHistoryTable
                 resourceType={resourceType}

@@ -19,10 +19,21 @@
     "refresh": "Refresh",
     "language": "Language",
     "close": "Close",
+    "clear": "Clear",
+    "apply": "Apply",
+    "applying": "Applying...",
+    "new": "New",
+    "all": "All",
+    "retry": "Retry",
     "done": "Done",
     "desired": "Desired",
     "current": "Current",
-    "available": "Available"
+    "available": "Available",
+    "history": "History",
+    "yes": "Yes",
+    "no": "No",
+    "default": "Default",
+    "system": "System"
   },
   "globalSearch": {
     "title": "Global Search",
@@ -188,7 +199,8 @@
     "resourceUtilization": "Resource Utilization",
     "requests": "Requests",
     "limits": "Limits",
-    "total": "Total"
+    "total": "Total",
+    "available": "Available"
   },
   "login": {
     "title": "Sign In",
@@ -248,6 +260,12 @@
     "error": "Error loading clusters: {{error}}",
     "error403": "You do not have permission to access this cluster. Please contact your administrator for more information."
   },
+  "clusterSelector": {
+    "switching": "Switching cluster...",
+    "select": "Select Cluster",
+    "default": "Default",
+    "syncError": "Sync Error"
+  },
   "resourceTable": {
     "errorLoading": "Error loading {{resourceName}}",
     "tryAgain": "Try Again",
@@ -261,7 +279,20 @@
     "deleteSuccess": "Deleted {{name}} successfully",
     "deleteFailed": "Failed to delete {{name}}: {{error}}",
     "watch": "Watch",
-    "namespace": "Namespace"
+    "namespace": "Namespace",
+    "selectRow": "Select row",
+    "loadingResources": "Loading resources...",
+    "retrievingData": "Retrieving data",
+    "noResourcesFound": "No resources found",
+    "noResultsMatch": "No results match \"{{query}}\"",
+    "noneInCluster": "There are no resources found",
+    "noneInNamespace": "There are no resources in the {{namespace}} namespace",
+    "clearSearch": "Clear Search",
+    "off": "Off",
+    "filterColumn": "Filter {{column}}",
+    "values": "Values",
+    "searchPlaceholder": "Search resources...",
+    "toggleColumns": "Toggle columns"
   },
   "rbac": {
     "noPermissionCluster": "User {{user}} does not have permission to {{verb}} {{resource}} on cluster {{cluster}}",
@@ -269,6 +300,18 @@
     "accessDenied": "Access Denied",
     "insufficientPermissions": "You do not have sufficient permissions to perform this action",
     "allNamespaces": "All Namespaces",
+    "resourceType": "role",
+    "table": {
+      "clusters": "Clusters",
+      "namespaces": "Namespaces",
+      "resources": "Resources",
+      "verbs": "Verbs",
+      "assignments": "Assignments"
+    },
+    "subject": {
+      "user": "User",
+      "group": "Group"
+    },
     "verb": {
       "get": "Get",
       "create": "Create",
@@ -281,12 +324,41 @@
   "settings": {
     "title": "Settings",
     "description": "Manage clusters, roles and permissions",
+    "descriptionLocal": "Manage local preferences, clusters and templates",
     "tabs": {
+      "desktop": "Desktop",
       "clusters": "Cluster",
       "general": "General",
+      "templates": "Templates",
+      "audit": "Audit",
       "oauth": "Authentication",
       "rbac": "RBAC",
-      "users": "User"
+      "users": "User",
+      "apikeys": "API Keys"
+    }
+  },
+  "desktopManagement": {
+    "title": "Desktop",
+    "loading": "Loading desktop information...",
+    "actions": {
+      "openConfigDir": "Open Config Directory",
+      "openLogsDir": "Open Logs Directory",
+      "refresh": "Refresh"
+    },
+    "fields": {
+      "runtime": "Runtime",
+      "version": "Version",
+      "buildDate": "Build Date",
+      "commit": "Commit",
+      "configDir": "Config Directory",
+      "logsDir": "Logs Directory",
+      "cacheDir": "Cache Directory",
+      "tempDir": "Temp Directory"
+    },
+    "messages": {
+      "loadFailed": "Failed to load desktop info",
+      "openConfigDirFailed": "Failed to open config directory",
+      "openLogsDirFailed": "Failed to open logs directory"
     }
   },
   "generalManagement": {
@@ -385,6 +457,7 @@
   },
   "clusterManagement": {
     "title": "Cluster Management",
+    "resourceType": "cluster",
     "actions": {
       "add": "Add Cluster",
       "edit": "Edit",
@@ -439,6 +512,7 @@
   },
   "oauthManagement": {
     "title": "OAuth Provider Management",
+    "resourceType": "OAuth provider",
     "actions": {
       "add": "Add Provider",
       "edit": "Edit",
@@ -575,10 +649,26 @@
     "reclaimPolicy": "Reclaim Policy",
     "claim": "Claim"
   },
+  "resourceKind": {
+    "pod": "Pod",
+    "deployment": "Deployment",
+    "service": "Service",
+    "configmap": "ConfigMap",
+    "secret": "Secret",
+    "node": "Node",
+    "job": "Job",
+    "daemonset": "DaemonSet",
+    "statefulset": "StatefulSet",
+    "cronjob": "CronJob",
+    "resource": "Resource"
+  },
   "detail": {
     "buttons": {
       "refresh": "Refresh",
       "delete": "Delete",
+      "describe": "Describe",
+      "decodeValues": "Decode Values",
+      "showBase64": "Show Base64",
       "scale": "Scale",
       "restart": "Restart",
       "drain": "Drain",
@@ -603,7 +693,26 @@
       "nodeDrained": "Node {{name}} drained successfully",
       "nodeCordoned": "Node {{name}} cordoned successfully",
       "nodeUncordoned": "Node {{name}} uncordoned successfully",
-      "nodeTainted": "Node {{name}} tainted successfully"
+      "nodeTainted": "Node {{name}} tainted successfully",
+      "inProgress": "In Progress",
+      "notSet": "Not set"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "yaml": "YAML",
+      "logs": "Logs",
+      "terminal": "Terminal",
+      "files": "Files",
+      "volumes": "Volumes",
+      "related": "Related",
+      "events": "Events",
+      "monitor": "Monitor",
+      "history": "History",
+      "data": "Data"
+    },
+    "empty": {
+      "noDataEntries": "No data entries",
+      "noBinaryDataEntries": "No binary data entries"
     },
     "dialogs": {
       "drainNode": {
@@ -654,22 +763,55 @@
       "nodeTaints": "Node Taints",
       "nodeConditions": "Node Conditions",
       "deploymentInformation": "Deployment Information",
+      "statefulSetInformation": "StatefulSet Information",
       "daemonSetInformation": "DaemonSet Information",
+      "jobInformation": "Job Information",
+      "cronJobInformation": "CronJob Information",
       "podInformation": "Pod Information",
+      "serviceInformation": "Service Information",
+      "configMapInformation": "ConfigMap Information",
+      "secretInformation": "Secret Information",
+      "resourceInformation": "Resource Information",
       "initContainers": "Init Containers",
       "containers": "Containers",
-      "conditions": "Conditions"
+      "conditions": "Conditions",
+      "activeJobs": "Active Jobs"
     },
     "fields": {
       "created": "Created",
+      "namespace": "Namespace",
       "strategy": "Strategy",
+      "updateStrategy": "Update Strategy",
+      "serviceName": "Service Name",
+      "podManagementPolicy": "Pod Management Policy",
       "replicas": "Replicas",
+      "currentReplicas": "Current Replicas",
       "selector": "Selector",
       "started": "Started",
+      "completionTime": "Completion Time",
+      "uid": "UID",
       "podIP": "Pod IP",
       "hostIP": "Host IP",
       "owner": "Owner",
+      "parallelism": "Parallelism",
+      "backoffLimit": "Backoff Limit",
+      "activeDeadlineSeconds": "Active Deadline Seconds",
+      "ttlAfterFinished": "TTL After Finished",
+      "concurrencyPolicy": "Concurrency Policy",
+      "startingDeadline": "Starting Deadline",
+      "successfulJobsHistory": "Successful Jobs History",
+      "failedJobsHistory": "Failed Jobs History",
+      "timeZone": "Time Zone",
+      "lastSchedule": "Last Schedule",
+      "activeJobs": "Active Jobs",
+      "ports": "Ports",
+      "resourceVersion": "Resource Version",
+      "keys": "Keys",
+      "size": "Size",
+      "type": "Type",
       "role": "Role",
+      "labels": "Labels",
+      "annotations": "Annotations",
       "internalIP": "Internal IP",
       "externalIP": "External IP",
       "podCIDR": "Pod CIDR",
@@ -696,6 +838,7 @@
       "memory": "Memory",
       "pods": "Pods",
       "storage": "Storage",
+      "noPortsDefined": "No ports defined",
       "effect": "Effect",
       "key": "Key",
       "value": "Value",
@@ -707,11 +850,77 @@
       "availableReplicas": "Available Replicas",
       "readyReplicas": "Ready Replicas",
       "desiredScheduled": "Desired Scheduled",
-      "currentScheduled": "Current Scheduled"
+      "currentScheduled": "Current Scheduled",
+      "binaryData": "Binary Data",
+      "bytes": "bytes",
+      "na": "N/A"
     }
+  },
+  "userMenu": {
+    "appearanceSettings": "Appearance settings",
+    "userMenu": "User menu",
+    "via": "via {{provider}}",
+    "role": "Role: {{roles}}",
+    "openConfigDirectory": "Open Config Directory",
+    "openLogsDirectory": "Open Logs Directory",
+    "colorTheme": "Color Theme",
+    "font": "Font",
+    "system": "System",
+    "logOut": "Log out",
+    "failedToOpenConfigDirectory": "Failed to open config directory",
+    "failedToOpenLogsDirectory": "Failed to open logs directory"
+  },
+  "relatedResources": {
+    "loading": "Loading related...",
+    "title": "Related",
+    "kind": "Kind",
+    "name": "Name",
+    "empty": "No related resources found",
+    "openInNewTab": "Open resource in new tab"
+  },
+  "describe": {
+    "button": "Describe"
+  },
+  "yamlEditor": {
+    "title": "YAML Configuration",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "invalidYaml": "Invalid YAML",
+    "loadingEditor": "Loading editor..."
+  },
+  "podFiles": {
+    "uploadedSuccess": "Uploaded {{name}} successfully",
+    "goToParentDirectory": "Go to parent directory",
+    "goToHomeDirectory": "Go to home directory",
+    "currentPath": "Current path",
+    "refreshFileList": "Refresh file list",
+    "upload": "Upload",
+    "name": "Name",
+    "uid": "UID",
+    "gid": "GID",
+    "size": "Size",
+    "mode": "Mode",
+    "modified": "Modified",
+    "actions": "Actions",
+    "loadingFiles": "Loading files...",
+    "noFilesFound": "No files found"
+  },
+  "siteHeader": {
+    "createNewResource": "Create new resource",
+    "kubectlTerminal": "Kubectl Terminal",
+    "toggleKubectlTerminal": "Toggle Kubectl Terminal",
+    "settings": "Settings"
   },
   "aiChat": {
     "disclaimer": "AI may make mistakes. Please verify carefully before use.",
+    "title": "AI Assistant",
+    "newChat": "New Chat",
+    "historyEmpty": "No chat history yet",
+    "messages": "{{count}} messages",
+    "history": "Chat history",
+    "openInNewTab": "Open in new tab",
+    "close": "Close",
     "suggestedPrompts": {
       "hint": "Start with a focused check",
       "fallback": {
@@ -766,5 +975,181 @@
     "forceDelete": "Force delete (set grace period to 0)",
     "finalizerNote": "If finalizers exist and resource is not deleted after 3 seconds, finalizers will be removed automatically",
     "deleting": "Deleting..."
+  },
+  "createResource": {
+    "title": "Create Resource",
+    "description": "Paste any Kubernetes resource YAML configuration and apply it to the cluster",
+    "template": "Template",
+    "selectTemplate": "Select a template",
+    "emptyTemplate": "Empty Template",
+    "yamlConfiguration": "YAML Configuration",
+    "success": "Resource created successfully"
+  },
+  "containerEditor": {
+    "title": "Edit Container: {{name}}",
+    "description": "More complex changes can be made by modifying YAML.",
+    "tabs": {
+      "image": "Image",
+      "resources": "Resources",
+      "environment": "Environment"
+    },
+    "saveChanges": "Save Changes"
+  },
+  "imageEditor": {
+    "containerImage": "Container Image",
+    "loadingTags": "Loading tags...",
+    "imageHelp": "Specify the container image including tag, for example nginx:1.21 or node:16-alpine",
+    "imagePullPolicy": "Image Pull Policy",
+    "selectPullPolicy": "Select pull policy",
+    "defaultPolicy": "Default",
+    "ifNotPresentDescription": "Pull image only if it is not present locally",
+    "alwaysDescription": "Always pull the latest image",
+    "neverDescription": "Never pull, only use the local image"
+  },
+  "resourceEditor": {
+    "resourceRequests": "Resource Requests",
+    "cpuRequest": "CPU Request",
+    "memoryRequest": "Memory Request",
+    "cpuRequestHint": "For example 100m (0.1 CPU) or 1 (1 CPU)",
+    "memoryRequestHint": "For example 128Mi, 1Gi, or 512M",
+    "resourceLimits": "Resource Limits",
+    "cpuLimit": "CPU Limit",
+    "memoryLimit": "Memory Limit",
+    "cpuLimitHint": "For example 500m (0.5 CPU) or 2 (2 CPUs)",
+    "memoryLimitHint": "For example 512Mi, 2Gi, or 1G"
+  },
+  "resourceTableView": {
+    "noResults": "No results.",
+    "showingRows": "Showing {{filtered}} of {{total}} row(s)",
+    "filteredBy": "filtered by \"{{query}}\"",
+    "rowsTotal": "{{total}} row(s) total.",
+    "rowsPerPage": "Rows per page:"
+  },
+  "selector": {
+    "search": "Search...",
+    "noResults": "No results.",
+    "allNamespaces": "All Namespaces",
+    "selectNamespace": "Select namespace...",
+    "searchPods": "Search pods...",
+    "noPodsFound": "No pods found.",
+    "allPods": "All Pods",
+    "allContainers": "All Containers",
+    "searchContainers": "Search containers...",
+    "noContainersFound": "No containers found.",
+    "init": "init"
+  },
+  "podTable": {
+    "loading": "Loading pods...",
+    "empty": "No pods found"
+  },
+  "serviceTable": {
+    "loading": "Loading services...",
+    "empty": "No services found"
+  },
+  "volumeTable": {
+    "loading": "Loading volumes...",
+    "unknown": "Unknown",
+    "na": "N/A",
+    "defaultMedium": "Default",
+    "size": "Size",
+    "noMounts": "No mounts",
+    "details": "Details",
+    "volumeMounts": "Volume Mounts",
+    "empty": "No volumes configured for this resource."
+  },
+  "recentEvents": {
+    "description": "Latest cluster events",
+    "empty": "No recent events",
+    "reporter": "Reporter: {{name}}"
+  },
+  "metric": {
+    "usage": "Usage",
+    "request": "Request"
+  },
+  "searchButton": {
+    "placeholder": "Search resources..."
+  },
+  "charts": {
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "read": "Read",
+    "write": "Write",
+    "usage": "Usage",
+    "resourcesRequest": "Resources Request",
+    "noCpuUsageData": "No CPU usage data available",
+    "noMemoryUsageData": "No memory usage data available",
+    "noNetworkUsageData": "No network usage data available",
+    "noDiskIoUsageData": "No disk I/O usage data available",
+    "noResourceUtilizationData": "No resource utilization data available",
+    "ofCapacity": "{{value}}% of capacity",
+    "available": "Available: {{value}} {{unit}}"
+  },
+  "logViewer": {
+    "title": "Logs",
+    "lines": "{{count}} lines",
+    "filtered": "filtered",
+    "loading": "Loading...",
+    "reconnecting": "Reconnecting...",
+    "filterLogs": "Filter logs...",
+    "currentTheme": "Current theme: {{name}}",
+    "tailLines": "Tail Lines",
+    "all": "All",
+    "showTimestamps": "Show Timestamps",
+    "previousContainer": "Previous Container",
+    "wordWrap": "Word Wrap",
+    "showLineNumbers": "Show Line Numbers",
+    "logTheme": "Log Theme",
+    "fontSize": "Font Size",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "openSearch": "Open Search",
+    "toggleFullscreen": "Toggle Fullscreen",
+    "increaseFontSize": "Increase Font Size",
+    "decreaseFontSize": "Decrease Font Size",
+    "resetFontSize": "Reset Font Size",
+    "clearLogs": "Clear Logs",
+    "downloadLogs": "Download Logs",
+    "enterFullscreen": "Enter fullscreen",
+    "exitFullscreen": "Exit fullscreen (ESC)",
+    "loadingEditor": "Loading editor..."
+  },
+  "containerInfo": {
+    "running": "Running",
+    "since": "since {{time}}",
+    "waiting": "Waiting",
+    "terminatedExit": "Terminated (exit: {{code}})",
+    "finished": "finished {{time}}",
+    "init": "Init",
+    "sidecar": "Sidecar",
+    "ready": "Ready",
+    "notReady": "Not Ready",
+    "restarts": "{{count}} restarts",
+    "image": "Image",
+    "imagePullPolicy": "Image Pull Policy",
+    "workingDirectory": "Working Directory",
+    "ttyStdin": "TTY / Stdin",
+    "command": "Command",
+    "args": "Args",
+    "state": "State",
+    "showLess": "Show less",
+    "showMore": "Show more",
+    "ports": "Ports",
+    "environmentVariables": "Environment Variables",
+    "configMap": "ConfigMap",
+    "secret": "Secret",
+    "prefix": "prefix",
+    "from": "from",
+    "ref": "ref",
+    "volumeMounts": "Volume Mounts",
+    "subPath": "subPath",
+    "resources": "Resources",
+    "healthChecks": "Health Checks",
+    "liveness": "Liveness",
+    "readiness": "Readiness",
+    "startup": "Startup",
+    "custom": "Custom",
+    "initial": "initial",
+    "period": "period",
+    "imageId": "Image ID",
+    "containerId": "Container ID"
   }
 }

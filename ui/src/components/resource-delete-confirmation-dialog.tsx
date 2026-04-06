@@ -37,7 +37,11 @@ export function ResourceDeleteConfirmationDialog({
         force,
         wait,
       })
-      toast.success(`${resourceType.slice(0, -1)} deleted successfully`)
+      toast.success(
+        t('detail.status.deleted', {
+          resource: resourceName,
+        })
+      )
       navigate(`/${resourceType}`)
     } catch (error) {
       toast.error(translateError(error, t))

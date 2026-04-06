@@ -70,7 +70,7 @@ export function ResourceCharts(props: ResourceChartsProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Resources Request</span>
+            <span>{t('charts.resourcesRequest')}</span>
           </CardTitle>
         </CardHeader>
         <div className="flex flex-col items-center justify-center h-64 gap-2">
@@ -97,8 +97,9 @@ export function ResourceCharts(props: ResourceChartsProps) {
                 <span>{resource.name}</span>
               </CardTitle>
               <CardDescription>
-                Requests: {resource.request.toFixed(1)} / Limits:{' '}
-                {resource.limit.toFixed(1)} / Total: {resource.total.toFixed(2)}{' '}
+                {t('monitoring.requests')}: {resource.request.toFixed(1)} /{' '}
+                {t('monitoring.limits')}: {resource.limit.toFixed(1)} /{' '}
+                {t('monitoring.total')}: {resource.total.toFixed(2)}{' '}
                 {resource.unit}
               </CardDescription>
             </CardHeader>
@@ -129,7 +130,9 @@ export function ResourceCharts(props: ResourceChartsProps) {
                       />
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {resource.requestPercentage.toFixed(1)}% of capacity
+                      {t('charts.ofCapacity', {
+                        value: resource.requestPercentage.toFixed(1),
+                      })}
                     </div>
                   </div>
 
@@ -157,14 +160,18 @@ export function ResourceCharts(props: ResourceChartsProps) {
                       />
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      {resource.limitPercentage.toFixed(1)}% of capacity
+                      {t('charts.ofCapacity', {
+                        value: resource.limitPercentage.toFixed(1),
+                      })}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-xs text-muted-foreground ">
-                  Available: {(resource.total - resource.request).toFixed(1)}{' '}
-                  {resource.unit}
+                  {t('charts.available', {
+                    value: (resource.total - resource.request).toFixed(1),
+                    unit: resource.unit,
+                  })}
                 </div>
               </div>
             </CardContent>

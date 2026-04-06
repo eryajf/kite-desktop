@@ -114,7 +114,7 @@ export function PodFileBrowser({
         file
       )
       refetch()
-      toast.success(`Uploaded ${file.name} successfully`)
+      toast.success(t('podFiles.uploadedSuccess', { name: file.name }))
     } catch (error) {
       toast.error(translateError(error, t))
     } finally {
@@ -136,7 +136,7 @@ export function PodFileBrowser({
           <Button
             variant="outline"
             size="icon"
-            aria-label="Go to parent directory"
+            aria-label={t('podFiles.goToParentDirectory')}
             onClick={handleGoUp}
             disabled={currentPath === '/'}
           >
@@ -145,7 +145,7 @@ export function PodFileBrowser({
           <Button
             variant="outline"
             size="icon"
-            aria-label="Go to home directory"
+            aria-label={t('podFiles.goToHomeDirectory')}
             onClick={() => handleNavigate('/')}
             disabled={currentPath === '/'}
           >
@@ -153,7 +153,7 @@ export function PodFileBrowser({
           </Button>
           <Input
             value={currentPath}
-            aria-label="Current path"
+            aria-label={t('podFiles.currentPath')}
             onChange={(e) => setCurrentPath(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -163,7 +163,7 @@ export function PodFileBrowser({
             className="font-mono"
           />
           <Button
-            aria-label="Refresh file list"
+            aria-label={t('podFiles.refreshFileList')}
             variant="outline"
             size="icon"
             onClick={() => refetch()}
@@ -190,7 +190,7 @@ export function PodFileBrowser({
             ) : (
               <IconUpload className="w-4 h-4 mr-2" />
             )}
-            Upload
+            {t('podFiles.upload')}
           </Label>
         </div>
       </div>
@@ -207,13 +207,21 @@ export function PodFileBrowser({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50px]"></TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead className="w-[100px]">UID</TableHead>
-                <TableHead className="w-[100px]">GID</TableHead>
-                <TableHead className="w-[100px]">Size</TableHead>
-                <TableHead className="w-[150px]">Mode</TableHead>
-                <TableHead className="w-[200px]">Modified</TableHead>
-                <TableHead className="w-[120px]">Actions</TableHead>
+                <TableHead>{t('podFiles.name')}</TableHead>
+                <TableHead className="w-[100px]">{t('podFiles.uid')}</TableHead>
+                <TableHead className="w-[100px]">{t('podFiles.gid')}</TableHead>
+                <TableHead className="w-[100px]">
+                  {t('podFiles.size')}
+                </TableHead>
+                <TableHead className="w-[150px]">
+                  {t('podFiles.mode')}
+                </TableHead>
+                <TableHead className="w-[200px]">
+                  {t('podFiles.modified')}
+                </TableHead>
+                <TableHead className="w-[120px]">
+                  {t('podFiles.actions')}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,14 +230,14 @@ export function PodFileBrowser({
                   <TableCell colSpan={8} className="h-24 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <IconLoader className="animate-spin" />
-                      <span>Loading files...</span>
+                      <span>{t('podFiles.loadingFiles')}</span>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (files ?? []).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="h-24 text-center">
-                    No files found
+                    {t('podFiles.noFilesFound')}
                   </TableCell>
                 </TableRow>
               ) : (

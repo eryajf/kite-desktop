@@ -1,5 +1,6 @@
 import React from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { UsageDataPoint } from '@/types/api'
@@ -23,6 +24,7 @@ interface MemoryUsageChartProps {
 }
 
 const MemoryUsageChart = React.memo((prop: MemoryUsageChartProps) => {
+  const { t } = useTranslation()
   const { data, isLoading, error, syncId } = prop
 
   const memoryChartData = React.useMemo(() => {
@@ -80,7 +82,7 @@ const MemoryUsageChart = React.memo((prop: MemoryUsageChartProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Memory Usage
+            {t('monitoring.memoryUsage')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -97,7 +99,7 @@ const MemoryUsageChart = React.memo((prop: MemoryUsageChartProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Memory Usage</CardTitle>
+          <CardTitle>{t('monitoring.memoryUsage')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Alert variant="destructive">
@@ -114,11 +116,11 @@ const MemoryUsageChart = React.memo((prop: MemoryUsageChartProps) => {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Memory Usage</CardTitle>
+          <CardTitle>{t('monitoring.memoryUsage')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">
-            <p>No memory usage data available</p>
+            <p>{t('charts.noMemoryUsageData')}</p>
           </div>
         </CardContent>
       </Card>
@@ -128,7 +130,7 @@ const MemoryUsageChart = React.memo((prop: MemoryUsageChartProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Memory Usage</CardTitle>
+        <CardTitle>{t('monitoring.memoryUsage')}</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer

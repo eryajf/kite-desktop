@@ -317,7 +317,7 @@ export function OAuthProviderManagement() {
         onOpenChange={() => setDeletingProvider(null)}
         onConfirm={handleDeleteProvider}
         resourceName={deletingProvider?.name || ''}
-        resourceType="OAuth provider"
+        resourceType={t('oauthManagement.resourceType', 'OAuth provider')}
         additionalNote={t(
           'oauthManagement.deleteConfirmation',
           'This action will remove the OAuth provider configuration. Users will no longer be able to login using this provider.'

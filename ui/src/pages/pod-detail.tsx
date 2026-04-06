@@ -15,7 +15,7 @@ import { toast } from 'sonner'
 import { resizePod, updateResource, useResource } from '@/lib/api'
 import { getOwnerInfo, getPodErrorMessage, getPodStatus } from '@/lib/k8s'
 import { withSubPath } from '@/lib/subpath'
-import { formatDate, translateError } from '@/lib/utils'
+import { formatDate, translateError, translatePodStatus } from '@/lib/utils'
 import { useCluster } from '@/hooks/use-cluster'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -102,7 +102,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
     setIsSavingYaml(true)
     try {
       await updateResource('pods', name, namespace, content)
-      toast.success('YAML saved successfully')
+      toast.success(t('detail.status.yamlSaved'))
       // Refresh data after successful save
       await handleRefresh()
     } catch (error) {
@@ -170,7 +170,11 @@ export function PodDetail(props: { namespace: string; name: string }) {
           <CardContent className="pt-6">
             <div className="flex items-center justify-center gap-2">
               <IconLoader className="animate-spin" />
-              <span>Loading pod details...</span>
+              <span>
+                {t('detail.status.loading', {
+                  resource: t('resourceKind.pod'),
+                })}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -195,13 +199,14 @@ export function PodDetail(props: { namespace: string; name: string }) {
         <div className="min-w-0">
           <h1 className="text-lg font-bold">{name}</h1>
           <p className="text-muted-foreground">
-            Namespace: <span className="font-medium">{namespace}</span>
+            {t('detail.fields.namespace')}:{' '}
+            <span className="font-medium">{namespace}</span>
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
           <Button variant="outline" size="sm" onClick={handleManualRefresh}>
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType="pods"
@@ -224,7 +229,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -233,13 +238,13 @@ export function PodDetail(props: { namespace: string; name: string }) {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
                 {/* Status Overview */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Status Overview</CardTitle>
+                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
@@ -251,9 +256,11 @@ export function PodDetail(props: { namespace: string; name: string }) {
                           />
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">Phase</p>
+                          <p className="text-xs text-muted-foreground">
+                            {t('detail.fields.phase')}
+                          </p>
                           <p className="text-sm font-medium">
-                            {podStatus.reason}
+                            {translatePodStatus(podStatus.reason, t)}
                           </p>
                           <p className="text-xs text-red-500">
                             {getPodErrorMessage(pod)}
@@ -263,7 +270,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
 
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Ready Containers
+                          {t('detail.fields.readyContainers')}
                         </p>
                         <p className="text-sm font-medium">
                           {podStatus.readyContainers} /{' '}
@@ -273,7 +280,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
 
                       <div>
                         <p className="text-xs text-muted-foreground">
-                          Restart Count
+                          {t('detail.fields.restartCount')}
                         </p>
                         <p className="text-sm font-medium">
                           {podStatus.restartString}
@@ -281,7 +288,9 @@ export function PodDetail(props: { namespace: string; name: string }) {
                       </div>
 
                       <div>
-                        <p className="text-xs text-muted-foreground">Node</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t('detail.fields.node')}
+                        </p>
                         <p className="text-sm font-medium truncate">
                           {pod.spec?.nodeName ? (
                             <Link
@@ -291,7 +300,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
                               {pod.spec.nodeName}
                             </Link>
                           ) : (
-                            'Not assigned'
+                            t('detail.fields.notAssigned')
                           )}
                         </p>
                       </div>
@@ -301,13 +310,13 @@ export function PodDetail(props: { namespace: string; name: string }) {
                 {/* Pod Info */}
                 <Card>
                   <CardHeader>
-                    <CardTitle>Pod Information</CardTitle>
+                    <CardTitle>{t('detail.sections.podInformation')}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(
@@ -318,40 +327,40 @@ export function PodDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Started
+                          {t('detail.fields.started')}
                         </Label>
                         <p className="text-sm">
                           {pod.status?.startTime
                             ? formatDate(pod.status.startTime)
-                            : 'Not started'}
+                            : t('detail.fields.notStarted')}
                         </p>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Pod IP
+                          {t('detail.fields.podIP')}
                         </Label>
                         <p className="text-sm font-mono">
-                          {pod.status?.podIP || 'Not assigned'}
+                          {pod.status?.podIP || t('detail.fields.notAssigned')}
                         </p>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Host IP
+                          {t('detail.fields.hostIP')}
                         </Label>
                         <p className="text-sm font-mono">
-                          {pod.status?.hostIP || 'Not assigned'}
+                          {pod.status?.hostIP || t('detail.fields.notAssigned')}
                         </p>
                       </div>
                       {getOwnerInfo(pod.metadata) && (
                         <div>
                           <Label className="text-xs text-muted-foreground">
-                            Owner
+                            {t('detail.fields.owner')}
                           </Label>
                           <p className="text-sm">
                             {(() => {
                               const ownerInfo = getOwnerInfo(pod.metadata)
                               if (!ownerInfo) {
-                                return 'No owner'
+                                return t('detail.fields.noOwner')
                               }
                               return (
                                 <Link to={ownerInfo.path} className="app-link">
@@ -364,7 +373,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
                       )}
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Ports
+                          {t('detail.fields.ports')}
                         </Label>
                         <div className="flex flex-wrap items-center gap-1">
                           {pod.spec?.containers
@@ -392,7 +401,9 @@ export function PodDetail(props: { namespace: string; name: string }) {
                             pod.spec.containers.length === 0 ||
                             pod.spec.containers.every(
                               (c) => !c.ports || c.ports.length === 0
-                            )) && <span>No ports defined</span>}
+                            )) && (
+                            <span>{t('detail.fields.noPortsDefined')}</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -408,7 +419,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
                     <Card>
                       <CardHeader>
                         <CardTitle>
-                          Init Containers (
+                          {t('detail.sections.initContainers')} (
                           {pod?.spec?.initContainers?.length || 0})
                         </CardTitle>
                       </CardHeader>
@@ -430,7 +441,8 @@ export function PodDetail(props: { namespace: string; name: string }) {
                 <Card>
                   <CardHeader>
                     <CardTitle>
-                      Containers ({pod?.spec?.containers?.length || 0})
+                      {t('detail.sections.containers')} (
+                      {pod?.spec?.containers?.length || 0})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -451,7 +463,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
                 {pod.status?.conditions && pod.status.conditions.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle>Conditions</CardTitle>
+                      <CardTitle>{t('detail.sections.conditions')}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
@@ -486,7 +498,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
             value: 'containers',
             label: (
               <>
-                Containers
+                {t('detail.sections.containers')}
                 <Badge variant="secondary">
                   {(pod.spec?.containers?.length || 0) +
                     (pod.spec?.initContainers?.length || 0)}
@@ -530,13 +542,13 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
                 <YamlEditor<'pods'>
                   key={refreshKey}
                   value={yamlContent}
-                  title="YAML Configuration"
+                  title={t('yamlEditor.title')}
                   onSave={handleSaveYaml}
                   onChange={handleYamlChange}
                   isSaving={isSavingYaml}
@@ -546,7 +558,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'logs',
-            label: 'Logs',
+            label: t('detail.tabs.logs'),
             content: (
               <LogViewer
                 namespace={namespace}
@@ -558,7 +570,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'terminal',
-            label: 'Terminal',
+            label: t('detail.tabs.terminal'),
             content: (
               <div className="space-y-6">
                 <Terminal
@@ -572,7 +584,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'files',
-            label: 'Files',
+            label: t('detail.tabs.files'),
             content: (
               <PodFileBrowser
                 namespace={namespace}
@@ -586,7 +598,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
             value: 'volumes',
             label: (
               <>
-                Volumes
+                {t('detail.tabs.volumes')}
                 {pod.spec?.volumes && (
                   <Badge variant="secondary">{pod.spec.volumes.length}</Badge>
                 )}
@@ -605,7 +617,7 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'Related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource={'pods'}
@@ -616,14 +628,14 @@ export function PodDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable resource="pods" name={name} namespace={namespace} />
             ),
           },
           {
             value: 'monitor',
-            label: 'Monitor',
+            label: t('detail.tabs.monitor'),
             content: (
               <div className="space-y-6">
                 <PodMonitoring

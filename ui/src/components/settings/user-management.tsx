@@ -184,7 +184,7 @@ export function UserManagement() {
     () => [
       {
         id: 'id',
-        header: 'ID',
+        header: t('userManagement.table.id', 'ID'),
         enableSorting: true,
         accessorFn: (row) => row.id,
         cell: ({ getValue }) => (
@@ -716,7 +716,7 @@ export function UserManagement() {
         onOpenChange={() => setDeletingUser(null)}
         onConfirm={handleDelete}
         resourceName={deletingUser?.username || ''}
-        resourceType="user"
+        resourceType={t('userManagement.resourceType', 'user')}
       />
     </div>
   )

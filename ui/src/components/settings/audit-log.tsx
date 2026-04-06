@@ -145,7 +145,7 @@ export function AuditLog() {
             {row.original.operator?.username || '-'}
             {row.original.operator?.provider === 'api_key' && (
               <span className="ml-2 text-xs text-muted-foreground italic">
-                apikey
+                {t('auditLog.operator.apiKey', 'API Key')}
               </span>
             )}
             {row.original.operationSource === 'ai' && (

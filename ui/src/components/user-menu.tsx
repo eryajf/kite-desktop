@@ -9,6 +9,7 @@ import {
   Palette,
   Settings2,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { openConfigDir, openLogsDir } from '@/lib/desktop'
@@ -33,6 +34,7 @@ export function UserMenu() {
   const { user, logout, hasGlobalSidebarPreference, isLocalMode } = useAuth()
   const { colorTheme, setColorTheme, font, setFont } = useAppearance()
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
 
   if (!user) return null
 
@@ -61,7 +63,7 @@ export function UserMenu() {
       toast.error(
         error instanceof Error
           ? error.message
-          : 'Failed to open config directory'
+          : t('userMenu.failedToOpenConfigDirectory')
       )
     })
   }
@@ -69,7 +71,9 @@ export function UserMenu() {
   const handleOpenLogsDir = () => {
     void openLogsDir().catch((error) => {
       toast.error(
-        error instanceof Error ? error.message : 'Failed to open logs directory'
+        error instanceof Error
+          ? error.message
+          : t('userMenu.failedToOpenLogsDirectory')
       )
     })
   }
@@ -80,7 +84,11 @@ export function UserMenu() {
         <Button
           variant="ghost"
           className="relative h-10 w-10 rounded-full"
-          aria-label={isLocalMode ? 'Appearance settings' : 'User menu'}
+          aria-label={
+            isLocalMode
+              ? t('userMenu.appearanceSettings')
+              : t('userMenu.userMenu')
+          }
         >
           {isLocalMode ? (
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -106,11 +114,13 @@ export function UserMenu() {
               {user.name && <p className="font-medium">{user.name}</p>}
               <p className="text-xs text-muted-foreground">{user.username}</p>
               <p className="text-xs text-muted-foreground capitalize">
-                via {user.provider}
+                {t('userMenu.via', { provider: user.provider })}
               </p>
               {user.roles && user.roles.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Role: {user.roles.map((role) => role.name).join(', ')}
+                  {t('userMenu.role', {
+                    roles: user.roles.map((role) => role.name).join(', '),
+                  })}
                 </p>
               )}
             </div>
@@ -123,11 +133,11 @@ export function UserMenu() {
           <>
             <DropdownMenuItem onClick={handleOpenConfigDir}>
               <FolderCog className="mr-2 h-4 w-4" />
-              <span>Open Config Directory</span>
+              <span>{t('userMenu.openConfigDirectory')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={handleOpenLogsDir}>
               <Logs className="mr-2 h-4 w-4" />
-              <span>Open Logs Directory</span>
+              <span>{t('userMenu.openLogsDirectory')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
@@ -136,7 +146,7 @@ export function UserMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Palette className="mr-2 h-4 w-4" />
-            <span>Color Theme</span>
+            <span>{t('userMenu.colorTheme')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             {Object.entries(colorThemes).map(([key]) => {
@@ -165,7 +175,7 @@ export function UserMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <CaseSensitive className="mr-2 h-4 w-4" />
-            <span>Font</span>
+            <span>{t('userMenu.font')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem
@@ -176,7 +186,7 @@ export function UserMenu() {
                 font === 'system' ? 'font-medium text-foreground' : ''
               }`}
             >
-              <span>System</span>
+              <span>{t('userMenu.system')}</span>
               {font === 'system' && <Check className="h-4 w-4 text-primary" />}
             </DropdownMenuItem>
             <DropdownMenuItem
@@ -218,7 +228,7 @@ export function UserMenu() {
               className="cursor-pointer text-red-600 focus:text-red-600"
             >
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{t('userMenu.logOut')}</span>
             </DropdownMenuItem>
           </>
         )}

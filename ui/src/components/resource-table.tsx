@@ -256,14 +256,14 @@ export function ResourceTable<T>({
             (table.getIsSomePageRowsSelected() && 'indeterminate')
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label={t('resourceTable.selectAll', 'Select all')}
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          aria-label={t('resourceTable.selectRow', 'Select row')}
         />
       ),
       enableSorting: false,
@@ -475,12 +475,16 @@ export function ResourceTable<T>({
             <Database className="h-12 w-12 text-muted-foreground animate-pulse" />
           </div>
           <h3 className="text-lg font-medium mb-1">
-            Loading {resourceName.toLowerCase()}...
+            {t('resourceTable.loadingResources', 'Loading resources...')}
           </h3>
           <p className="text-muted-foreground">
-            Retrieving data
+            {t('resourceTable.retrievingData', 'Retrieving data')}
             {!clusterScope && selectedNamespace
-              ? ` from ${selectedNamespace === '_all' ? 'All Namespaces' : `namespace ${selectedNamespace}`}`
+              ? ` ${
+                  selectedNamespace === '_all'
+                    ? t('selector.allNamespaces')
+                    : selectedNamespace
+                }`
               : ''}
           </p>
         </div>
@@ -504,14 +508,23 @@ export function ResourceTable<T>({
             <Box className="h-12 w-12 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-medium mb-1">
-            No {resourceName.toLowerCase()} found
+            {t('resourceTable.noResourcesFound', 'No resources found')}
           </h3>
           <p className="text-muted-foreground">
             {searchQuery
-              ? `No results match your search query: "${searchQuery}"`
+              ? t('resourceTable.noResultsMatch', {
+                  query: searchQuery,
+                  defaultValue: `No results match your search query: "${searchQuery}"`,
+                })
               : clusterScope
-                ? `There are no ${resourceName.toLowerCase()} found`
-                : `There are no ${resourceName.toLowerCase()} in the ${selectedNamespace} namespace`}
+                ? t(
+                    'resourceTable.noneInCluster',
+                    'There are no resources found'
+                  )
+                : t('resourceTable.noneInNamespace', {
+                    namespace: selectedNamespace,
+                    defaultValue: `There are no resources in the ${selectedNamespace} namespace`,
+                  })}
           </p>
           {searchQuery && (
             <Button
@@ -519,7 +532,7 @@ export function ResourceTable<T>({
               className="mt-4"
               onClick={() => setSearchQuery('')}
             >
-              Clear Search
+              {t('resourceTable.clearSearch', 'Clear Search')}
             </Button>
           )}
         </div>
@@ -581,7 +594,9 @@ export function ResourceTable<T>({
                 </div>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="0">Off</SelectItem>
+                <SelectItem value="0">
+                  {t('resourceTable.off', 'Off')}
+                </SelectItem>
                 <SelectItem value="1000">1s</SelectItem>
                 <SelectItem value="5000">5s</SelectItem>
                 <SelectItem value="10000">10s</SelectItem>
@@ -612,15 +627,21 @@ export function ResourceTable<T>({
                 >
                   <SelectTrigger className="w-full sm:w-auto sm:min-w-[8.5rem] sm:max-w-[12rem]">
                     <SelectValue
-                      placeholder={`Filter ${typeof columnDef.header === 'string' ? columnDef.header : 'Column'}`}
+                      placeholder={t('resourceTable.filterColumn', {
+                        column:
+                          typeof columnDef.header === 'string'
+                            ? columnDef.header
+                            : t('common.filter'),
+                        defaultValue: `Filter ${typeof columnDef.header === 'string' ? columnDef.header : 'Column'}`,
+                      })}
                     />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">
-                      All{' '}
+                      {t('common.all')}{' '}
                       {typeof columnDef.header === 'string'
                         ? columnDef.header
-                        : 'Values'}
+                        : t('resourceTable.values', 'Values')}
                     </SelectItem>
                     {Array.from(uniqueValues.keys())
                       .sort()
@@ -642,7 +663,10 @@ export function ResourceTable<T>({
               <div className="relative min-w-0 flex-1 sm:w-[280px]">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder={`Search ${resourceName.toLowerCase()}...`}
+                  placeholder={t(
+                    'resourceTable.searchPlaceholder',
+                    'Search resources...'
+                  )}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-4"
@@ -654,7 +678,7 @@ export function ResourceTable<T>({
                   size="icon"
                   onClick={() => setSearchQuery('')}
                   className="h-9 w-9"
-                  aria-label="Clear search"
+                  aria-label={t('resourceTable.clearSearch', 'Clear search')}
                 >
                   <XCircle className="h-4 w-4" />
                 </Button>
@@ -677,7 +701,7 @@ export function ResourceTable<T>({
               {showCreateButton && onCreateClick && (
                 <Button onClick={onCreateClick} className="gap-1">
                   <Plus className="h-2 w-2" />
-                  New
+                  {t('common.new')}
                 </Button>
               )}
 
@@ -686,13 +710,18 @@ export function ResourceTable<T>({
                   <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Toggle columns"
+                    aria-label={t(
+                      'resourceTable.toggleColumns',
+                      'Toggle columns'
+                    )}
                   >
                     <Settings2 className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                  <DropdownMenuLabel>
+                    {t('resourceTable.toggleColumns', 'Toggle columns')}
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {table
                     .getAllLeafColumns()

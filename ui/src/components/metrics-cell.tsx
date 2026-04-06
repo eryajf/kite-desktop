@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { MetricsData } from '@/types/api'
 import { formatMemory } from '@/lib/utils'
@@ -16,6 +17,7 @@ export function MetricCell({
   limitLabel?: string // e.g., "Limit" or "Capacity"
   showPercentage?: boolean // Whether to show percentage in the display
 }) {
+  const { t } = useTranslation()
   const metricValue =
     type === 'cpu' ? metrics?.cpuUsage || 0 : metrics?.memoryUsage || 0
 
@@ -74,9 +76,9 @@ export function MetricCell({
           </TooltipTrigger>
           <TooltipContent>
             <div className="text-sm grid grid-cols-2 gap-x-3 gap-y-0.5 min-w-0">
-              <span>Usage:</span>
+              <span>{t('metric.usage')}:</span>
               <span className="text-right">{formatValue(metricValue)}</span>
-              <span>Request:</span>
+              <span>{t('metric.request')}:</span>
               <span className="text-right">{formatValue(metricRequest)}</span>
               <span>{limitLabel}:</span>
               <span className="text-right">{formatValue(metricLimit)}</span>

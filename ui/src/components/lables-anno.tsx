@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next'
+
 import { Badge } from './ui/badge'
 import { Label } from './ui/label'
 
@@ -5,6 +7,7 @@ export function LabelsAnno(props: {
   labels: Record<string, string>
   annotations: Record<string, string>
 }) {
+  const { t } = useTranslation()
   const { labels, annotations } = props
   if (!labels && !annotations) {
     return null
@@ -22,7 +25,9 @@ export function LabelsAnno(props: {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {Object.keys(labels).length > 0 && (
           <div>
-            <Label className="text-xs text-muted-foreground">Labels</Label>
+            <Label className="text-xs text-muted-foreground">
+              {t('detail.fields.labels')}
+            </Label>
             <div className="flex flex-wrap gap-1 mt-2">
               {Object.entries(labels || {}).map(([key, value]) => (
                 <Badge
@@ -39,7 +44,9 @@ export function LabelsAnno(props: {
         )}
         {Object.keys(annotations || {}).length > 0 && (
           <div>
-            <Label className="text-xs text-muted-foreground">Annotations</Label>
+            <Label className="text-xs text-muted-foreground">
+              {t('detail.fields.annotations')}
+            </Label>
             <div className="flex flex-wrap gap-1 mt-2 max-h-32 overflow-x-hidden">
               {Object.entries(annotations || {}).map(([key, value]) => (
                 <Badge

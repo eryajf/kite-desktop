@@ -290,7 +290,7 @@ export function APIKeyManagement() {
         onOpenChange={(open: boolean) => !open && setDeletingKey(null)}
         onConfirm={handleDelete}
         resourceName={deletingKey?.username || ''}
-        resourceType="API Key"
+        resourceType={t('apikeyManagement.resourceType', 'API Key')}
         isDeleting={deleteMutation.isPending}
       />
     </>

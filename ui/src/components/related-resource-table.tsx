@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { IconExternalLink, IconLoader } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 
 import { RelatedResources, ResourceType } from '@/types/api'
 import { useRelatedResources } from '@/lib/api'
@@ -24,6 +25,7 @@ export function RelatedResourcesTable(props: {
   namespace?: string
 }) {
   const { resource, name, namespace } = props
+  const { t } = useTranslation()
 
   const { data: relatedResources, isLoading } = useRelatedResources(
     resource,
@@ -34,7 +36,7 @@ export function RelatedResourcesTable(props: {
   const relatedColumns = useMemo(
     (): Column<RelatedResources>[] => [
       {
-        header: 'Kind',
+        header: t('relatedResources.kind'),
         accessor: (rs: RelatedResources) => rs.type,
         align: 'left',
         cell: (value: unknown) => (
@@ -42,7 +44,7 @@ export function RelatedResourcesTable(props: {
         ),
       },
       {
-        header: 'Name',
+        header: t('relatedResources.name'),
         accessor: (rs: RelatedResources) => rs,
         cell: (value: unknown) => {
           const rs = value as RelatedResources
@@ -50,27 +52,27 @@ export function RelatedResourcesTable(props: {
         },
       },
     ],
-    []
+    [t]
   )
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <IconLoader className="animate-spin mr-2" />
-        Loading related...
+        {t('relatedResources.loading')}
       </div>
     )
   }
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Related</CardTitle>
+        <CardTitle>{t('relatedResources.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <SimpleTable
           data={relatedResources || []}
           columns={relatedColumns}
-          emptyMessage="No related found"
+          emptyMessage={t('relatedResources.empty')}
         />
       </CardContent>
     </Card>
@@ -79,6 +81,7 @@ export function RelatedResourcesTable(props: {
 
 function RelatedResourceCell({ rs }: { rs: RelatedResources }) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
 
   const path = useMemo(() => {
     if (isStandardK8sResource(rs.type)) {
@@ -99,7 +102,7 @@ function RelatedResourceCell({ rs }: { rs: RelatedResources }) {
             <Button
               variant="outline"
               size="icon"
-              aria-label="Open resource in new tab"
+              aria-label={t('relatedResources.openInNewTab')}
             >
               <IconExternalLink size={12} />
             </Button>

@@ -49,7 +49,11 @@ export function RBACManagement() {
           <div>
             <div className="flex items-center">
               <span className="font-medium">{r.name}</span>{' '}
-              {r.isSystem && <Badge variant="secondary">System</Badge>}
+              {r.isSystem && (
+                <Badge variant="secondary">
+                  {t('common.system', 'System')}
+                </Badge>
+              )}
             </div>
             {r.description && (
               <div className="text-sm text-muted-foreground">
@@ -61,7 +65,7 @@ export function RBACManagement() {
       },
       {
         id: 'clusters',
-        header: 'Clusters',
+        header: t('rbac.table.clusters', 'Clusters'),
         cell: ({ row: { original: r } }) => (
           <div className="text-sm text-muted-foreground">
             {r.clusters.length > 0 ? (
@@ -74,7 +78,7 @@ export function RBACManagement() {
       },
       {
         id: 'namespaces',
-        header: 'Namespaces',
+        header: t('rbac.table.namespaces', 'Namespaces'),
         cell: ({ row: { original: r } }) => (
           <div className="text-sm text-muted-foreground">
             {r.namespaces.length > 0 ? (
@@ -88,7 +92,7 @@ export function RBACManagement() {
 
       {
         id: 'Resources',
-        header: 'Resources',
+        header: t('rbac.table.resources', 'Resources'),
         cell: ({ row: { original: r } }) => (
           <div className="text-sm text-muted-foreground">
             {r.resources.length > 0 ? (
@@ -101,7 +105,7 @@ export function RBACManagement() {
       },
       {
         id: 'verbs',
-        header: 'Verbs',
+        header: t('rbac.table.verbs', 'Verbs'),
         cell: ({ row: { original: r } }) => (
           <div className="text-sm text-muted-foreground">
             {r.verbs.length > 0 ? (
@@ -114,7 +118,7 @@ export function RBACManagement() {
       },
       {
         id: 'assignments',
-        header: 'Assignments',
+        header: t('rbac.table.assignments', 'Assignments'),
         cell: ({ row: { original: r } }) => {
           const users =
             r.assignments?.filter((a) => a.subjectType === 'user') || []
@@ -125,7 +129,7 @@ export function RBACManagement() {
             <div className="flex flex-wrap gap-1 text-xs max-w-[200px]">
               {users.slice(0, maxShow).map((a) => (
                 <Badge key={a.id} variant="secondary" className="text-xs">
-                  user: {a.subject}
+                  {t('rbac.subject.user', 'User')}: {a.subject}
                 </Badge>
               ))}
               {users.length > maxShow && (
@@ -135,7 +139,7 @@ export function RBACManagement() {
               )}
               {groups.slice(0, maxShow).map((a) => (
                 <Badge key={a.id} variant="secondary" className="text-xs">
-                  group: {a.subject}
+                  {t('rbac.subject.group', 'Group')}: {a.subject}
                 </Badge>
               ))}
               {groups.length > maxShow && (
@@ -390,7 +394,7 @@ export function RBACManagement() {
         onOpenChange={() => setDeletingRole(null)}
         onConfirm={handleDeleteRole}
         resourceName={deletingRole?.name || ''}
-        resourceType="role"
+        resourceType={t('rbac.resourceType', 'role')}
       />
     </div>
   )

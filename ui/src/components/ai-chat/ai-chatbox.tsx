@@ -574,6 +574,7 @@ function HistoryPanel({
   onNewSession: () => void
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp)
     const now = new Date()
@@ -595,7 +596,7 @@ function HistoryPanel({
       <div className="flex h-11 shrink-0 items-center justify-between border-b bg-muted/50 px-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Clock className="h-4 w-4" />
-          Chat History
+          {t('aiChat.history')}
         </div>
         <Button
           variant="ghost"
@@ -618,7 +619,7 @@ function HistoryPanel({
           }}
         >
           <MessageSquarePlus className="h-4 w-4" />
-          New Chat
+          {t('aiChat.newChat')}
         </Button>
       </div>
 
@@ -627,7 +628,9 @@ function HistoryPanel({
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-2 p-8 text-center">
             <Clock className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">No chat history yet</p>
+            <p className="text-sm text-muted-foreground">
+              {t('aiChat.historyEmpty')}
+            </p>
           </div>
         ) : (
           <div className="space-y-1 p-2">
@@ -653,7 +656,11 @@ function HistoryPanel({
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{formatDate(session.updatedAt)}</span>
                     <span>•</span>
-                    <span>{session.messages.length} messages</span>
+                    <span>
+                      {t('aiChat.messages', {
+                        count: session.messages.length,
+                      })}
+                    </span>
                     {session.clusterName && (
                       <>
                         <span>•</span>
@@ -1111,7 +1118,7 @@ export function AIChatbox({
       >
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <Bot className="h-4 w-4" />
-          AI Assistant
+          {t('aiChat.title')}
         </div>
 
         <div className="flex items-center gap-0.5">
@@ -1126,7 +1133,7 @@ export function AIChatbox({
                 <Clock className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">Chat history</TooltipContent>
+            <TooltipContent side="top">{t('aiChat.history')}</TooltipContent>
           </Tooltip>
 
           <Tooltip>
@@ -1140,7 +1147,7 @@ export function AIChatbox({
                 <MessageSquarePlus className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">New chat</TooltipContent>
+            <TooltipContent side="top">{t('aiChat.newChat')}</TooltipContent>
           </Tooltip>
 
           {!standalone && (
@@ -1155,7 +1162,9 @@ export function AIChatbox({
                   <ExternalLink className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top">Open in new tab</TooltipContent>
+              <TooltipContent side="top">
+                {t('aiChat.openInNewTab')}
+              </TooltipContent>
             </Tooltip>
           )}
 
@@ -1172,7 +1181,7 @@ export function AIChatbox({
                 <X className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top">Close</TooltipContent>
+            <TooltipContent side="top">{t('aiChat.close')}</TooltipContent>
           </Tooltip>
         </div>
       </div>

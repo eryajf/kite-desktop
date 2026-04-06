@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { UsageDataPoint } from '@/types/api'
@@ -26,23 +27,27 @@ interface ResourceUtilizationChartProps {
   error?: Error | null
 }
 
-const chartConfig = {
-  usage: {
-    label: 'Usage',
-  },
-  cpu: {
-    label: 'CPU',
-    color: 'hsl(220, 70%, 50%)',
-  },
-  memory: {
-    label: 'Memory',
-    color: 'hsl(142, 70%, 50%)',
-  },
-} satisfies ChartConfig
-
 const ResourceUtilizationChart = React.memo(
   (prop: ResourceUtilizationChartProps) => {
+    const { t } = useTranslation()
     const { cpu, memory, isLoading, error } = prop
+    const chartConfig = React.useMemo(
+      () =>
+        ({
+          usage: {
+            label: t('charts.usage'),
+          },
+          cpu: {
+            label: 'CPU',
+            color: 'hsl(220, 70%, 50%)',
+          },
+          memory: {
+            label: t('detail.fields.memory'),
+            color: 'hsl(142, 70%, 50%)',
+          },
+        }) satisfies ChartConfig,
+      [t]
+    )
     const chartData = React.useMemo(() => {
       if (!cpu || !memory) return []
 
@@ -81,7 +86,7 @@ const ResourceUtilizationChart = React.memo(
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Resource Utilization
+              {t('monitoring.resourceUtilization')}
             </CardTitle>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
@@ -98,7 +103,7 @@ const ResourceUtilizationChart = React.memo(
       return (
         <Card className="@container/card">
           <CardHeader>
-            <CardTitle>Resource Utilization</CardTitle>
+            <CardTitle>{t('monitoring.resourceUtilization')}</CardTitle>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
             <Alert variant="destructive">
@@ -115,11 +120,11 @@ const ResourceUtilizationChart = React.memo(
       return (
         <Card className="@container/card">
           <CardHeader>
-            <CardTitle>Resource Utilization</CardTitle>
+            <CardTitle>{t('monitoring.resourceUtilization')}</CardTitle>
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
             <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">
-              <p>No resource utilization data available</p>
+              <p>{t('charts.noResourceUtilizationData')}</p>
             </div>
           </CardContent>
         </Card>
@@ -129,7 +134,7 @@ const ResourceUtilizationChart = React.memo(
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>Resource Utilization</CardTitle>
+          <CardTitle>{t('monitoring.resourceUtilization')}</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <ChartContainer

@@ -1,4 +1,5 @@
 import { Container, Volume } from 'kubernetes-types/core/v1'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { Badge } from '@/components/ui/badge'
@@ -25,15 +26,18 @@ export function VolumeTable({
   containers,
   isLoading,
 }: VolumeTableProps) {
+  const { t } = useTranslation()
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Volumes</CardTitle>
+          <CardTitle>{t('detail.tabs.volumes')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <span className="text-muted-foreground">Loading volumes...</span>
+            <span className="text-muted-foreground">
+              {t('volumeTable.loading')}
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -42,7 +46,7 @@ export function VolumeTable({
 
   const getVolumeType = (volume: Volume): string => {
     const keys = Object.keys(volume).filter((key) => key !== 'name')
-    return keys[0] || 'Unknown'
+    return keys[0] || t('volumeTable.unknown')
   }
 
   const getVolumeDetails = (volume: Volume): React.ReactNode => {
@@ -62,7 +66,7 @@ export function VolumeTable({
           to={`/configmaps/${namespace}/${volume.configMap.name}`}
           className="app-link"
         >
-          {volume.configMap.name || 'N/A'}
+          {volume.configMap.name || t('volumeTable.na')}
         </Link>
       )
     }
@@ -72,27 +76,27 @@ export function VolumeTable({
           to={`/secrets/${namespace}/${volume.secret.secretName}`}
           className="app-link"
         >
-          {volume.secret.secretName || 'N/A'}
+          {volume.secret.secretName || t('volumeTable.na')}
         </Link>
       )
     }
     if (volume.hostPath) {
       return (
         <span className="text-sm text-muted-foreground font-mono">
-          {volume.hostPath.path || 'N/A'}
+          {volume.hostPath.path || t('volumeTable.na')}
         </span>
       )
     }
     if (volume.emptyDir) {
-      const medium = volume.emptyDir.medium || 'Default'
+      const medium = volume.emptyDir.medium || t('volumeTable.defaultMedium')
       const sizeLimit = volume.emptyDir.sizeLimit
       return (
         <span className="text-sm text-muted-foreground">
-          {`${medium}${sizeLimit ? `, Size: ${sizeLimit}` : ''}`}
+          {`${medium}${sizeLimit ? `, ${t('volumeTable.size')}: ${sizeLimit}` : ''}`}
         </span>
       )
     }
-    return <span className="text-sm text-muted-foreground">N/A</span>
+    return <span className="text-sm text-muted-foreground">{t('volumeTable.na')}</span>
   }
 
   const getVolumeMounts = (volume: Volume): string => {
@@ -108,7 +112,7 @@ export function VolumeTable({
       })
     })
 
-    return mounts.length > 0 ? mounts.join(', ') : 'No mounts'
+    return mounts.length > 0 ? mounts.join(', ') : t('volumeTable.noMounts')
   }
 
   const tableData: VolumeTableData[] =
@@ -121,13 +125,13 @@ export function VolumeTable({
 
   const columns: Column<VolumeTableData>[] = [
     {
-      header: 'Name',
+      header: t('common.name'),
       accessor: (item) => item.name,
       cell: (value) => <span className="font-medium">{value as string}</span>,
       align: 'left',
     },
     {
-      header: 'Type',
+      header: t('common.type', 'Type'),
       accessor: (item) => item.type,
       cell: (value) => (
         <Badge variant="outline" className="text-xs">
@@ -136,17 +140,17 @@ export function VolumeTable({
       ),
     },
     {
-      header: 'Details',
+      header: t('volumeTable.details'),
       accessor: (item) => item.details,
       cell: (value) => value as React.ReactNode,
     },
     {
-      header: 'Volume Mounts',
+      header: t('volumeTable.volumeMounts'),
       accessor: (item) => item.mounts,
       align: 'left',
       cell: (value) => {
         const mounts = value as string
-        if (mounts === 'No mounts') {
+        if (mounts === t('volumeTable.noMounts')) {
           return <span className="text-muted-foreground">{mounts}</span>
         }
 
@@ -182,13 +186,13 @@ export function VolumeTable({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Volumes</CardTitle>
+        <CardTitle>{t('detail.tabs.volumes')}</CardTitle>
       </CardHeader>
       <CardContent>
         <SimpleTable
           data={tableData}
           columns={columns}
-          emptyMessage="No volumes configured for this resource."
+          emptyMessage={t('volumeTable.empty')}
           pagination={{
             enabled: tableData.length > 10,
             pageSize: 10,

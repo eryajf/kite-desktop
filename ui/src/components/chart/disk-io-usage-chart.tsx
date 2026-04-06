@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { AlertTriangle, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import {
   Area,
   AreaChart,
@@ -48,19 +49,23 @@ const formatBytes = (bytes: number) => {
     : value.toFixed(1) + sizes[i]
 }
 
-const chartConfig = {
-  diskWrite: {
-    label: 'Write',
-    color: 'oklch(0.55 0.22 235)', // Blue color for write operations
-  },
-  diskRead: {
-    label: 'Read',
-    color: 'oklch(0.55 0.20 145)', // Green color for read operations
-  },
-} satisfies ChartConfig
-
 const DiskIOUsageChart = React.memo((prop: DiskIOUsageChartProps) => {
+  const { t } = useTranslation()
   const { diskRead, diskWrite, isLoading, error, syncId } = prop
+  const chartConfig = React.useMemo(
+    () =>
+      ({
+        diskWrite: {
+          label: t('charts.write'),
+          color: 'oklch(0.55 0.22 235)',
+        },
+        diskRead: {
+          label: t('charts.read'),
+          color: 'oklch(0.55 0.20 145)',
+        },
+      }) satisfies ChartConfig,
+    [t]
+  )
 
   const chartData = React.useMemo(() => {
     if (!diskRead || !diskWrite) return []
@@ -107,7 +112,7 @@ const DiskIOUsageChart = React.memo((prop: DiskIOUsageChartProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Disk I/O Usage
+            {t('monitoring.diskUsage')}
           </CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
@@ -124,7 +129,7 @@ const DiskIOUsageChart = React.memo((prop: DiskIOUsageChartProps) => {
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>Disk I/O Usage</CardTitle>
+          <CardTitle>{t('monitoring.diskUsage')}</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <Alert variant="destructive">
@@ -145,11 +150,11 @@ const DiskIOUsageChart = React.memo((prop: DiskIOUsageChartProps) => {
     return (
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>Disk I/O Usage</CardTitle>
+          <CardTitle>{t('monitoring.diskUsage')}</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           <div className="flex h-[250px] w-full items-center justify-center text-muted-foreground">
-            <p>No disk I/O usage data available</p>
+            <p>{t('charts.noDiskIoUsageData')}</p>
           </div>
         </CardContent>
       </Card>
@@ -159,7 +164,7 @@ const DiskIOUsageChart = React.memo((prop: DiskIOUsageChartProps) => {
   return (
     <Card className="@container/card">
       <CardHeader>
-        <CardTitle>Disk I/O Usage</CardTitle>
+        <CardTitle>{t('monitoring.diskUsage')}</CardTitle>
       </CardHeader>
       <CardContent className="px-2 sm:px-6">
         <ChartContainer

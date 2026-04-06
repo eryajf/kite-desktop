@@ -18,7 +18,7 @@ export function SettingsPage() {
   const { t } = useTranslation()
   const { isLocalMode } = useAuth()
 
-  usePageTitle('Settings')
+  usePageTitle(t('settings.title', 'Settings'))
 
   const tabs: Array<{
     value: string
@@ -84,7 +84,7 @@ export function SettingsPage() {
         <p className="text-muted-foreground">
           {isLocalMode
             ? t(
-                'settings.description.local',
+                'settings.descriptionLocal',
                 'Manage local preferences, clusters and templates'
               )
             : t(

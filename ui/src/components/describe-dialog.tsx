@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconClipboardText } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 
 import { ResourceType } from '@/types/api'
 import { useDescribe } from '@/lib/api'
@@ -18,6 +19,7 @@ export function DescribeDialog({
   name: string
 }) {
   const [isDescribeOpen, setIsDescribeOpen] = useState(false)
+  const { t } = useTranslation()
   const { data: describeText } = useDescribe(resourceType, name, namespace, {
     enabled: isDescribeOpen,
     staleTime: 0,
@@ -28,7 +30,7 @@ export function DescribeDialog({
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <IconClipboardText className="w-4 h-4" />
-          Describe
+          {t('describe.button')}
         </Button>
       </DialogTrigger>
       <DialogContent className="!max-w-dvw">

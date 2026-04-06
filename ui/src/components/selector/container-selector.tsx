@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { SimpleContainer } from '@/types/k8s'
 import { cn } from '@/lib/utils'
@@ -33,9 +34,11 @@ export function ContainerSelector({
   showAllOption = true,
   placeholder = 'Select container...',
 }: ContainerSelectorProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const resolvedPlaceholder = placeholder || t('pods.selectContainer')
 
-  const allOption = { name: 'All Containers', image: '', init: false }
+  const allOption = { name: t('selector.allContainers'), image: '', init: false }
   const options = showAllOption ? [allOption, ...containers] : containers
 
   const selectedOption = selectedContainer
@@ -52,16 +55,16 @@ export function ContainerSelector({
           className="w-full min-w-0 justify-between md:w-auto md:max-w-[300px]"
         >
           <span className="truncate">
-            {selectedOption ? selectedOption.name : placeholder}
+            {selectedOption ? selectedOption.name : resolvedPlaceholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[min(300px,calc(100vw-1rem))] p-0">
         <Command>
-          <CommandInput placeholder="Search containers..." />
+          <CommandInput placeholder={t('selector.searchContainers')} />
           <CommandList>
-            <CommandEmpty>No containers found.</CommandEmpty>
+            <CommandEmpty>{t('selector.noContainersFound')}</CommandEmpty>
             <CommandGroup>
               {options.map((container) => (
                 <CommandItem
@@ -89,7 +92,7 @@ export function ContainerSelector({
                       {container.name}
                       {container.init && (
                         <span className="text-xs text-muted-foreground ml-1">
-                          (init)
+                          ({t('selector.init')})
                         </span>
                       )}
                     </span>

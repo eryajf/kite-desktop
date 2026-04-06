@@ -51,7 +51,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
     setIsSavingYaml(true)
     try {
       await updateResource('configmaps', name, namespace, content)
-      toast.success('YAML saved successfully')
+      toast.success(t('detail.status.yamlSaved'))
       await handleRefresh()
     } catch (error) {
       toast.error(translateError(error, t))
@@ -83,7 +83,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
   }
 
   if (!data) {
-    return <div>ConfigMap not found</div>
+    return <div>{t('detail.sections.configMapInformation')}</div>
   }
 
   const configmap = data as ConfigMap
@@ -99,14 +99,14 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
         <div className="min-w-0">
           <h1 className="text-lg font-bold">{configmap.metadata!.name}</h1>
           <p className="text-muted-foreground">
-            Namespace:{' '}
+            {t('detail.fields.namespace')}:{' '}
             <span className="font-medium">{configmap.metadata!.namespace}</span>
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
           <Button variant="outline" size="sm" onClick={handleManualRefresh}>
             <IconRefresh className="w-4 h-4" />
-            Refresh
+            {t('detail.buttons.refresh')}
           </Button>
           <DescribeDialog
             resourceType="configmaps"
@@ -119,7 +119,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
             onClick={() => setIsDeleteDialogOpen(true)}
           >
             <IconTrash className="w-4 h-4" />
-            Delete
+            {t('detail.buttons.delete')}
           </Button>
         </div>
       </div>
@@ -128,18 +128,20 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
         tabs={[
           {
             value: 'overview',
-            label: 'Overview',
+            label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>ConfigMap Information</CardTitle>
+                    <CardTitle>
+                      {t('detail.sections.configMapInformation')}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Created
+                          {t('detail.fields.created')}
                         </Label>
                         <p className="text-sm">
                           {formatDate(
@@ -150,13 +152,13 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Keys
+                          {t('detail.fields.keys')}
                         </Label>
                         <p className="text-sm">{totalCount}</p>
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          UID
+                          {t('detail.fields.uid')}
                         </Label>
                         <p className="text-sm font-mono">
                           {configmap.metadata!.uid}
@@ -164,7 +166,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
                       </div>
                       <div>
                         <Label className="text-xs text-muted-foreground">
-                          Resource Version
+                          {t('detail.fields.resourceVersion')}
                         </Label>
                         <p className="text-sm font-mono">
                           {configmap.metadata!.resourceVersion}
@@ -173,7 +175,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
                       {ownerInfo && (
                         <div>
                           <Label className="text-xs text-muted-foreground">
-                            Owner
+                            {t('detail.fields.owner')}
                           </Label>
                           <p className="text-sm">
                             <Link
@@ -199,7 +201,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
             value: 'data',
             label: (
               <>
-                Data
+                {t('detail.tabs.data')}
                 {totalCount > 0 && (
                   <Badge variant="secondary">{totalCount}</Badge>
                 )}
@@ -210,13 +212,13 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
                 {dataCount > 0 && (
                   <KeyValueDataViewer
                     entries={configmap.data!}
-                    emptyMessage="No data entries"
+                    emptyMessage={t('detail.empty.noDataEntries')}
                   />
                 )}
                 {binaryDataCount > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Binary Data
+                      {t('detail.fields.binaryData')}
                     </p>
                     <KeyValueDataViewer
                       entries={Object.fromEntries(
@@ -226,13 +228,13 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
                         ])
                       )}
                       base64Encoded
-                      emptyMessage="No binary data entries"
+                      emptyMessage={t('detail.empty.noBinaryDataEntries')}
                     />
                   </div>
                 )}
                 {totalCount === 0 && (
                   <p className="text-sm text-muted-foreground">
-                    No data entries
+                    {t('detail.empty.noDataEntries')}
                   </p>
                 )}
               </div>
@@ -240,12 +242,13 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'yaml',
-            label: 'YAML',
+            label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
                 <YamlEditor<'configmaps'>
                   key={refreshKey}
                   value={yamlContent}
+                  title={t('yamlEditor.title')}
                   onChange={(c) => setYamlContent(c)}
                   onSave={handleSaveYaml}
                   isSaving={isSavingYaml}
@@ -255,7 +258,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'related',
-            label: 'Related',
+            label: t('detail.tabs.related'),
             content: (
               <RelatedResourcesTable
                 resource="configmaps"
@@ -266,7 +269,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'events',
-            label: 'Events',
+            label: t('detail.tabs.events'),
             content: (
               <EventTable
                 resource="configmaps"
@@ -277,7 +280,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
           },
           {
             value: 'history',
-            label: 'History',
+            label: t('detail.tabs.history'),
             content: (
               <ResourceHistoryTable
                 resourceType="configmaps"
