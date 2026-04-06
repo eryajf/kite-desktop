@@ -295,10 +295,66 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Merge preserved draft notes
+        id: release_notes
+        uses: actions/github-script@v8
+        env:
+          TAG_NAME: ${{ needs.prepare.outputs.tag_name }}
+          RELEASE_HEADER: ${{ steps.release_header.outputs.header }}
+          FALLBACK_BODY: ${{ steps.draft_release_notes.outputs.body }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+            const tagName = process.env.TAG_NAME;
+            const fallbackBody = process.env.FALLBACK_BODY || "";
+            const releaseHeader = (process.env.RELEASE_HEADER || "").trim();
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner,
+              repo,
+              per_page: 100,
+            });
+
+            const existingRelease = releases.find((release) => release.tag_name === tagName);
+            const preservedBody = existingRelease?.body?.trim() ? existingRelease.body : fallbackBody;
+
+            const stripManagedSections = (body) => {
+              const lines = (body || "").split(/\r?\n/);
+              const kept = [];
+              let skippingManagedSection = false;
+
+              for (const line of lines) {
+                const trimmed = line.trim();
+
+                if (/^## (Downloads|Checksums)$/.test(trimmed)) {
+                  skippingManagedSection = true;
+                  continue;
+                }
+
+                if (skippingManagedSection && /^##\s+/.test(trimmed)) {
+                  skippingManagedSection = false;
+                }
+
+                if (!skippingManagedSection) {
+                  kept.push(line);
+                }
+              }
+
+              return kept.join("\n").trim();
+            };
+
+            const mergedBody = [releaseHeader, stripManagedSections(preservedBody)]
+              .filter(Boolean)
+              .join("\n\n")
+              .trim();
+
+            core.setOutput("body", `${mergedBody}\n`);
+
       - name: Write release notes
         shell: bash
         env:
-          RELEASE_NOTES: ${{ steps.draft_release_notes.outputs.body }}
+          RELEASE_NOTES: ${{ steps.release_notes.outputs.body }}
         run: |
           set -euo pipefail
           printf '%s\n' "${RELEASE_NOTES}" > release-notes.md

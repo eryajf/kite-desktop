@@ -23,15 +23,6 @@ categories:
       - fix
       - bug
       - bugfix
-  - title: "Desktop"
-    labels:
-      - desktop
-  - title: "Frontend"
-    labels:
-      - frontend
-  - title: "Backend"
-    labels:
-      - backend
   - title: "CI and Release"
     labels:
       - ci
