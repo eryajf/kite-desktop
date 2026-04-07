@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
@@ -50,12 +51,25 @@ export function ClusterSelector() {
           <span className="text-sm font-medium truncate">
             {isSwitching
               ? t('clusterSelector.switching')
-              : currentClusterData?.name || t('clusterSelector.select')}
+              : currentClusterData?.name ||
+                (clusters.length === 0
+                  ? t('clusterSelector.noneAvailable', 'No clusters configured')
+                  : t('clusterSelector.select'))}
           </span>
           <IconChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
+        {clusters.length === 0 ? (
+          <>
+            <DropdownMenuLabel>
+              {t('clusterSelector.noneAvailable', 'No clusters configured')}
+            </DropdownMenuLabel>
+            <DropdownMenuItem disabled>
+              {t('cluster.goToSettings', 'Go to cluster settings')}
+            </DropdownMenuItem>
+          </>
+        ) : null}
         {clusters.map((cluster) => (
           <DropdownMenuItem
             key={cluster.name}

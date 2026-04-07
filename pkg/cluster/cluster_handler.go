@@ -6,23 +6,31 @@ import (
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"gorm.io/gorm"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+type clusterRequest struct {
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Config        string `json:"config"`
+	PrometheusURL string `json:"prometheusURL"`
+	InCluster     bool   `json:"inCluster"`
+	IsDefault     bool   `json:"isDefault"`
+	Enabled       bool   `json:"enabled"`
+}
+
+var clusterConnectionTester = validateClusterConnection
+
 func (cm *ClusterManager) GetClusters(c *gin.Context) {
 	result := make([]common.ClusterInfo, 0, len(cm.clusters))
-	user := c.MustGet("user").(model.User)
 	for name, cluster := range cm.clusters {
-		if !rbac.CanAccessCluster(user, name) {
-			continue
-		}
 		result = append(result, common.ClusterInfo{
 			Name:      name,
 			Version:   cluster.Version,
@@ -30,9 +38,6 @@ func (cm *ClusterManager) GetClusters(c *gin.Context) {
 		})
 	}
 	for name, errMsg := range cm.errors {
-		if !rbac.CanAccessCluster(user, name) {
-			continue
-		}
 		result = append(result, common.ClusterInfo{
 			Name:      name,
 			Version:   "",
@@ -80,17 +85,15 @@ func (cm *ClusterManager) GetClusterList(c *gin.Context) {
 }
 
 func (cm *ClusterManager) CreateCluster(c *gin.Context) {
-	var req struct {
-		Name          string `json:"name" binding:"required"`
-		Description   string `json:"description"`
-		Config        string `json:"config"`
-		PrometheusURL string `json:"prometheusURL"`
-		InCluster     bool   `json:"inCluster"`
-		IsDefault     bool   `json:"isDefault"`
-	}
+	var req clusterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 		return
 	}
 
@@ -140,15 +143,7 @@ func (cm *ClusterManager) UpdateCluster(c *gin.Context) {
 		return
 	}
 
-	var req struct {
-		Name          string `json:"name"`
-		Description   string `json:"description"`
-		Config        string `json:"config"`
-		PrometheusURL string `json:"prometheusURL"`
-		InCluster     bool   `json:"inCluster"`
-		IsDefault     bool   `json:"isDefault"`
-		Enabled       bool   `json:"enabled"`
-	}
+	var req clusterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -229,6 +224,65 @@ func (cm *ClusterManager) DeleteCluster(c *gin.Context) {
 	syncNow <- struct{}{}
 
 	c.JSON(http.StatusOK, gin.H{"message": "cluster deleted successfully"})
+}
+
+func validateClusterConnection(cluster *model.Cluster) (*ClientSet, error) {
+	cs, err := buildClientSet(cluster)
+	if err != nil {
+		return nil, err
+	}
+	if cs == nil || cs.K8sClient == nil || cs.K8sClient.ClientSet == nil {
+		return nil, errors.New("cluster client is not initialized")
+	}
+
+	version, err := cs.K8sClient.ClientSet.Discovery().ServerVersion()
+	if err != nil {
+		cs.K8sClient.Stop(cluster.Name)
+		return nil, err
+	}
+
+	cs.Version = version.String()
+	return cs, nil
+}
+
+func (cm *ClusterManager) TestClusterConnection(c *gin.Context) {
+	var req clusterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	config := strings.TrimSpace(req.Config)
+	if !req.InCluster && config == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "config is required when inCluster is false"})
+		return
+	}
+
+	clusterName := strings.TrimSpace(req.Name)
+	if clusterName == "" {
+		clusterName = "test-connection"
+	}
+
+	cluster := &model.Cluster{
+		Name:          clusterName,
+		Config:        model.SecretString(config),
+		PrometheusURL: strings.TrimSpace(req.PrometheusURL),
+		InCluster:     req.InCluster,
+	}
+
+	cs, err := clusterConnectionTester(cluster)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if cs != nil && cs.K8sClient != nil {
+		defer cs.K8sClient.Stop(cluster.Name)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "cluster connection successful",
+		"version": cs.Version,
+	})
 }
 
 func (cm *ClusterManager) ImportClustersFromKubeconfig(c *gin.Context) {

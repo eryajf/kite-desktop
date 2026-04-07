@@ -3,7 +3,6 @@ package ai
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/openai/openai-go"
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"k8s.io/klog/v2"
 )
 
@@ -104,9 +102,7 @@ type Agent struct {
 }
 
 type runtimePromptContext struct {
-	ClusterName  string
-	AccountName  string
-	RBACOverview string
+	ClusterName string
 }
 
 const maxConversationMessages = 30
@@ -181,59 +177,11 @@ func normalizeChatMessages(chatMessages []ChatMessage) []ChatMessage {
 	return normalized
 }
 
-func summarizeScope(items []string) string {
-	if len(items) == 0 {
-		return "-"
-	}
-	scope := strings.Join(items, ",")
-	if strings.Contains(scope, "get") {
-		scope += ",list,watch"
-	}
-	return scope
-}
-
-func buildRBACOverview(user model.User) string {
-	roles := rbac.GetUserRoles(user)
-	if len(roles) == 0 {
-		return "no roles"
-	}
-
-	sort.Slice(roles, func(i, j int) bool {
-		return roles[i].Name < roles[j].Name
-	})
-
-	summaries := make([]string, 0, len(roles))
-	for _, role := range roles {
-		summaries = append(summaries, fmt.Sprintf(
-			"%s[clusters=%s;namespaces=%s;resources=%s;verbs=%s]",
-			role.Name,
-			summarizeScope(role.Clusters),
-			summarizeScope(role.Namespaces),
-			summarizeScope(role.Resources),
-			summarizeScope(role.Verbs),
-		))
-	}
-	return strings.Join(summaries, " | ")
-}
-
 func buildRuntimePromptContext(c *gin.Context, cs *cluster.ClientSet) runtimePromptContext {
 	ctx := runtimePromptContext{}
 	if cs != nil {
 		ctx.ClusterName = cs.Name
 	}
-	if c == nil {
-		return ctx
-	}
-	rawUser, ok := c.Get("user")
-	if !ok {
-		return ctx
-	}
-	user, ok := rawUser.(model.User)
-	if !ok {
-		return ctx
-	}
-	ctx.AccountName = user.Key()
-	ctx.RBACOverview = buildRBACOverview(user)
 	return ctx
 }
 
@@ -244,16 +192,10 @@ func buildContextualSystemPrompt(pageCtx *PageContext, runtimeCtx runtimePromptC
 	// Add current system time
 	prompt += fmt.Sprintf("\n\nCurrent system time: %s", time.Now().Format("2006-01-02 15:04:05 MST"))
 
-	if runtimeCtx.ClusterName != "" || runtimeCtx.AccountName != "" || runtimeCtx.RBACOverview != "" {
+	if runtimeCtx.ClusterName != "" {
 		prompt += "\n\nCurrent runtime context:"
 		if runtimeCtx.ClusterName != "" {
 			prompt += fmt.Sprintf("\n- Current cluster: %s", runtimeCtx.ClusterName)
-		}
-		if runtimeCtx.AccountName != "" {
-			prompt += fmt.Sprintf("\n- Current account name: %s", runtimeCtx.AccountName)
-		}
-		if runtimeCtx.RBACOverview != "" {
-			prompt += fmt.Sprintf("\n- RBAC overview: %s", runtimeCtx.RBACOverview)
 		}
 	}
 

@@ -1,121 +1,101 @@
 package internal
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/bytedance/mockey"
-	"github.com/zxh326/kite/pkg/cluster"
+	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-func init() {
-	_ = os.Setenv("MOCKEY_CHECK_GCFLAGS", "false")
+func TestMain(m *testing.M) {
+	tempDir, err := os.MkdirTemp("", "kite-internal-tests-*")
+	if err != nil {
+		panic(err)
+	}
+
+	common.DBType = "sqlite"
+	common.DBDSN = filepath.Join(tempDir, "internal-test.db")
+	model.InitDB()
+
+	exitCode := m.Run()
+	if err := os.RemoveAll(tempDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup temp dir %q failed: %v\n", tempDir, err)
+		if exitCode == 0 {
+			exitCode = 1
+		}
+	}
+
+	os.Exit(exitCode)
 }
 
-func TestLoadUserCreatesSuperUser(t *testing.T) {
-	oldUsername := kiteUsername
-	oldPassword := kitePassword
-	oldSyncNow := rbac.SyncNow
-	defer func() {
-		kiteUsername = oldUsername
-		kitePassword = oldPassword
-		rbac.SyncNow = oldSyncNow
-	}()
-
-	kiteUsername = "admin"
-	kitePassword = "secret"
-	rbac.SyncNow = make(chan struct{}, 1)
-
-	countMock := mockey.Mock(model.CountUsers).Return(int64(0), nil).Build()
-	defer countMock.UnPatch()
-
-	addMock := mockey.Mock(model.AddSuperUser).To(func(user *model.User) error {
-		if user.Username != "admin" || user.Password != "secret" {
-			t.Fatalf("unexpected user: %#v", user)
-		}
-		return nil
-	}).Build()
-	defer addMock.UnPatch()
+func TestLoadUserCreatesLocalDesktopUser(t *testing.T) {
+	setupLoadTestDB(t)
 
 	if err := loadUser(); err != nil {
 		t.Fatalf("loadUser() error = %v", err)
 	}
 
-	select {
-	case <-rbac.SyncNow:
-	default:
-		t.Fatal("expected rbac sync signal")
+	user, err := model.GetUserByUsername(model.LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() error = %v", err)
+	}
+	if user.Provider != model.LocalDesktopUser.Provider {
+		t.Fatalf("Provider = %q, want %q", user.Provider, model.LocalDesktopUser.Provider)
+	}
+	if user.Name != model.LocalDesktopUser.Name {
+		t.Fatalf("Name = %q, want %q", user.Name, model.LocalDesktopUser.Name)
 	}
 }
 
-func TestLoadUserReturnsAddSuperUserError(t *testing.T) {
-	oldUsername := kiteUsername
-	oldPassword := kitePassword
-	oldSyncNow := rbac.SyncNow
-	defer func() {
-		kiteUsername = oldUsername
-		kitePassword = oldPassword
-		rbac.SyncNow = oldSyncNow
-	}()
+func TestLoadUserIsIdempotent(t *testing.T) {
+	setupLoadTestDB(t)
 
-	kiteUsername = "admin"
-	kitePassword = "secret"
-	rbac.SyncNow = make(chan struct{}, 1)
-
-	wantErr := errors.New("boom")
-	countMock := mockey.Mock(model.CountUsers).Return(int64(0), nil).Build()
-	defer countMock.UnPatch()
-
-	addMock := mockey.Mock(model.AddSuperUser).Return(wantErr).Build()
-	defer addMock.UnPatch()
-
-	if err := loadUser(); !errors.Is(err, wantErr) {
-		t.Fatalf("loadUser() error = %v, want %v", err, wantErr)
+	if err := loadUser(); err != nil {
+		t.Fatalf("first loadUser() error = %v", err)
+	}
+	if err := loadUser(); err != nil {
+		t.Fatalf("second loadUser() error = %v", err)
 	}
 
-	select {
-	case <-rbac.SyncNow:
-		t.Fatal("unexpected rbac sync signal")
-	default:
+	count, err := model.CountUsers()
+	if err != nil {
+		t.Fatalf("CountUsers() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("CountUsers() = %d, want 1", count)
 	}
 }
 
 func TestLoadClustersSkipsWhenClustersExist(t *testing.T) {
-	countMock := mockey.Mock(model.CountClusters).Return(int64(1), nil).Build()
-	defer countMock.UnPatch()
+	setupLoadTestDB(t)
 
-	importMock := mockey.Mock(cluster.ImportClustersFromKubeconfig).To(func(*clientcmdapi.Config) int64 {
-		t.Fatal("ImportClustersFromKubeconfig() should not be called")
-		return 0
-	}).Build()
-	defer importMock.UnPatch()
+	if err := model.AddCluster(&model.Cluster{
+		Name:      "existing",
+		Config:    model.SecretString("apiVersion: v1"),
+		IsDefault: true,
+		Enable:    true,
+	}); err != nil {
+		t.Fatalf("AddCluster() error = %v", err)
+	}
 
 	if err := loadClusters(); err != nil {
 		t.Fatalf("loadClusters() error = %v", err)
 	}
+
+	count, err := model.CountClusters()
+	if err != nil {
+		t.Fatalf("CountClusters() error = %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("CountClusters() = %d, want 1", count)
+	}
 }
 
 func TestLoadClustersImportsFromKubeconfig(t *testing.T) {
-	countMock := mockey.Mock(model.CountClusters).Return(int64(0), nil).Build()
-	defer countMock.UnPatch()
-
-	imported := false
-	importMock := mockey.Mock(cluster.ImportClustersFromKubeconfig).To(func(cfg *clientcmdapi.Config) int64 {
-		imported = true
-		if cfg.CurrentContext != "dev" {
-			t.Fatalf("CurrentContext = %q, want %q", cfg.CurrentContext, "dev")
-		}
-		if len(cfg.Contexts) != 1 {
-			t.Fatalf("len(Contexts) = %d, want 1", len(cfg.Contexts))
-		}
-		return 1
-	}).Build()
-	defer importMock.UnPatch()
+	setupLoadTestDB(t)
 
 	dir := t.TempDir()
 	kubeconfigPath := filepath.Join(dir, "config")
@@ -127,14 +107,18 @@ func TestLoadClustersImportsFromKubeconfig(t *testing.T) {
 	if err := loadClusters(); err != nil {
 		t.Fatalf("loadClusters() error = %v", err)
 	}
-	if !imported {
-		t.Fatal("expected kubeconfig import")
+
+	cluster, err := model.GetClusterByName("dev")
+	if err != nil {
+		t.Fatalf("GetClusterByName() error = %v", err)
+	}
+	if !cluster.IsDefault {
+		t.Fatal("expected imported cluster to be default")
 	}
 }
 
 func TestLoadClustersReturnsLoadError(t *testing.T) {
-	countMock := mockey.Mock(model.CountClusters).Return(int64(0), nil).Build()
-	defer countMock.UnPatch()
+	setupLoadTestDB(t)
 
 	dir := t.TempDir()
 	kubeconfigPath := filepath.Join(dir, "config")
@@ -165,3 +149,17 @@ users:
   user:
     token: test-token
 `
+
+func setupLoadTestDB(t *testing.T) {
+	t.Helper()
+
+	for _, stmt := range []string{
+		"DELETE FROM resource_histories",
+		"DELETE FROM clusters",
+		"DELETE FROM users",
+	} {
+		if err := model.DB.Exec(stmt).Error; err != nil {
+			t.Fatalf("reset test db with %q failed: %v", stmt, err)
+		}
+	}
+}

@@ -86,6 +86,12 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
         document.cookie = `x-cluster-name=${clusters[0].name}; path=/`
       }
     }
+    if (clusters.length === 0 && currentCluster) {
+      setCurrentClusterState(null)
+      localStorage.removeItem('current-cluster')
+      document.cookie =
+        'x-cluster-name=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    }
     if (
       currentCluster &&
       clusters.length > 0 &&

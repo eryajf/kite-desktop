@@ -6,9 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/serializer/yaml"
@@ -31,7 +29,6 @@ type ApplyResourceRequest struct {
 // ApplyResource applies a YAML resource to the cluster
 func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
-	user := c.MustGet("user").(model.User)
 
 	var req ApplyResourceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -51,11 +48,6 @@ func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 	}
 
 	resource := strings.ToLower(obj.GetKind()) + "s"
-	if !rbac.CanAccess(user, resource, "create", cs.Name, obj.GetNamespace()) {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": rbac.NoAccess(user.Key(), string(common.VerbCreate), resource, obj.GetNamespace(), cs.Name)})
-		return
-	}
 
 	ctx := c.Request.Context()
 
@@ -70,6 +62,10 @@ func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 	}, existingObj)
 
 	defer func() {
+		operatorID := uint(0)
+		if user, userErr := model.EnsureLocalDesktopUser(); userErr == nil {
+			operatorID = user.ID
+		}
 		previousYAML := []byte{}
 		if existingObj.GetResourceVersion() != "" {
 			existingObj.SetManagedFields(nil)
@@ -87,7 +83,7 @@ func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 			OperationType: "apply",
 			ResourceYAML:  req.YAML,
 			PreviousYAML:  string(previousYAML),
-			OperatorID:    user.ID,
+			OperatorID:    operatorID,
 			Success:       err == nil,
 			ErrorMessage:  errMessage,
 		})

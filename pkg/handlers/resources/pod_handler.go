@@ -15,10 +15,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/kube"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -256,17 +253,6 @@ func (h *PodHandler) registerCustomRoutes(group *gin.RouterGroup) {
 	group.GET("/:namespace/watch", h.Watch)
 	group.PATCH("/:namespace/:name/resize", h.Resize)
 	filesGroup := group.Group("/:namespace/:name/files")
-	filesGroup.Use(func(c *gin.Context) {
-		user := c.MustGet("user").(model.User)
-		cs := c.MustGet("cluster").(*cluster.ClientSet)
-		namespace := c.Param("namespace")
-		if !rbac.CanAccess(user, "pods", string(common.VerbExec), cs.Name, namespace) {
-			c.JSON(http.StatusForbidden, gin.H{"error": rbac.NoAccess(user.Key(), string(common.VerbExec), "pods", namespace, cs.Name)})
-			c.Abort()
-			return
-		}
-		c.Next()
-	})
 	filesGroup.GET("", h.ListFiles)
 	filesGroup.GET("/preview", h.PreviewFile)
 	filesGroup.GET("/download", h.DownloadFile)

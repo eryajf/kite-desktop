@@ -126,6 +126,54 @@ func GetLocalDesktopUser() User {
 	return user
 }
 
+func EnsureLocalDesktopUser() (User, error) {
+	user := GetLocalDesktopUser()
+	if DB == nil {
+		return user, nil
+	}
+	if user.ID > 0 {
+		return user, nil
+	}
+
+	var existing User
+	err := DB.Where("username = ? AND provider = ?", user.Username, user.Provider).First(&existing).Error
+	if err == nil {
+		return existing, nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return User{}, err
+	}
+
+	if err := DB.Create(&user).Error; err != nil {
+		return User{}, err
+	}
+	return user, nil
+}
+
+func GetDesktopSidebarPreference() (string, error) {
+	if DB == nil {
+		return "", nil
+	}
+
+	user, err := EnsureLocalDesktopUser()
+	if err != nil {
+		return "", err
+	}
+	return user.SidebarPreference, nil
+}
+
+func SaveDesktopSidebarPreference(pref string) error {
+	if DB == nil {
+		return nil
+	}
+
+	user, err := EnsureLocalDesktopUser()
+	if err != nil {
+		return err
+	}
+	return UpdateUserSidebarPreference(&user, pref)
+}
+
 func FindWithSubOrUpsertUser(user *User) error {
 	if user.Sub == "" {
 		return errors.New("user sub is empty")

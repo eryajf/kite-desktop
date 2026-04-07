@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
+import { useRuntime } from '@/contexts/runtime-context'
 import { useTerminal } from '@/contexts/terminal-context'
 import { Plus, Settings, TerminalSquare } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -32,16 +32,15 @@ const CreateResourceDialog = lazy(async () => {
 export function SiteHeader() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
-  const { user, isLocalMode } = useAuth()
+  const { isDesktop } = useRuntime()
   const { toggleTerminal, isOpen } = useTerminal()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const { t } = useTranslation()
-  const isAdmin = user?.isAdmin() ?? false
   const { data: generalSetting } = useGeneralSetting({
-    enabled: isLocalMode || isAdmin,
+    enabled: isDesktop,
   })
   const kubectlEnabled = generalSetting?.kubectlEnabled ?? true
-  const canManageSettings = isLocalMode || isAdmin
+  const canManageSettings = isDesktop
 
   return (
     <>

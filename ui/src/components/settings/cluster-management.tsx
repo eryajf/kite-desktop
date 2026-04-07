@@ -8,9 +8,11 @@ import { toast } from 'sonner'
 import { Cluster } from '@/types/api'
 import {
   ClusterCreateRequest,
+  ClusterConnectionTestResponse,
   ClusterUpdateRequest,
   createCluster,
   deleteCluster,
+  testClusterConnection,
   updateCluster,
   useClusterList,
 } from '@/lib/api'
@@ -257,6 +259,12 @@ export function ClusterManagement() {
     }
   }
 
+  const handleTestClusterConnection = async (
+    clusterData: ClusterCreateRequest
+  ): Promise<ClusterConnectionTestResponse> => {
+    return await testClusterConnection(clusterData)
+  }
+
   const handleDeleteCluster = () => {
     if (!deletingCluster) return
     deleteMutation.mutate(deletingCluster.id)
@@ -335,6 +343,7 @@ export function ClusterManagement() {
         }}
         cluster={editingCluster}
         onSubmit={handleSubmitCluster}
+        onTestConnection={handleTestClusterConnection}
       />
 
       {/* Delete Confirmation Dialog */}

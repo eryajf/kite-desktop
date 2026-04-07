@@ -42,9 +42,10 @@ import {
   SidebarGroup,
   SidebarItem,
 } from '@/types/sidebar'
-import { withSubPath } from '@/lib/subpath'
-
-import { useAuth } from './auth-context'
+import {
+  getSidebarPreference,
+  saveSidebarPreference,
+} from '@/lib/api/admin'
 
 const iconMap = {
   IconBox,
@@ -206,6 +207,7 @@ const defaultMenus: DefaultMenus = {
 }
 
 const CURRENT_CONFIG_VERSION = 1
+const SIDEBAR_CONFIG_STORAGE_KEY = 'desktop-sidebar-config'
 
 const defaultConfigs = (): SidebarConfig => {
   const groups: SidebarGroup[] = []
@@ -252,60 +254,64 @@ export const SidebarConfigProvider: React.FC<SidebarConfigProviderProps> = ({
   const [config, setConfig] = useState<SidebarConfig | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [hasUpdate, setHasUpdate] = useState(false)
-  const { user } = useAuth()
 
   const loadConfig = useCallback(async () => {
-    if (user && user.sidebar_preference && user.sidebar_preference != '') {
-      const userConfig = JSON.parse(user.sidebar_preference)
-      setConfig(userConfig)
+    try {
+      const response = await getSidebarPreference()
+      const remoteConfig = response.sidebar_preference.trim()
 
-      const currentVersion = userConfig.version || 0
+      if (remoteConfig) {
+        const parsedConfig = JSON.parse(remoteConfig) as SidebarConfig
+        localStorage.setItem(SIDEBAR_CONFIG_STORAGE_KEY, remoteConfig)
+        setConfig(parsedConfig)
+
+        const currentVersion = parsedConfig.version || 0
+        if (currentVersion < CURRENT_CONFIG_VERSION) {
+          setHasUpdate(true)
+        }
+        return
+      }
+
+      const storedConfig = localStorage.getItem(SIDEBAR_CONFIG_STORAGE_KEY)
+      if (!storedConfig) {
+        setConfig(defaultConfigs())
+        return
+      }
+
+      const parsedConfig = JSON.parse(storedConfig) as SidebarConfig
+      setConfig(parsedConfig)
+
+      const currentVersion = parsedConfig.version || 0
       if (currentVersion < CURRENT_CONFIG_VERSION) {
         setHasUpdate(true)
       }
       return
+    } catch (error) {
+      console.error('Failed to load sidebar config from storage:', error)
     }
+
     setConfig(defaultConfigs())
-  }, [user])
+  }, [])
 
   const saveConfig = useCallback(
     async (newConfig: SidebarConfig) => {
-      if (!user) {
-        setConfig(newConfig)
-        return
-      }
-
       try {
         const configToSave = {
           ...newConfig,
           lastUpdated: Date.now(),
           version: CURRENT_CONFIG_VERSION,
         }
-
-        const response = await fetch(
-          withSubPath('/api/users/sidebar_preference'),
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include',
-            body: JSON.stringify({
-              sidebar_preference: JSON.stringify(configToSave),
-            }),
-          }
+        localStorage.setItem(
+          SIDEBAR_CONFIG_STORAGE_KEY,
+          JSON.stringify(configToSave)
         )
-
-        if (response.ok) {
-          setConfig(configToSave)
-        } else {
-          console.error('Failed to save sidebar config to server')
-        }
+        setConfig(configToSave)
+        await saveSidebarPreference(JSON.stringify(configToSave))
       } catch (error) {
-        console.error('Failed to save sidebar config to server:', error)
+        console.error('Failed to save sidebar config to storage:', error)
       }
     },
-    [user]
+    []
   )
 
   const updateConfig = useCallback(

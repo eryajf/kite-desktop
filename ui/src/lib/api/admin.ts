@@ -26,6 +26,11 @@ export interface ClusterUpdateRequest extends ClusterCreateRequest {
   enabled?: boolean
 }
 
+export interface ClusterConnectionTestResponse {
+  message: string
+  version?: string
+}
+
 // Get cluster list for management
 export const fetchClusterList = (): Promise<Cluster[]> => {
   return fetchAPI<Cluster[]>('/admin/clusters/')
@@ -45,6 +50,15 @@ export const createCluster = async (
 ): Promise<{ id: number; message: string }> => {
   return await apiClient.post<{ id: number; message: string }>(
     '/admin/clusters/',
+    clusterData
+  )
+}
+
+export const testClusterConnection = async (
+  clusterData: ClusterCreateRequest
+): Promise<ClusterConnectionTestResponse> => {
+  return await apiClient.post<ClusterConnectionTestResponse>(
+    '/admin/clusters/test',
     clusterData
   )
 }
@@ -409,8 +423,25 @@ export interface LDAPSettingUpdateRequest {
   groupNameAttribute: string
 }
 
+export interface SidebarPreferenceResponse {
+  sidebar_preference: string
+}
+
+export const getSidebarPreference =
+  async (): Promise<SidebarPreferenceResponse> => {
+    return apiClient.get<SidebarPreferenceResponse>('/preferences/sidebar')
+  }
+
+export const saveSidebarPreference = async (
+  sidebarPreference: string
+): Promise<void> => {
+  await apiClient.put<void>('/preferences/sidebar', {
+    sidebar_preference: sidebarPreference,
+  })
+}
+
 export const fetchGeneralSetting = async (): Promise<GeneralSetting> => {
-  return fetchAPI<GeneralSetting>('/admin/general-setting/')
+  return fetchAPI<GeneralSetting>('/settings/general')
 }
 
 export const useGeneralSetting = (options?: {
@@ -428,7 +459,7 @@ export const useGeneralSetting = (options?: {
 export const updateGeneralSetting = async (
   data: GeneralSettingUpdateRequest
 ): Promise<GeneralSetting> => {
-  return await apiClient.put<GeneralSetting>('/admin/general-setting/', data)
+  return await apiClient.put<GeneralSetting>('/settings/general', data)
 }
 
 export const setGlobalSidebarPreference = async (sidebarPreference: string) => {

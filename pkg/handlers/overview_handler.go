@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/model"
 	"github.com/zxh326/kite/pkg/utils"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/core/v1"
@@ -45,11 +44,6 @@ func GetOverview(c *gin.Context) {
 	ctx := c.Request.Context()
 
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
-	user := c.MustGet("user").(model.User)
-	if len(user.Roles) == 0 {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
-		return // Fix: was missing, caused 4 queries to run for unauthorized users
-	}
 
 	// Solution : Fetch and compute all 4 resource types in parallel.
 	// Each goroutine owns its data — no shared state, no mutexes needed.
@@ -164,22 +158,4 @@ func GetOverview(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, overview)
-}
-
-func InitCheck(c *gin.Context) {
-	step := 0
-	uc, _ := model.CountUsers()
-	if uc == 0 && !common.AnonymousUserEnabled {
-		c.SetCookie("auth_token", "", -1, "/", "", false, true)
-		c.JSON(http.StatusOK, gin.H{"initialized": false, "step": step})
-	}
-	if uc > 0 || common.AnonymousUserEnabled {
-		step++
-	}
-	cc, _ := model.CountClusters()
-	if cc > 0 {
-		step++
-	}
-	initialized := step == 2
-	c.JSON(http.StatusOK, gin.H{"initialized": initialized, "step": step})
 }

@@ -6,19 +6,12 @@ import {
   useSidebarConfig,
 } from './sidebar-config-context'
 
-const { mockUseAuth } = vi.hoisted(() => ({
-  mockUseAuth: vi.fn(),
-}))
-
-vi.mock('./auth-context', () => ({
-  useAuth: mockUseAuth,
-}))
-
 const workloadsGroupId = 'sidebar-groups-workloads'
 const trafficGroupId = 'sidebar-groups-traffic'
 const workloadsPodsItemId = 'sidebar-groups-workloads--pods'
 const customGroupId = 'custom-my-group'
 const customGroupItemId = 'custom-my-group-widgets-example-com'
+let storedSidebarPreference = ''
 
 function SidebarConfigConsumer() {
   const {
@@ -145,7 +138,58 @@ async function renderProvider() {
 
 describe('SidebarConfigProvider', () => {
   beforeEach(() => {
-    mockUseAuth.mockReturnValue({ user: null })
+    localStorage.clear()
+    storedSidebarPreference = ''
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          const body = JSON.parse(String(init.body)) as {
+            sidebar_preference: string
+          }
+          storedSidebarPreference = body.sidebar_preference
+          return {
+            ok: true,
+            status: 204,
+            headers: new Headers(),
+            json: async () => ({}),
+            text: async () => '',
+          } satisfies Partial<Response>
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({
+            'content-type': 'application/json',
+          }),
+          json: async () => ({
+            sidebar_preference: storedSidebarPreference,
+          }),
+          text: async () =>
+            JSON.stringify({
+              sidebar_preference: storedSidebarPreference,
+            }),
+        } satisfies Partial<Response>
+      })
+    )
+  })
+
+  it('persists sidebar config to the desktop preferences endpoint', async () => {
+    const fetchMock = vi.mocked(fetch)
+
+    await renderProvider()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'toggle default visibility' })
+    )
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('/api/v1/preferences/sidebar'),
+        expect.objectContaining({ method: 'PUT' })
+      )
+    )
   })
 
   it('toggles default item pinning and visibility', async () => {

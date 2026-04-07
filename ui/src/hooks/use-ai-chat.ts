@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
 
 import { withSubPath } from '@/lib/subpath'
 
@@ -97,8 +96,7 @@ function generateSessionTitle(messages: ChatMessage[]): string {
 }
 
 export function useAIChat() {
-  const { user } = useAuth()
-  const username = user?.Key() || 'anonymous'
+  const username = 'desktop'
 
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)

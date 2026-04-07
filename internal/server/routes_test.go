@@ -1,0 +1,83 @@
+package server
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/zxh326/kite/pkg/common"
+	"github.com/zxh326/kite/pkg/cluster"
+	"github.com/zxh326/kite/pkg/model"
+)
+
+func TestDesktopRoutesExcludeLegacyAuthAndInit(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupRouteTestDB(t)
+
+	r := gin.New()
+	r.RedirectTrailingSlash = false
+	setupAPIRouter(&r.RouterGroup, &cluster.ClusterManager{})
+
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/init_check"},
+		{http.MethodGet, "/api/auth/login"},
+		{http.MethodGet, "/api/auth/user"},
+		{http.MethodPost, "/api/v1/admin/users/create_super_user"},
+		{http.MethodGet, "/api/v1/admin/general-setting/"},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusNotFound {
+			t.Fatalf("%s %s status = %d, want %d", tc.method, tc.path, rec.Code, http.StatusNotFound)
+		}
+	}
+}
+
+func TestDesktopPreferenceAndSettingRoutesExist(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	setupRouteTestDB(t)
+
+	r := gin.New()
+	r.RedirectTrailingSlash = false
+	setupAPIRouter(&r.RouterGroup, &cluster.ClusterManager{})
+
+	for _, tc := range []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/api/v1/preferences/sidebar"},
+		{http.MethodPut, "/api/v1/preferences/sidebar"},
+		{http.MethodGet, "/api/v1/settings/general"},
+		{http.MethodPut, "/api/v1/settings/general"},
+		{http.MethodPost, "/api/v1/admin/clusters/test"},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, nil)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code == http.StatusNotFound {
+			t.Fatalf("%s %s returned 404, want registered route", tc.method, tc.path)
+		}
+	}
+}
+
+func setupRouteTestDB(t *testing.T) {
+	t.Helper()
+
+	tempDir := t.TempDir()
+	common.DBType = "sqlite"
+	common.DBDSN = filepath.Join(tempDir, "routes-test.db")
+	model.InitDB()
+
+	t.Cleanup(func() {
+		_ = os.RemoveAll(tempDir)
+	})
+}

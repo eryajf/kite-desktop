@@ -13,7 +13,6 @@ import (
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/kube"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"github.com/zxh326/kite/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -37,18 +36,11 @@ func NewKubectlTerminalHandler() *KubectlTerminalHandler {
 
 func (h *KubectlTerminalHandler) HandleKubectlTerminalWebSocket(c *gin.Context) {
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
-	user := c.MustGet("user").(model.User)
 
 	websocket.Handler(func(conn *websocket.Conn) {
 		defer func() {
 			_ = conn.Close()
 		}()
-
-		// Only admin users can use the kubectl terminal
-		if !rbac.UserHasRole(user, model.DefaultAdminRole.Name) {
-			h.sendErrorMessage(conn, "kubectl terminal is only available to admin users")
-			return
-		}
 
 		setting, err := model.GetGeneralSetting()
 		if err != nil {
@@ -74,7 +66,7 @@ func (h *KubectlTerminalHandler) HandleKubectlTerminalWebSocket(c *gin.Context) 
 			return
 		}
 
-		instanceID := utils.GenerateKubectlAgentName(user.Key())
+		instanceID := utils.GenerateKubectlAgentName("desktop")
 
 		podName, err := h.createKubectlAgent(ctx, cs, instanceID, kubectlImage)
 		if err != nil {

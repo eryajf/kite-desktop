@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { IconEdit, IconServer } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
 import { Cluster } from '@/types/api'
-import { ClusterCreateRequest } from '@/lib/api'
+import {
+  ClusterConnectionTestResponse,
+  ClusterCreateRequest,
+} from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -29,6 +32,9 @@ interface ClusterDialogProps {
   onOpenChange: (open: boolean) => void
   cluster?: Cluster | null
   onSubmit: (clusterData: ClusterCreateRequest) => void
+  onTestConnection?: (
+    clusterData: ClusterCreateRequest
+  ) => Promise<ClusterConnectionTestResponse>
 }
 
 function createClusterFormData(cluster?: Cluster | null) {
@@ -48,6 +54,7 @@ export function ClusterDialog({
   onOpenChange,
   cluster,
   onSubmit,
+  onTestConnection,
 }: ClusterDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,6 +64,7 @@ export function ClusterDialog({
           cluster={cluster}
           onOpenChange={onOpenChange}
           onSubmit={onSubmit}
+          onTestConnection={onTestConnection}
         />
       ) : null}
     </Dialog>
@@ -67,11 +75,34 @@ function ClusterDialogContent({
   cluster,
   onOpenChange,
   onSubmit,
+  onTestConnection,
 }: Omit<ClusterDialogProps, 'open'>) {
   const { t } = useTranslation()
   const isEditMode = !!cluster
 
   const [formData, setFormData] = useState(() => createClusterFormData(cluster))
+  const [testStatus, setTestStatus] = useState<
+    'idle' | 'testing' | 'success' | 'error'
+  >('idle')
+  const [testMessage, setTestMessage] = useState('')
+  const [testedSignature, setTestedSignature] = useState<string | null>(null)
+
+  const connectionSignature = useMemo(
+    () =>
+      JSON.stringify({
+        inCluster: formData.inCluster,
+        config: formData.config.trim(),
+        prometheusURL: formData.prometheusURL.trim(),
+      }),
+    [formData.inCluster, formData.config, formData.prometheusURL]
+  )
+
+  const canTestConnection =
+    !!onTestConnection && (formData.inCluster || !!formData.config.trim())
+  const isConnectionVerified =
+    !isEditMode &&
+    testStatus === 'success' &&
+    testedSignature === connectionSignature
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -79,10 +110,64 @@ function ClusterDialogContent({
   }
 
   const handleChange = (field: string, value: string | boolean) => {
+    const nextValue =
+      typeof value === 'string' ? value : String(value)
+    const currentValue =
+      typeof formData[field as keyof typeof formData] === 'string'
+        ? String(formData[field as keyof typeof formData])
+        : String(formData[field as keyof typeof formData])
+
+    if (
+      ['config', 'prometheusURL', 'inCluster'].includes(field) &&
+      currentValue !== nextValue
+    ) {
+      setTestStatus('idle')
+      setTestMessage('')
+      setTestedSignature(null)
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }))
+  }
+
+  const handleTestConnection = async () => {
+    if (!onTestConnection || !canTestConnection) {
+      return
+    }
+
+    setTestStatus('testing')
+    setTestMessage('')
+
+    try {
+      const result = await onTestConnection(formData)
+      setTestedSignature(connectionSignature)
+      setTestStatus('success')
+      setTestMessage(
+        result.version
+          ? t('clusterManagement.messages.testSuccessWithVersion', {
+              defaultValue:
+                'Connection successful. Kubernetes version: {{version}}',
+              version: result.version,
+            })
+          : t(
+              'clusterManagement.messages.testSuccess',
+              'Connection successful.'
+            )
+      )
+    } catch (error) {
+      setTestedSignature(null)
+      setTestStatus('error')
+      setTestMessage(
+        error instanceof Error
+          ? error.message
+          : t(
+              'clusterManagement.messages.testError',
+              'Cluster connection test failed'
+            )
+      )
+    }
   }
 
   return (
@@ -252,6 +337,49 @@ function ClusterDialogContent({
             </p>
           </div>
         )}
+
+        {!isEditMode && onTestConnection && (
+          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm">
+              {testStatus === 'success' && (
+                <p className="text-emerald-600">{testMessage}</p>
+              )}
+              {testStatus === 'error' && (
+                <p className="text-destructive">{testMessage}</p>
+              )}
+              {testStatus === 'idle' && (
+                <p className="text-muted-foreground">
+                  {t(
+                    'clusterManagement.messages.testRequired',
+                    'Test the cluster connection before adding it.'
+                  )}
+                </p>
+              )}
+              {testStatus === 'testing' && (
+                <p className="text-muted-foreground">
+                  {t(
+                    'clusterManagement.messages.testing',
+                    'Testing cluster connection...'
+                  )}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestConnection}
+            disabled={!canTestConnection || testStatus === 'testing'}
+            >
+              {testStatus === 'testing'
+                ? t(
+                    'clusterManagement.actions.testingConnection',
+                    'Testing...'
+                  )
+                : t('clusterManagement.actions.testConnection', 'Test Connection')}
+            </Button>
+          </div>
+        )}
+
         <DialogFooter>
           <Button
             type="button"
@@ -263,8 +391,12 @@ function ClusterDialogContent({
           <Button
             type="submit"
             disabled={
-              !formData.name ||
-              (!isEditMode && !formData.inCluster && !formData.config)
+              !formData.name.trim() ||
+              (!isEditMode &&
+                !formData.inCluster &&
+                !formData.config.trim()) ||
+              (!isEditMode && !isConnectionVerified) ||
+              testStatus === 'testing'
             }
           >
             {isEditMode

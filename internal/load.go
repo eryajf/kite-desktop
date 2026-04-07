@@ -6,7 +6,6 @@ import (
 
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
@@ -18,24 +17,8 @@ var (
 )
 
 func loadUser() error {
-	if kiteUsername != "" && kitePassword != "" {
-		uc, err := model.CountUsers()
-		if err == nil && uc == 0 {
-			klog.Infof("Creating super user %s from environment variables", kiteUsername)
-			u := &model.User{
-				Username: kiteUsername,
-				Password: kitePassword,
-			}
-			err := model.AddSuperUser(u)
-			if err == nil {
-				rbac.SyncNow <- struct{}{}
-			} else {
-				return err
-			}
-		}
-	}
-
-	return nil
+	_, err := model.EnsureLocalDesktopUser()
+	return err
 }
 
 func loadClusters() error {

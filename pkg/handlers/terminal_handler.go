@@ -6,10 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/common"
 	"github.com/zxh326/kite/pkg/kube"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"golang.org/x/net/websocket"
 	"k8s.io/klog/v2"
 )
@@ -36,21 +33,11 @@ func (h *TerminalHandler) HandleTerminalWebSocket(c *gin.Context) {
 		return
 	}
 
-	user := c.MustGet("user").(model.User)
-
 	websocket.Handler(func(ws *websocket.Conn) {
 		ctx, cancel := context.WithCancel(c.Request.Context())
 		defer cancel()
 		session := kube.NewTerminalSession(cs.K8sClient, ws, namespace, podName, container)
 		defer session.Close()
-
-		if !rbac.CanAccess(user, "pods", "exec", cs.Name, namespace) {
-			h.sendErrorMessage(
-				ws,
-				rbac.NoAccess(user.Key(), string(common.VerbExec), "pods", namespace, cs.Name),
-			)
-			return
-		}
 
 		if err := session.Start(ctx, "exec"); err != nil {
 			klog.Errorf("Terminal session error: %v", err)

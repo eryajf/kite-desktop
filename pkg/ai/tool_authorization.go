@@ -8,8 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/common"
-	pkgmodel "github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 )
 
 type toolPermission struct {
@@ -141,15 +139,6 @@ func requiredToolPermissions(ctx context.Context, cs *cluster.ClientSet, toolNam
 	}
 }
 
-func currentUserFromGin(c *gin.Context) (pkgmodel.User, bool) {
-	rawUser, ok := c.Get("user")
-	if !ok {
-		return pkgmodel.User{}, false
-	}
-	user, ok := rawUser.(pkgmodel.User)
-	return user, ok
-}
-
 func AuthorizeTool(c *gin.Context, cs *cluster.ClientSet, toolName string, args map[string]interface{}) (string, bool) {
 	if c == nil {
 		return "Error: authorization context is required", true
@@ -157,21 +146,9 @@ func AuthorizeTool(c *gin.Context, cs *cluster.ClientSet, toolName string, args 
 	if cs == nil {
 		return "Error: cluster client is required", true
 	}
-	user, ok := currentUserFromGin(c)
-	if !ok {
-		return "Error: authenticated user not found in context", true
-	}
 
-	permissions, err := requiredToolPermissions(c.Request.Context(), cs, toolName, args)
-	if err != nil {
+	if _, err := requiredToolPermissions(c.Request.Context(), cs, toolName, args); err != nil {
 		return "Error: " + err.Error(), true
-	}
-
-	for _, permission := range permissions {
-		if rbac.CanAccess(user, permission.Resource, permission.Verb, cs.Name, permission.Namespace) {
-			continue
-		}
-		return "Forbidden: " + rbac.NoAccess(user.Key(), permission.Verb, permission.Resource, permission.Namespace, cs.Name), true
 	}
 	return "", false
 }
@@ -181,8 +158,6 @@ func ExecuteTool(ctx context.Context, c *gin.Context, cs *cluster.ClientSet, too
 	if result, isError := AuthorizeTool(c, cs, toolName, args); isError {
 		return result, true
 	}
-
-	user, _ := currentUserFromGin(c)
 
 	switch toolName {
 	case "get_resource":
@@ -194,13 +169,13 @@ func ExecuteTool(ctx context.Context, c *gin.Context, cs *cluster.ClientSet, too
 	case "get_cluster_overview":
 		return executeGetClusterOverview(ctx, cs)
 	case "create_resource":
-		return executeCreateResource(ctx, cs, user, args)
+		return executeCreateResource(ctx, cs, args)
 	case "update_resource":
-		return executeUpdateResource(ctx, cs, user, args)
+		return executeUpdateResource(ctx, cs, args)
 	case "patch_resource":
-		return executePatchResource(ctx, cs, user, args)
+		return executePatchResource(ctx, cs, args)
 	case "delete_resource":
-		return executeDeleteResource(ctx, cs, user, args)
+		return executeDeleteResource(ctx, cs, args)
 	case "query_prometheus":
 		return executeQueryPrometheus(ctx, cs, args)
 	default:

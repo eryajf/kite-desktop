@@ -439,11 +439,13 @@ func (h *desktopHost) showErrorDialog(title, message string) {
 	dialog.Show()
 }
 
-func (h *desktopHost) setupApplicationMenu() {
-	menu := h.app.NewMenu()
-
+func buildApplicationMenu(h *desktopHost, devMode bool) *application.Menu {
+	menu := application.NewMenu()
 	appMenu := menu.AddSubmenu("Kite")
 	appMenu.Add("About Kite").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		info := h.appInfo()
 		h.showInfoDialog(
 			"About Kite",
@@ -451,15 +453,24 @@ func (h *desktopHost) setupApplicationMenu() {
 		)
 	})
 	appMenu.Add("Preferences").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		h.navigate("/settings")
 	})
 	appMenu.AddSeparator()
 	appMenu.Add("Quit").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		h.quit()
 	})
 
 	fileMenu := menu.AddSubmenu("File")
 	fileMenu.Add("Import kubeconfig").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		if err := h.importKubeconfigFromDialog(); err != nil {
 			h.showErrorDialog("Import kubeconfig failed", err.Error())
 			return
@@ -467,15 +478,23 @@ func (h *desktopHost) setupApplicationMenu() {
 		h.reloadMainWindow()
 	})
 	fileMenu.Add("Open Config Directory").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		if err := h.openConfigDir(); err != nil {
 			h.showErrorDialog("Open config directory failed", err.Error())
 		}
 	})
 	fileMenu.Add("Open Logs Directory").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		if err := h.openLogsDir(); err != nil {
 			h.showErrorDialog("Open logs directory failed", err.Error())
 		}
 	})
+
+	menu.AddRole(application.EditMenu)
 
 	viewMenu := menu.AddSubmenu("View")
 	viewMenu.AddRole(application.Reload)
@@ -483,7 +502,7 @@ func (h *desktopHost) setupApplicationMenu() {
 	viewMenu.AddRole(application.ZoomIn)
 	viewMenu.AddRole(application.ZoomOut)
 	viewMenu.AddRole(application.ToggleFullscreen)
-	if desktopDevMode() {
+	if devMode {
 		viewMenu.AddSeparator()
 		viewMenu.AddRole(application.OpenDevTools)
 	}
@@ -497,15 +516,29 @@ func (h *desktopHost) setupApplicationMenu() {
 
 	helpMenu := menu.AddSubmenu("Help")
 	helpMenu.Add("Documentation").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		_ = h.openExternalURL("https://github.com/eryajf/kite-desktop#readme")
 	})
 	helpMenu.Add("GitHub").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		_ = h.openExternalURL("https://github.com/eryajf/kite-desktop")
 	})
 	helpMenu.Add("Report Issue").OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
 		_ = h.openExternalURL("https://github.com/eryajf/kite-desktop/issues/new")
 	})
 
+	return menu
+}
+
+func (h *desktopHost) setupApplicationMenu() {
+	menu := buildApplicationMenu(h, desktopDevMode())
 	h.app.Menu.SetApplicationMenu(menu)
 }
 

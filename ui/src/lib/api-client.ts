@@ -3,8 +3,6 @@ import { withSubPath } from './subpath'
 
 class ApiClient {
   private baseUrl: string = ''
-  private isRefreshing = false
-  private refreshPromise: Promise<void> | null = null
   private getCurrentCluster: (() => string | null) | null = null
 
   constructor(baseUrl: string = '') {
@@ -13,29 +11,6 @@ class ApiClient {
 
   setClusterProvider(provider: () => string | null) {
     this.getCurrentCluster = provider
-  }
-
-  private async refreshToken(): Promise<void> {
-    if (this.isRefreshing) {
-      return this.refreshPromise!
-    }
-
-    this.isRefreshing = true
-    this.refreshPromise = fetch(withSubPath('/api/auth/refresh'), {
-      method: 'POST',
-      credentials: 'include',
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error('Token refresh failed')
-        }
-      })
-      .finally(() => {
-        this.isRefreshing = false
-        this.refreshPromise = null
-      })
-
-    return this.refreshPromise
   }
 
   private async makeRequest<T>(
@@ -68,18 +43,8 @@ class ApiClient {
     try {
       let response = await fetch(fullUrl, defaultOptions)
 
-      // Handle authentication errors with automatic retry
       if (response.status === 401) {
-        try {
-          // Try to refresh the token
-          await this.refreshToken()
-          // Retry the original request
-          response = await fetch(fullUrl, defaultOptions)
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError)
-          window.location.href = withSubPath('/login')
-          throw new Error('Authentication failed')
-        }
+        throw new Error('Unauthorized')
       }
 
       if (!response.ok) {

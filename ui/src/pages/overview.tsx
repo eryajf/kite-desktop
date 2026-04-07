@@ -1,27 +1,18 @@
-import { useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
 import { useTranslation } from 'react-i18next'
 
 import { useOverview, useResourceUsageHistory } from '@/lib/api'
 import NetworkUsageChart from '@/components/chart/network-usage-chart'
 import ResourceUtilizationChart from '@/components/chart/resource-utilization'
 import { ClusterStatsCards } from '@/components/cluster-stats-cards'
+import { NoClusterState } from '@/components/no-cluster-state'
 import { RecentEvents } from '@/components/recent-events'
 import { ResourceCharts } from '@/components/resources-charts'
-import { SettingsHint } from '@/components/settings-hint'
+import { useCluster } from '@/hooks/use-cluster'
 
 export function Overview() {
   const { t } = useTranslation()
-  const { user, isLocalMode } = useAuth()
-  const [isDismissed] = useState(() => {
-    const dismissed = localStorage.getItem('settings-hint-dismissed')
-    if (dismissed === 'true') {
-      return true
-    }
-    return false
-  })
-
-  const [timeRange] = useState('30m')
+  const timeRange = '30m'
+  const { currentCluster } = useCluster()
   const { data: overview, isLoading, error, isError } = useOverview()
 
   const {
@@ -31,6 +22,10 @@ export function Overview() {
   } = useResourceUsageHistory(timeRange, {
     enabled: overview?.prometheusEnabled ?? false,
   })
+
+  if (!currentCluster) {
+    return <NoClusterState />
+  }
 
   if (error) {
     return (
@@ -50,10 +45,6 @@ export function Overview() {
       </div>
 
       <ClusterStatsCards stats={overview} isLoading={isLoading} />
-      {!isDismissed &&
-        !isLocalMode &&
-        user?.provider !== 'Anonymous' &&
-        user?.roles?.some((role) => role.name === 'admin') && <SettingsHint />}
 
       <div className="grid grid-cols-1 gap-4 @5xl/main:grid-cols-2">
         <ResourceCharts

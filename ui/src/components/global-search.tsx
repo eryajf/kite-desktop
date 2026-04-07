@@ -1,5 +1,5 @@
 import { ComponentType, useCallback, useEffect, useMemo, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
+import { useRuntime } from '@/contexts/runtime-context'
 import { useSidebarConfig } from '@/contexts/sidebar-config-context'
 import {
   IconArrowsHorizontal,
@@ -111,7 +111,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const [results, setResults] = useState<SearchResult[] | null>([])
   const [isLoading, setIsLoading] = useState(false)
   const navigate = useNavigate()
-  const { user, isLocalMode } = useAuth()
+  const { isDesktop } = useRuntime()
   const { config, getIconComponent } = useSidebarConfig()
   const { setTheme, actualTheme } = useAppearance()
   const {
@@ -143,7 +143,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
         searchText: `${overviewTitle} overview dashboard /`.toLowerCase(),
         isPinned: false,
       },
-      ...(isLocalMode || user?.isAdmin()
+      ...(isDesktop
         ? [
             {
               id: 'settings',
@@ -152,7 +152,27 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               Icon: IconSettings,
               groupLabel: 'Settings',
               searchText:
-                `${t('settings.nav', 'Settings')} admin`.toLowerCase(),
+                `${t('settings.nav', 'Settings')} desktop`.toLowerCase(),
+              isPinned: false,
+            },
+            {
+              id: 'desktop',
+              title: t('settings.tabs.desktop', 'Desktop'),
+              url: '/settings?tab=desktop',
+              Icon: IconSettings,
+              groupLabel: 'Settings',
+              searchText:
+                `${t('settings.tabs.desktop', 'Desktop')} settings desktop`.toLowerCase(),
+              isPinned: false,
+            },
+            {
+              id: 'general',
+              title: t('settings.tabs.general', 'General'),
+              url: '/settings?tab=general',
+              Icon: IconSettings,
+              groupLabel: 'Settings',
+              searchText:
+                `${t('settings.tabs.general', 'General')} settings general`.toLowerCase(),
               isPinned: false,
             },
             {
@@ -162,64 +182,19 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               Icon: IconSettings,
               groupLabel: 'Settings',
               searchText:
-                `${t('settings.tabs.clusters', 'Cluster')} settings cluster admin`.toLowerCase(),
+                `${t('settings.tabs.clusters', 'Cluster')} settings cluster desktop`.toLowerCase(),
               isPinned: false,
             },
-            ...(isLocalMode
-              ? [
-                  {
-                    id: 'templates',
-                    title: t('settings.tabs.templates', 'Templates'),
-                    url: '/settings?tab=templates',
-                    Icon: IconSettings,
-                    groupLabel: 'Settings',
-                    searchText:
-                      `${t('settings.tabs.templates', 'Templates')} settings templates local`.toLowerCase(),
-                    isPinned: false,
-                  },
-                  {
-                    id: 'audit',
-                    title: t('settings.tabs.audit', 'Audit'),
-                    url: '/settings?tab=audit',
-                    Icon: IconSettings,
-                    groupLabel: 'Settings',
-                    searchText:
-                      `${t('settings.tabs.audit', 'Audit')} settings audit local`.toLowerCase(),
-                    isPinned: false,
-                  },
-                ]
-              : [
-                  {
-                    id: 'oauth',
-                    title: t('settings.tabs.oauth', 'Authentication'),
-                    url: '/settings?tab=oauth',
-                    Icon: IconSettings,
-                    groupLabel: 'Settings',
-                    searchText:
-                      `${t('settings.tabs.oauth', 'Authentication')} settings authentication ldap oauth admin`.toLowerCase(),
-                    isPinned: false,
-                  },
-                  {
-                    id: 'rbac',
-                    title: t('settings.tabs.rbac', 'RBAC'),
-                    url: '/settings?tab=rbac',
-                    Icon: IconSettings,
-                    groupLabel: 'Settings',
-                    searchText:
-                      `${t('settings.tabs.rbac', 'RBAC')} settings rbac admin`.toLowerCase(),
-                    isPinned: false,
-                  },
-                  {
-                    id: 'users',
-                    title: t('settings.tabs.users', 'User'),
-                    url: '/settings?tab=users',
-                    Icon: IconSettings,
-                    groupLabel: 'Settings',
-                    searchText:
-                      `${t('settings.tabs.users', 'User')} settings user admin`.toLowerCase(),
-                    isPinned: false,
-                  },
-                ]),
+            {
+              id: 'templates',
+              title: t('settings.tabs.templates', 'Templates'),
+              url: '/settings?tab=templates',
+              Icon: IconSettings,
+              groupLabel: 'Settings',
+              searchText:
+                `${t('settings.tabs.templates', 'Templates')} settings templates desktop`.toLowerCase(),
+              isPinned: false,
+            },
           ]
         : []),
     ]
@@ -263,7 +238,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     })
 
     return items
-  }, [config, getIconComponent, isLocalMode, t, user])
+  }, [config, getIconComponent, isDesktop, t])
 
   const sidebarResults = useMemo(() => {
     const trimmedQuery = query.trim().toLowerCase()

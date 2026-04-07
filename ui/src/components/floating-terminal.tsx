@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
+import { useRuntime } from '@/contexts/runtime-context'
 import { useTerminal } from '@/contexts/terminal-context'
 import { ChevronDown, ChevronUp, Maximize2, Minimize2, X } from 'lucide-react'
 
@@ -17,12 +17,11 @@ const MIN_HEIGHT = 120
 const DEFAULT_HEIGHT_VH = 40
 
 export function FloatingTerminal() {
-  const { user, isLocalMode } = useAuth()
+  const { isDesktop } = useRuntime()
   const { isOpen, isMinimized, closeTerminal, minimizeTerminal, openTerminal } =
     useTerminal()
-  const isAdmin = user?.isAdmin() ?? false
   const { data: generalSetting } = useGeneralSetting({
-    enabled: (isLocalMode || isAdmin) && isOpen,
+    enabled: isDesktop && isOpen,
   })
   const kubectlEnabled = generalSetting?.kubectlEnabled ?? true
   const [isFullscreen, setIsFullscreen] = useState(false)

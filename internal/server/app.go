@@ -9,7 +9,6 @@ import (
 	"github.com/zxh326/kite/pkg/handlers"
 	"github.com/zxh326/kite/pkg/middleware"
 	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"k8s.io/klog/v2"
 )
 
@@ -26,7 +25,6 @@ func InitializeApp() (*cluster.ClusterManager, error) {
 		klog.Warningf("Failed to load general setting: %v", err)
 	}
 
-	rbac.InitRBAC()
 	handlers.InitTemplates()
 	internal.LoadConfigFromEnv()
 

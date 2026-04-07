@@ -6,7 +6,7 @@ import './index.css'
 import './i18n'
 
 import { AppearanceProvider } from './components/appearance-provider'
-import { AuthProvider } from './contexts/auth-context'
+import { RuntimeProvider } from './contexts/runtime-context'
 import { SidebarConfigProvider } from './contexts/sidebar-config-context'
 import { installDesktopTargetBlankInterceptor } from './lib/desktop'
 import { QueryProvider } from './lib/query-provider'
@@ -28,11 +28,11 @@ createRoot(document.getElementById('root')!).render(
         defaultColorTheme="default"
         defaultFont="maple"
       >
-        <AuthProvider>
+        <RuntimeProvider>
           <SidebarConfigProvider>
             <AppBootstrap />
           </SidebarConfigProvider>
-        </AuthProvider>
+        </RuntimeProvider>
       </AppearanceProvider>
     </QueryProvider>
   </StrictMode>

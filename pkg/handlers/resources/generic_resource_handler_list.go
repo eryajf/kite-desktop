@@ -10,8 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
 	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -99,7 +97,6 @@ func (h *GenericResourceHandler[T, V]) list(c *gin.Context) (V, error) {
 		return t1.After(t2.Time)
 	})
 
-	user := c.MustGet("user").(model.User)
 	filterItems := make([]runtime.Object, 0, len(items))
 	for i := range items {
 		obj, err := meta.Accessor(items[i])
@@ -111,12 +108,6 @@ func (h *GenericResourceHandler[T, V]) list(c *gin.Context) (V, error) {
 		anno := obj.GetAnnotations()
 		if anno != nil {
 			delete(anno, common.KubectlAnnotation)
-		}
-		if h.Name() == "namespaces" && !rbac.CanAccessNamespace(user, cs.Name, obj.GetName()) {
-			continue
-		}
-		if namespace == "_all" && obj.GetNamespace() != "" && !rbac.CanAccessNamespace(user, cs.Name, obj.GetNamespace()) {
-			continue
 		}
 		filterItems = append(filterItems, items[i])
 	}

@@ -258,13 +258,17 @@
   "cluster": {
     "loading": "Loading clusters...",
     "error": "Error loading clusters: {{error}}",
-    "error403": "You do not have permission to access this cluster. Please contact your administrator for more information."
+    "error403": "You do not have permission to access this cluster. Please contact your administrator for more information.",
+    "emptyTitle": "No cluster configured",
+    "noCluster": "Please configure a cluster to start using Kite.",
+    "goToSettings": "Go to cluster settings"
   },
   "clusterSelector": {
     "switching": "Switching cluster...",
     "select": "Select Cluster",
     "default": "Default",
-    "syncError": "Sync Error"
+    "syncError": "Sync Error",
+    "noneAvailable": "No clusters configured"
   },
   "resourceTable": {
     "errorLoading": "Error loading {{resourceName}}",
@@ -460,6 +464,8 @@
     "resourceType": "cluster",
     "actions": {
       "add": "Add Cluster",
+      "testConnection": "Test Connection",
+      "testingConnection": "Testing...",
       "edit": "Edit",
       "delete": "Delete"
     },
@@ -486,6 +492,11 @@
       "created": "Cluster created successfully",
       "updated": "Cluster updated successfully",
       "deleted": "Cluster deleted successfully",
+      "testing": "Testing cluster connection...",
+      "testRequired": "Test the cluster connection before adding it.",
+      "testSuccess": "Connection successful.",
+      "testSuccessWithVersion": "Connection successful. Kubernetes version: {{version}}",
+      "testError": "Cluster connection test failed",
       "createError": "Failed to create cluster",
       "updateError": "Failed to update cluster",
       "deleteError": "Failed to delete cluster"

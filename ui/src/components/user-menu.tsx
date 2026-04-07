@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
 import {
   CaseSensitive,
   Check,
   FolderCog,
-  LogOut,
   Logs,
   Palette,
   Settings2,
@@ -13,7 +11,6 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { openConfigDir, openLogsDir } from '@/lib/desktop'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -31,32 +28,9 @@ import { ColorTheme, colorThemes } from '@/components/color-theme-provider'
 import { SidebarCustomizer } from './sidebar-customizer'
 
 export function UserMenu() {
-  const { user, logout, hasGlobalSidebarPreference, isLocalMode } = useAuth()
   const { colorTheme, setColorTheme, font, setFont } = useAppearance()
   const [open, setOpen] = useState(false)
   const { t } = useTranslation()
-
-  if (!user) return null
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map((part) => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2)
-  }
-
-  const handleLogout = async () => {
-    if (isLocalMode) {
-      return
-    }
-    try {
-      await logout()
-    } catch (error) {
-      console.error('Logout failed:', error)
-    }
-  }
 
   const handleOpenConfigDir = () => {
     void openConfigDir().catch((error) => {
@@ -84,64 +58,31 @@ export function UserMenu() {
         <Button
           variant="ghost"
           className="relative h-10 w-10 rounded-full text-muted-foreground data-[state=open]:bg-accent data-[state=open]:text-foreground hover:text-foreground"
-          aria-label={
-            isLocalMode
-              ? t('userMenu.appearanceSettings')
-              : t('userMenu.userMenu')
-          }
+          aria-label={t('userMenu.appearanceSettings')}
         >
-          {isLocalMode ? (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full">
-              <Settings2 className="h-5 w-5" />
-            </span>
-          ) : (
-            <Avatar className="size-sm">
-              <AvatarImage
-                src={user.avatar_url}
-                alt={user.name || user.username}
-              />
-              <AvatarFallback className="bg-primary text-primary-foreground">
-                {getInitials(user.name || user.username)}
-              </AvatarFallback>
-            </Avatar>
-          )}
+          <span className="flex h-10 w-10 items-center justify-center rounded-full">
+            <Settings2 className="h-5 w-5" />
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        {!isLocalMode && (
-          <div className="flex items-center justify-start gap-2 p-2">
-            <div className="flex flex-col space-y-1 leading-none">
-              {user.name && <p className="font-medium">{user.name}</p>}
-              <p className="text-xs text-muted-foreground">{user.username}</p>
-              <p className="text-xs text-muted-foreground capitalize">
-                {t('userMenu.via', { provider: user.provider })}
-              </p>
-              {user.roles && user.roles.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {t('userMenu.role', {
-                    roles: user.roles.map((role) => role.name).join(', '),
-                  })}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+        <div className="px-2 py-1.5">
+          <p className="font-medium">{t('app.name', 'Kite')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('settings.tabs.desktop', 'Desktop')}
+          </p>
+        </div>
 
-        {!isLocalMode && <DropdownMenuSeparator />}
-
-        {isLocalMode && (
-          <>
-            <DropdownMenuItem onClick={handleOpenConfigDir}>
-              <FolderCog className="mr-2 h-4 w-4" />
-              <span>{t('userMenu.openConfigDirectory')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleOpenLogsDir}>
-              <Logs className="mr-2 h-4 w-4" />
-              <span>{t('userMenu.openLogsDirectory')}</span>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-          </>
-        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleOpenConfigDir}>
+          <FolderCog className="mr-2 h-4 w-4" />
+          <span>{t('userMenu.openConfigDirectory')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleOpenLogsDir}>
+          <Logs className="mr-2 h-4 w-4" />
+          <span>{t('userMenu.openLogsDirectory')}</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
 
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
@@ -216,22 +157,7 @@ export function UserMenu() {
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
-        {(user.isAdmin() || !hasGlobalSidebarPreference) && (
-          <SidebarCustomizer onOpenChange={(d) => setOpen(d)} />
-        )}
-
-        {!isLocalMode && user.provider !== 'Anonymous' && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleLogout}
-              className="cursor-pointer text-red-600 focus:text-red-600"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{t('userMenu.logOut')}</span>
-            </DropdownMenuItem>
-          </>
-        )}
+        <SidebarCustomizer onOpenChange={(d) => setOpen(d)} />
       </DropdownMenuContent>
     </DropdownMenu>
   )

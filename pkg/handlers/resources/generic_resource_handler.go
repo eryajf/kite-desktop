@@ -66,7 +66,10 @@ func (h *GenericResourceHandler[T, V]) getGroupKind() schema.GroupKind {
 
 func (h *GenericResourceHandler[T, V]) recordHistory(c *gin.Context, opType string, prev, curr T, success bool, errMsg string) {
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
-	user := c.MustGet("user").(model.User)
+	operatorID := uint(0)
+	if user, err := model.EnsureLocalDesktopUser(); err == nil {
+		operatorID = user.ID
+	}
 
 	history := model.ResourceHistory{
 		ClusterName:   cs.Name,
@@ -78,7 +81,7 @@ func (h *GenericResourceHandler[T, V]) recordHistory(c *gin.Context, opType stri
 		PreviousYAML:  h.ToYAML(prev),
 		Success:       success,
 		ErrorMessage:  errMsg,
-		OperatorID:    user.ID,
+		OperatorID:    operatorID,
 	}
 	if err := model.DB.Create(&history).Error; err != nil {
 		klog.Errorf("Failed to create resource history: %v", err)

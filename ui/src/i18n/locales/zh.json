@@ -284,13 +284,17 @@
   "cluster": {
     "loading": "加载集群中...",
     "error": "加载集群时出错: {{error}}",
-    "error403": "您没有权限访问此集群。请联系您的管理员以获取更多信息。"
+    "error403": "您没有权限访问此集群。请联系您的管理员以获取更多信息。",
+    "emptyTitle": "尚未配置集群",
+    "noCluster": "请先配置一个集群，再开始使用 Kite。",
+    "goToSettings": "前往集群设置"
   },
   "clusterSelector": {
     "switching": "切换集群中...",
     "select": "选择集群",
     "default": "默认",
-    "syncError": "同步错误"
+    "syncError": "同步错误",
+    "noneAvailable": "尚未配置集群"
   },
   "resourceTable": {
     "errorLoading": "加载 {{resourceName}} 时出错",
@@ -599,6 +603,8 @@
     "resourceType": "集群",
     "actions": {
       "add": "添加集群",
+      "testConnection": "测试连接",
+      "testingConnection": "测试中...",
       "edit": "编辑",
       "delete": "删除",
       "save": "保存更改"
@@ -626,6 +632,11 @@
       "created": "集群创建成功",
       "updated": "集群更新成功",
       "deleted": "集群删除成功",
+      "testing": "正在测试集群连接...",
+      "testRequired": "添加前请先测试集群连接。",
+      "testSuccess": "连接成功。",
+      "testSuccessWithVersion": "连接成功，Kubernetes 版本：{{version}}",
+      "testError": "集群连接测试失败",
       "createError": "创建集群失败",
       "updateError": "更新集群失败",
       "deleteError": "删除集群失败"
