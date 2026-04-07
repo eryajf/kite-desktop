@@ -591,8 +591,8 @@ func GetLocalDesktopUser() User
 
 ### 通用验证
 
-- `make desktop-dev`
-- `make desktop-build`
+- `make dev`
+- `make build`
 - 主窗口正常打开
 - 基础 API 和 WebSocket 不回归
 

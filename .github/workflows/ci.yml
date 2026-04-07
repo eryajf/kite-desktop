@@ -40,6 +40,7 @@ on:
 env:
   GO_VERSION: "1.25"
   NODE_VERSION: "24"
+  WAILS_VERSION: "v3.0.0-alpha.74"
 
 jobs:
   ci:
@@ -78,12 +79,13 @@ jobs:
             libsoup-3.0-dev
           pkg-config --modversion gtk+-3.0 webkit2gtk-4.1 libsoup-3.0
 
+      - name: Install Wails v3
+        run: |
+          go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
       - name: Install deps
         run: make deps
-      - name: Build desktop bootstrap frontend
-        run: |
-          npm --prefix desktop/frontend ci
-          npm --prefix desktop/frontend run build
       - name: Build
         run: make build
       - name: golangci-lint

@@ -64,13 +64,13 @@ make deps
 Run the desktop app in development mode:
 
 ```bash
-make desktop-dev
+make dev
 ```
 
 Build the desktop app:
 
 ```bash
-make desktop-build
+make build
 ```
 
 ## Current Desktop Capabilities

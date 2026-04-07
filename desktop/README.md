@@ -17,13 +17,13 @@
 推荐直接从仓库根目录执行：
 
 ```bash
-make desktop-dev
+make dev
 ```
 
 如果 `wails3` 不在 `PATH` 中，可以手动指定：
 
 ```bash
-make desktop-dev WAILS3=/path/to/wails3
+make dev WAILS3=/path/to/wails3
 ```
 
 或者在 `desktop/` 目录里直接运行：
@@ -38,13 +38,13 @@ wails3 dev -config ./build/config.yml
 推荐：
 
 ```bash
-make desktop-build
+make build
 ```
 
 如果需要手动指定 `wails3`：
 
 ```bash
-make desktop-build WAILS3=/path/to/wails3
+make build WAILS3=/path/to/wails3
 ```
 
 或者在 `desktop/` 目录里直接运行：

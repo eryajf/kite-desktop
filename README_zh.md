@@ -69,13 +69,13 @@ make deps
 启动桌面开发环境：
 
 ```bash
-make desktop-dev
+make dev
 ```
 
 构建桌面应用：
 
 ```bash
-make desktop-build
+make build
 ```
 
 ## 发布方向

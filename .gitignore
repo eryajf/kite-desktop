@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+.pnpm-store/
 
 #SQLite dev.db
 dev.db
