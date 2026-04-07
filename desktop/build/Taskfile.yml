@@ -61,8 +61,8 @@ tasks:
       - task: install:frontend:deps
       - task: generate:bindings
         vars:
-          BUILD_FLAGS:
-            ref: .BUILD_FLAGS
+          BINDINGS_FLAGS:
+            ref: .BINDINGS_FLAGS
     cmds:
       - npm run {{.BUILD_COMMAND}} -q
     env:
@@ -108,7 +108,7 @@ tasks:
 
 
   generate:bindings:
-    label: generate:bindings (BUILD_FLAGS={{.BUILD_FLAGS}})
+    label: generate:bindings
     summary: Generates bindings for the frontend
     deps:
       - task: go:mod:tidy
@@ -122,7 +122,7 @@ tasks:
     generates:
       - frontend/bindings/**/*
     cmds:
-      - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true -ts
+      - wails3 generate bindings -f '{{.BINDINGS_FLAGS}}' -clean=true -ts
 
   generate:icons:
     summary: Generates Windows `.ico` and Mac `.icns` from an image; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).

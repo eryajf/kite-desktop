@@ -15,15 +15,17 @@ import (
 )
 
 const (
-	githubLatestReleaseAPI = "https://api.github.com/repos/kite-org/kite/releases/latest"
-	versionCheckTimeout    = 3 * time.Second
-	versionCacheTTL        = time.Hour
+	versionCheckTimeout = 3 * time.Second
+	versionCacheTTL     = time.Hour
 )
+
+var githubLatestReleaseAPI = "https://api.github.com/repos/eryajf/kite-desktop/releases/latest"
 
 var (
 	updateInfoMu       sync.Mutex
 	cachedUpdateResult = updateCheckResult{}
 	lastUpdateFetch    time.Time
+	versionCheckClient = http.DefaultClient
 )
 
 type githubRelease struct {
@@ -32,23 +34,25 @@ type githubRelease struct {
 }
 
 type updateCheckResult struct {
-	hasNew     bool
-	releaseURL string
+	hasNew        bool
+	latestVersion string
+	releaseURL    string
+	checkedAt     time.Time
 }
 
-func checkForUpdate(ctx context.Context, currentVersion string) updateCheckResult {
+func checkForUpdate(ctx context.Context, currentVersion string, force bool) (updateCheckResult, error) {
 	result := updateCheckResult{}
 
 	sanitized := strings.TrimSpace(currentVersion)
 	if sanitized == "" || strings.EqualFold(sanitized, "dev") {
-		return result
+		return result, nil
 	}
 
 	updateInfoMu.Lock()
-	if time.Since(lastUpdateFetch) < versionCacheTTL {
+	if !force && time.Since(lastUpdateFetch) < versionCacheTTL {
 		cached := cachedUpdateResult
 		updateInfoMu.Unlock()
-		return cached
+		return cached, nil
 	}
 	updateInfoMu.Unlock()
 
@@ -58,49 +62,51 @@ func checkForUpdate(ctx context.Context, currentVersion string) updateCheckResul
 	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, githubLatestReleaseAPI, nil)
 	if err != nil {
 		klog.Warningf("version check request creation failed: %v", err)
-		return result
+		return result, fmt.Errorf("create version check request: %w", err)
 	}
 
 	req.Header.Set("User-Agent", "kite-version-checker/"+currentVersion)
 	req.Header.Set("Accept", "application/vnd.github+json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := versionCheckClient.Do(req)
 	if err != nil {
 		klog.Warningf("version check request failed: %v", err)
-		return result
+		return result, fmt.Errorf("request latest release: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		klog.Warningf("version check unexpected status: %s", resp.Status)
-		return result
+		return result, fmt.Errorf("unexpected latest release status: %s", resp.Status)
 	}
 
 	var release githubRelease
 	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
 		klog.Warningf("version check decode failed: %v", err)
-		return result
+		return result, fmt.Errorf("decode latest release response: %w", err)
 	}
 
 	latestVersion, err := parseSemver(release.TagName)
 	if err != nil {
 		klog.Warningf("latest version parse failed: %v", err)
-		return result
+		return result, fmt.Errorf("parse latest version: %w", err)
 	}
+	result.latestVersion = latestVersion.String()
+	result.releaseURL = release.HTMLURL
 
 	currentSemver, err := parseSemver(sanitized)
 	if err != nil {
 		klog.Warningf("current version parse failed: %v", err)
-		return result
+		return result, fmt.Errorf("parse current version: %w", err)
 	}
 
 	if latestVersion.GT(currentSemver) {
 		result.hasNew = true
-		result.releaseURL = release.HTMLURL
 	}
+	result.checkedAt = time.Now()
 
 	cacheUpdateResult(result)
-	return result
+	return result, nil
 }
 
 func cacheUpdateResult(result updateCheckResult) {

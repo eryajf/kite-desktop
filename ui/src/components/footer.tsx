@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
+import { PROJECT_REPOSITORY_URL } from '@/lib/project'
+
 export function Footer() {
   const { t } = useTranslation()
   return (
@@ -14,7 +16,7 @@ export function Footer() {
               {t('login.documentation')}
             </a>
             <a
-              href="https://github.com/kite-org/kite"
+              href={PROJECT_REPOSITORY_URL}
               target="_blank"
               className="app-link"
             >

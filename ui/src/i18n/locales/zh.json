@@ -425,6 +425,7 @@
     "descriptionLocal": "管理本地偏好、集群和模板",
     "tabs": {
       "desktop": "桌面端",
+      "about": "关于",
       "clusters": "集群",
       "general": "通用",
       "templates": "模板",
@@ -457,6 +458,48 @@
       "loadFailed": "加载桌面应用信息失败",
       "openConfigDirFailed": "打开配置目录失败",
       "openLogsDirFailed": "打开日志目录失败"
+    }
+  },
+  "aboutManagement": {
+    "title": "关于",
+    "productName": "Kite",
+    "description": "查看构建信息，并将当前版本与 GitHub Release 最新版本进行比对。",
+    "subtitle": "基于 Kite 打造的桌面版，面向本地集群工作流。",
+    "versionLabel": "版本",
+    "fields": {
+      "version": "版本",
+      "runtime": "运行时",
+      "buildDate": "构建时间",
+      "commit": "提交哈希",
+      "repository": "仓库地址",
+      "license": "许可证"
+    },
+    "actions": {
+      "checkUpdate": "检查更新",
+      "openGithub": "GitHub 仓库",
+      "downloadUpdate": "下载更新",
+      "viewRelease": "查看 Release",
+      "viewCommit": "查看 Commit",
+      "openRepository": "打开仓库"
+    },
+    "update": {
+      "idleTitle": "手动检查更新",
+      "idleDescription": "点击“检查更新”后，将当前版本与 GitHub Release 最新版本进行对比。",
+      "skippedTitle": "当前版本暂不支持比对",
+      "skippedDescription": "当前构建为开发版本，暂时无法与 GitHub Release 正式版本进行比较。",
+      "checkingTitle": "正在检查更新...",
+      "checkingDescription": "正在将当前构建与 GitHub 最新 Release 进行比较。",
+      "availableTitle": "发现新版本",
+      "availableDescription": "检测到有更新版本可供下载。",
+      "upToDateTitle": "当前已是最新版本",
+      "upToDateDescription": "当前构建已经与 GitHub 最新 Release 保持一致。",
+      "currentVersion": "当前版本",
+      "latestVersion": "最新版本",
+      "checkedAt": "检查时间",
+      "errorTitle": "检查更新失败"
+    },
+    "messages": {
+      "loadFailed": "加载应用信息失败"
     }
   },
   "generalManagement": {

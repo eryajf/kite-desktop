@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { apiClient } from '../api-client'
 import { fetchAPI } from './shared'
 
 // Version information
@@ -11,8 +12,22 @@ export interface VersionInfo {
   releaseUrl: string
 }
 
+export interface UpdateCheckInfo {
+  currentVersion: string
+  latestVersion: string
+  hasNewVersion: boolean
+  releaseUrl: string
+  checkedAt: string
+}
+
 export const fetchVersionInfo = (): Promise<VersionInfo> => {
   return fetchAPI<VersionInfo>('/version')
+}
+
+export const checkVersionUpdate = (
+  force: boolean = true
+): Promise<UpdateCheckInfo> => {
+  return apiClient.post<UpdateCheckInfo>('/version/check-update', { force })
 }
 
 export const useVersionInfo = () => {

@@ -32,6 +32,7 @@ func registerBaseRoutes(r *gin.RouterGroup) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 	r.GET("/api/v1/version", version.GetVersion)
+	r.POST("/api/v1/version/check-update", version.CheckUpdate)
 }
 
 func registerDesktopPreferenceRoutes(r *gin.RouterGroup) {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -62,6 +63,32 @@ func TestRegisterBaseRoutes(t *testing.T) {
 		}
 		if got["version"] != "v1.2.3" || got["buildDate"] != "2026-03-27" || got["commitId"] != "abc123" {
 			t.Fatalf("unexpected version payload: %#v", got)
+		}
+	})
+
+	t.Run("check update", func(t *testing.T) {
+		version.Version = "dev"
+
+		req := httptest.NewRequest(
+			http.MethodPost,
+			"/api/v1/version/check-update",
+			bytes.NewBufferString(`{"force":true}`),
+		)
+		req.Header.Set("Content-Type", "application/json")
+
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body=%s", rec.Code, http.StatusOK, rec.Body.String())
+		}
+
+		var got map[string]any
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil {
+			t.Fatalf("json.Unmarshal() error = %v", err)
+		}
+		if got["currentVersion"] != "dev" || got["hasNewVersion"] != false {
+			t.Fatalf("unexpected check-update payload: %#v", got)
 		}
 	})
 }

@@ -20,6 +20,7 @@ jobs:
     outputs:
       tag_name: ${{ steps.meta.outputs.tag_name }}
       version: ${{ steps.meta.outputs.version }}
+      build_date: ${{ steps.meta.outputs.build_date }}
       release_name: ${{ steps.meta.outputs.release_name }}
     steps:
       - name: Resolve release metadata
@@ -31,6 +32,7 @@ jobs:
           VERSION="${TAG_NAME#v}"
           echo "tag_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "${GITHUB_OUTPUT}"
           echo "release_name=${TAG_NAME}" >> "${GITHUB_OUTPUT}"
 
   desktop-build:
@@ -110,6 +112,14 @@ jobs:
           set -euo pipefail
           go install github.com/wailsapp/wails/v3/cmd/wails3@${{ env.WAILS_VERSION }}
           echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Prepare Go build version metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "KITE_VERSION=${{ needs.prepare.outputs.tag_name }}" >> "${GITHUB_ENV}"
+          echo "KITE_BUILD_DATE=${{ needs.prepare.outputs.build_date }}" >> "${GITHUB_ENV}"
+          echo "KITE_COMMIT_ID=${GITHUB_SHA}" >> "${GITHUB_ENV}"
 
       - name: Prepare desktop metadata
         shell: bash

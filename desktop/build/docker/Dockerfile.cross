@@ -188,6 +188,14 @@ if [ "$GOOS" = "windows" ]; then
     LDFLAGS="-s -w -H windowsgui"
 fi
 
+VERSION_LDFLAGS=""
+if [ -f scripts/release/go_ldflags.sh ]; then
+    VERSION_LDFLAGS="$(bash scripts/release/go_ldflags.sh)"
+fi
+if [ -n "$VERSION_LDFLAGS" ]; then
+    LDFLAGS="$LDFLAGS $VERSION_LDFLAGS"
+fi
+
 TAGS="production"
 if [ -n "$EXTRA_TAGS" ]; then
     TAGS="${TAGS},${EXTRA_TAGS}"

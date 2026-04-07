@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 
 import { usePageTitle } from '@/hooks/use-page-title'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
+import { AboutManagement } from '@/components/settings/about-management'
 import { ClusterManagement } from '@/components/settings/cluster-management'
 import { DesktopManagement } from '@/components/settings/desktop-management'
 import { GeneralManagement } from '@/components/settings/general-management'
@@ -19,11 +20,6 @@ export function SettingsPage() {
     content: ReactNode
   }> = [
     {
-      value: 'desktop',
-      label: t('settings.tabs.desktop', 'Desktop'),
-      content: <DesktopManagement />,
-    },
-    {
       value: 'general',
       label: t('settings.tabs.general', 'General'),
       content: <GeneralManagement />,
@@ -37,6 +33,16 @@ export function SettingsPage() {
       value: 'templates',
       label: t('settings.tabs.templates', 'Templates'),
       content: <TemplateManagement />,
+    },
+    {
+      value: 'desktop',
+      label: t('settings.tabs.desktop', 'Desktop'),
+      content: <DesktopManagement />,
+    },
+    {
+      value: 'about',
+      label: t('settings.tabs.about', 'About'),
+      content: <AboutManagement />,
     },
   ]
 

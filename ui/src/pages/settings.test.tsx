@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { SettingsPage } from './settings'
+
 vi.mock('@/hooks/use-page-title', () => ({
   usePageTitle: vi.fn(),
 }))
@@ -13,6 +15,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/components/settings/desktop-management', () => ({
   DesktopManagement: () => <div>Desktop</div>,
+}))
+
+vi.mock('@/components/settings/about-management', () => ({
+  AboutManagement: () => <div>About</div>,
 }))
 
 vi.mock('@/components/settings/general-management', () => ({
@@ -44,14 +50,15 @@ vi.mock('@/components/ui/responsive-tabs', () => ({
   ),
 }))
 
-import { SettingsPage } from './settings'
-
 describe('SettingsPage', () => {
   it('shows only desktop tabs in settings', () => {
     render(<SettingsPage />)
 
     expect(
       screen.getByRole('heading', { level: 2, name: 'Desktop' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'About' })
     ).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { level: 2, name: 'General' })

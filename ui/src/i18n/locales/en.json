@@ -331,6 +331,7 @@
     "descriptionLocal": "Manage local preferences, clusters and templates",
     "tabs": {
       "desktop": "Desktop",
+      "about": "About",
       "clusters": "Cluster",
       "general": "General",
       "templates": "Templates",
@@ -363,6 +364,48 @@
       "loadFailed": "Failed to load desktop info",
       "openConfigDirFailed": "Failed to open config directory",
       "openLogsDirFailed": "Failed to open logs directory"
+    }
+  },
+  "aboutManagement": {
+    "title": "About",
+    "productName": "Kite",
+    "description": "View build metadata and compare your local version with the latest GitHub release.",
+    "subtitle": "Desktop edition built on top of Kite for local cluster workflows.",
+    "versionLabel": "Version",
+    "fields": {
+      "version": "Version",
+      "runtime": "Runtime",
+      "buildDate": "Build Date",
+      "commit": "Commit",
+      "repository": "Repository",
+      "license": "License"
+    },
+    "actions": {
+      "checkUpdate": "Check for updates",
+      "openGithub": "GitHub Repository",
+      "downloadUpdate": "Download update",
+      "viewRelease": "View release",
+      "viewCommit": "View commit",
+      "openRepository": "Open repository"
+    },
+    "update": {
+      "idleTitle": "Manual update check",
+      "idleDescription": "Click \"Check for updates\" to compare this build with the latest GitHub release.",
+      "skippedTitle": "Release comparison unavailable",
+      "skippedDescription": "The current build is a development version, so it cannot be compared with GitHub releases.",
+      "checkingTitle": "Checking for updates...",
+      "checkingDescription": "Comparing the current build with the latest GitHub release.",
+      "availableTitle": "Update available",
+      "availableDescription": "A newer release is available for download.",
+      "upToDateTitle": "You are up to date",
+      "upToDateDescription": "The current build already matches the latest GitHub release.",
+      "currentVersion": "Current version",
+      "latestVersion": "Latest version",
+      "checkedAt": "Checked at",
+      "errorTitle": "Update check failed"
+    },
+    "messages": {
+      "loadFailed": "Failed to load application information"
     }
   },
   "generalManagement": {
