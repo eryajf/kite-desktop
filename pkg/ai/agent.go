@@ -177,7 +177,7 @@ func normalizeChatMessages(chatMessages []ChatMessage) []ChatMessage {
 	return normalized
 }
 
-func buildRuntimePromptContext(c *gin.Context, cs *cluster.ClientSet) runtimePromptContext {
+func buildRuntimePromptContext(cs *cluster.ClientSet) runtimePromptContext {
 	ctx := runtimePromptContext{}
 	if cs != nil {
 		ctx.ClusterName = cs.Name

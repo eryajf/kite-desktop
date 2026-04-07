@@ -1,11 +1,9 @@
 package ai
 
 import (
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/gin-gonic/gin"
 	"github.com/zxh326/kite/pkg/cluster"
 )
 
@@ -41,11 +39,7 @@ func TestNormalizeChatMessages(t *testing.T) {
 }
 
 func TestBuildRuntimePromptContext(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	recorder := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(recorder)
-
-	ctx := buildRuntimePromptContext(c, &cluster.ClientSet{Name: "cluster-a"})
+	ctx := buildRuntimePromptContext(&cluster.ClientSet{Name: "cluster-a"})
 	if ctx.ClusterName != "cluster-a" {
 		t.Fatalf("expected cluster-a, got %q", ctx.ClusterName)
 	}

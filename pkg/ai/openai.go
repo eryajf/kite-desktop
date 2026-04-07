@@ -31,7 +31,7 @@ func toOpenAIMessages(systemPrompt string, chatMessages []ChatMessage) []openai.
 
 func (a *Agent) processChatOpenAI(c *gin.Context, req *ChatRequest, sendEvent func(SSEEvent)) {
 	ctx := c.Request.Context()
-	runtimeCtx := buildRuntimePromptContext(c, a.cs)
+	runtimeCtx := buildRuntimePromptContext(a.cs)
 	language := normalizeLanguage(req.Language)
 	if language == "" {
 		language = "en"

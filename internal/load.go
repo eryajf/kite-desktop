@@ -11,11 +11,6 @@ import (
 	"k8s.io/klog/v2"
 )
 
-var (
-	kiteUsername = os.Getenv("KITE_USERNAME")
-	kitePassword = os.Getenv("KITE_PASSWORD")
-)
-
 func loadUser() error {
 	_, err := model.EnsureLocalDesktopUser()
 	return err

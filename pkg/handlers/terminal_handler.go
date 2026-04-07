@@ -44,14 +44,3 @@ func (h *TerminalHandler) HandleTerminalWebSocket(c *gin.Context) {
 		}
 	}).ServeHTTP(c.Writer, c.Request)
 }
-
-// sendErrorMessage sends an error message through WebSocket
-func (h *TerminalHandler) sendErrorMessage(conn *websocket.Conn, message string) {
-	msg := map[string]interface{}{
-		"type": "error",
-		"data": message,
-	}
-	if err := websocket.JSON.Send(conn, msg); err != nil {
-		klog.Errorf("Failed to send error message: %v", err)
-	}
-}

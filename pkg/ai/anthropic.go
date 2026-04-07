@@ -28,7 +28,7 @@ func toAnthropicMessages(chatMessages []ChatMessage) []anthropic.MessageParam {
 
 func (a *Agent) processChatAnthropic(c *gin.Context, req *ChatRequest, sendEvent func(SSEEvent)) {
 	ctx := c.Request.Context()
-	runtimeCtx := buildRuntimePromptContext(c, a.cs)
+	runtimeCtx := buildRuntimePromptContext(a.cs)
 	language := normalizeLanguage(req.Language)
 	if language == "" {
 		language = "en"
