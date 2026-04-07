@@ -25,6 +25,7 @@
     "new": "New",
     "all": "All",
     "retry": "Retry",
+    "later": "Later",
     "done": "Done",
     "desired": "Desired",
     "current": "Current",
@@ -369,8 +370,8 @@
   "aboutManagement": {
     "title": "About",
     "productName": "Kite",
-    "description": "View build metadata and compare your local version with the latest GitHub release.",
-    "subtitle": "Desktop edition built on top of Kite for local cluster workflows.",
+    "description": "View build info and update status.",
+    "subtitle": "Desktop app for local cluster workflows.",
     "versionLabel": "Version",
     "fields": {
       "version": "Version",
@@ -384,6 +385,10 @@
       "checkUpdate": "Check for updates",
       "openGithub": "GitHub Repository",
       "downloadUpdate": "Download update",
+      "ignoreVersion": "Ignore this version",
+      "clearIgnored": "Show update again",
+      "showInstaller": "Show installer file",
+      "restartAndInstall": "Restart and install",
       "viewRelease": "View release",
       "viewCommit": "View commit",
       "openRepository": "Open repository"
@@ -396,17 +401,31 @@
       "checkingTitle": "Checking for updates...",
       "checkingDescription": "Comparing the current build with the latest GitHub release.",
       "availableTitle": "Update available",
-      "availableDescription": "A newer release is available for download.",
+      "availableDescription": "A newer release is available.",
+      "ignoredTitle": "Update ignored",
+      "ignoredDescription": "This version was marked as ignored. You can enable it again at any time.",
       "upToDateTitle": "You are up to date",
       "upToDateDescription": "The current build already matches the latest GitHub release.",
+      "localNewerTitle": "Local build is newer",
+      "localNewerDescription": "The local build version is higher than the latest published GitHub release.",
+      "noAssetDescription": "The latest release is available, but there is no in-app update package for the current platform yet.",
       "currentVersion": "Current version",
       "latestVersion": "Latest version",
+      "publishedAt": "Published at",
       "checkedAt": "Checked at",
       "errorTitle": "Update check failed"
     },
     "messages": {
       "loadFailed": "Failed to load application information"
     }
+  },
+  "updateToast": {
+    "downloadingTitle": "Downloading update",
+    "failedTitle": "Update download failed",
+    "downloadedTitle": "Update ready to install",
+    "downloadedDescription": "The installer package has been downloaded. Restart the app to continue the update.",
+    "showFile": "Show file",
+    "apply": "Restart and install"
   },
   "generalManagement": {
     "title": "General",

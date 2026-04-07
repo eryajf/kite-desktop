@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/json"
@@ -34,6 +35,7 @@ type desktopPaths struct {
 	TempDir         string
 	DBPath          string
 	WindowStatePath string
+	UpdateStatePath string
 }
 
 type desktopWindowState struct {
@@ -52,10 +54,12 @@ type desktopWindowStateStore struct {
 }
 
 type desktopHost struct {
-	app        *application.App
-	baseURL    string
-	paths      desktopPaths
-	stateStore *desktopWindowStateStore
+	app             *application.App
+	baseURL         string
+	paths           desktopPaths
+	stateStore      *desktopWindowStateStore
+	updateStore     *desktopUpdateStateStore
+	downloadManager *desktopUpdateDownloadManager
 
 	mainWindow *application.WebviewWindow
 	systemTray *application.SystemTray
@@ -77,6 +81,7 @@ func resolveDesktopPaths() (desktopPaths, error) {
 		TempDir:         filepath.Join(dataDir, "tmp"),
 		DBPath:          filepath.Join(dataDir, "kite.db"),
 		WindowStatePath: filepath.Join(dataDir, "window-state.json"),
+		UpdateStatePath: filepath.Join(dataDir, "update-state.json"),
 	}, nil
 }
 
@@ -134,10 +139,12 @@ func (s *desktopWindowStateStore) save(state desktopWindowState) error {
 
 func newDesktopHost(app *application.App, baseURL string, paths desktopPaths) *desktopHost {
 	return &desktopHost{
-		app:        app,
-		baseURL:    baseURL,
-		paths:      paths,
-		stateStore: newDesktopWindowStateStore(paths.WindowStatePath),
+		app:             app,
+		baseURL:         baseURL,
+		paths:           paths,
+		stateStore:      newDesktopWindowStateStore(paths.WindowStatePath),
+		updateStore:     newDesktopUpdateStateStore(paths.UpdateStatePath),
+		downloadManager: newDesktopUpdateDownloadManager(),
 	}
 }
 
@@ -345,6 +352,41 @@ func (h *desktopHost) appInfo() desktopAppInfoResponse {
 			TempDir:   h.paths.TempDir,
 		},
 	}
+}
+
+func (h *desktopHost) updateState() desktopUpdateState {
+	if h.updateStore == nil {
+		return desktopUpdateState{}
+	}
+	return h.updateStore.load()
+}
+
+func (h *desktopHost) checkForUpdate(ctx context.Context, force bool) (kiteversion.UpdateCheckInfo, error) {
+	info, err := kiteversion.GetUpdateCheckInfo(ctx, kiteversion.Version, force)
+	if err != nil {
+		return kiteversion.UpdateCheckInfo{}, err
+	}
+	if h.updateStore == nil {
+		return info, nil
+	}
+	if err := h.updateStore.saveCheckResult(info); err != nil {
+		return kiteversion.UpdateCheckInfo{}, err
+	}
+	return h.updateStore.loadLastCheck(), nil
+}
+
+func (h *desktopHost) ignoreUpdateVersion(version string) error {
+	if h.updateStore == nil {
+		return fmt.Errorf("desktop update store unavailable")
+	}
+	return h.updateStore.setIgnoredVersion(version)
+}
+
+func (h *desktopHost) clearIgnoredUpdateVersion() error {
+	if h.updateStore == nil {
+		return fmt.Errorf("desktop update store unavailable")
+	}
+	return h.updateStore.clearIgnoredVersion()
 }
 
 func (h *desktopHost) importKubeconfigFromDialog() error {

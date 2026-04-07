@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/zxh326/kite/pkg/common"
+	kiteversion "github.com/zxh326/kite/pkg/version"
 )
 
 type desktopBridge struct {
@@ -54,6 +55,25 @@ type desktopAppInfoResponse struct {
 	BuildDate string          `json:"buildDate"`
 	CommitID  string          `json:"commitId"`
 	Paths     desktopAppPaths `json:"paths"`
+}
+
+type desktopUpdateStateResponse struct {
+	IgnoredVersion string                       `json:"ignoredVersion"`
+	LastCheck      *kiteversion.UpdateCheckInfo `json:"lastCheck,omitempty"`
+	Download       *desktopUpdateDownloadState  `json:"download,omitempty"`
+	ReadyToApply   *desktopUpdateReadyState     `json:"readyToApply,omitempty"`
+}
+
+type desktopUpdateCheckRequest struct {
+	Force bool `json:"force"`
+}
+
+type desktopUpdateIgnoreRequest struct {
+	Version string `json:"version"`
+}
+
+type desktopUpdateDownloadRequest struct {
+	Version string `json:"version"`
 }
 
 type openURLRequest struct {
@@ -160,6 +180,14 @@ func (d *desktopBridge) registerRoutes(engine *gin.Engine) {
 	api.POST("/window/quit", d.handleQuitWindow)
 	api.POST("/copy-to-clipboard", d.handleCopyToClipboard)
 	api.POST("/import-kubeconfig", d.handleImportKubeconfig)
+	api.GET("/update/state", d.handleUpdateState)
+	api.POST("/update/check", d.handleUpdateCheck)
+	api.POST("/update/ignore", d.handleUpdateIgnore)
+	api.POST("/update/clear-ignore", d.handleUpdateClearIgnore)
+	api.POST("/update/download", d.handleUpdateDownload)
+	api.POST("/update/retry", d.handleUpdateRetry)
+	api.POST("/update/cancel", d.handleUpdateCancel)
+	api.POST("/update/apply", d.handleUpdateApply)
 }
 
 func (d *desktopBridge) handleStatus(c *gin.Context) {
@@ -182,6 +210,153 @@ func (d *desktopBridge) handleAppInfo(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, d.host.appInfo())
+}
+
+func (d *desktopBridge) handleUpdateState(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	state := d.host.updateState()
+	c.JSON(http.StatusOK, desktopUpdateStateResponse{
+		IgnoredVersion: state.IgnoredVersion,
+		LastCheck:      state.LastCheck,
+		Download:       state.Download,
+		ReadyToApply:   state.ReadyToApply,
+	})
+}
+
+func (d *desktopBridge) handleUpdateCheck(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopUpdateCheckRequest
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update-check payload"})
+		return
+	}
+
+	info, err := d.host.checkForUpdate(c.Request.Context(), req.Force)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, info)
+}
+
+func (d *desktopBridge) handleUpdateIgnore(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopUpdateIgnoreRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ignore payload"})
+		return
+	}
+	if strings.TrimSpace(req.Version) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "version is required"})
+		return
+	}
+
+	if err := d.host.ignoreUpdateVersion(req.Version); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleUpdateClearIgnore(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	if err := d.host.clearIgnoredUpdateVersion(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleUpdateDownload(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopUpdateDownloadRequest
+	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update-download payload"})
+		return
+	}
+
+	state, err := d.host.startUpdateDownload(req.Version)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopUpdateStateResponse{
+		IgnoredVersion: state.IgnoredVersion,
+		LastCheck:      state.LastCheck,
+		Download:       state.Download,
+		ReadyToApply:   state.ReadyToApply,
+	})
+}
+
+func (d *desktopBridge) handleUpdateRetry(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	state, err := d.host.retryUpdateDownload()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopUpdateStateResponse{
+		IgnoredVersion: state.IgnoredVersion,
+		LastCheck:      state.LastCheck,
+		Download:       state.Download,
+		ReadyToApply:   state.ReadyToApply,
+	})
+}
+
+func (d *desktopBridge) handleUpdateCancel(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	state, err := d.host.cancelUpdateDownload()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopUpdateStateResponse{
+		IgnoredVersion: state.IgnoredVersion,
+		LastCheck:      state.LastCheck,
+		Download:       state.Download,
+		ReadyToApply:   state.ReadyToApply,
+	})
+}
+
+func (d *desktopBridge) handleUpdateApply(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	if err := d.host.applyReadyUpdate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
 }
 
 func (d *desktopBridge) handleOpenURL(c *gin.Context) {

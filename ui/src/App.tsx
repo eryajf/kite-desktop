@@ -14,6 +14,7 @@ import {
 import { SiteHeader } from './components/site-header'
 import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
 import { Toaster } from './components/ui/sonner'
+import { UpdateDownloadToast } from './components/update-download-toast'
 import { AIChatProvider } from './contexts/ai-chat-context'
 import { ClusterProvider } from './contexts/cluster-context'
 import { TerminalProvider, useTerminal } from './contexts/terminal-context'
@@ -91,6 +92,7 @@ function AppContent() {
           <FloatingTerminal />
         </Suspense>
       ) : null}
+      <UpdateDownloadToast />
       <AIChatbox />
       <Toaster />
     </>

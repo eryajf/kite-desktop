@@ -7,27 +7,33 @@ import {
 } from 'react'
 import Icon from '@/assets/icon.svg'
 import {
+  IconArrowUpRight,
   IconBrandGithub,
   IconDownload,
   IconExternalLink,
+  IconFolderOpen,
   IconInfoCircle,
   IconLoader2,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconRefresh,
   IconRosetteDiscountCheck,
+  IconSparkles,
 } from '@tabler/icons-react'
-import { useMutation } from '@tanstack/react-query'
 import type { TFunction } from 'i18next'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { useVersionInfo, type UpdateCheckInfo } from '@/lib/api'
 import {
-  checkVersionUpdate,
-  useVersionInfo,
-  type UpdateCheckInfo,
-} from '@/lib/api'
-import { getDesktopAppInfo, openURL, type DesktopAppInfo } from '@/lib/desktop'
+  getDesktopAppInfo,
+  openURL,
+  revealPath,
+  type DesktopAppInfo,
+} from '@/lib/desktop'
 import { PROJECT_REPOSITORY_URL } from '@/lib/project'
 import { translateError } from '@/lib/utils'
+import { useDesktopUpdate } from '@/hooks/use-desktop-update'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -137,7 +143,7 @@ function UpdateStatus({
     )
   }
 
-  if (!isComparableRelease(result)) {
+  if (result.comparison === 'uncomparable' || !isComparableRelease(result)) {
     return (
       <Alert>
         <AlertTitle>
@@ -156,17 +162,70 @@ function UpdateStatus({
     )
   }
 
-  if (result.hasNewVersion) {
+  if (result.comparison === 'update_available') {
     return (
       <Alert className="border-primary/20 bg-primary/5">
+        <IconSparkles className="h-4 w-4 text-primary" />
         <AlertTitle>
-          {t('aboutManagement.update.availableTitle', 'Update available')}
+          {result.ignored
+            ? t('aboutManagement.update.ignoredTitle', 'Update ignored')
+            : t('aboutManagement.update.availableTitle', 'Update available')}
+        </AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            {result.ignored
+              ? t(
+                  'aboutManagement.update.ignoredDescription',
+                  'This version was marked as ignored. You can enable it again at any time.'
+                )
+              : t(
+                  'aboutManagement.update.availableDescription',
+                  'A newer release is available.'
+                )}
+          </p>
+          <p>
+            {t('aboutManagement.update.currentVersion', 'Current version')}: v
+            {normalizeVersion(result.currentVersion)} |{' '}
+            {t('aboutManagement.update.latestVersion', 'Latest version')}: v
+            {normalizeVersion(result.latestVersion)}
+          </p>
+          {result.assetAvailable === false ? (
+            <p>
+              {t(
+                'aboutManagement.update.noAssetDescription',
+                'The latest release is available, but there is no in-app update package for the current platform yet.'
+              )}
+            </p>
+          ) : null}
+          {result.publishedAt ? (
+            <p>
+              {t('aboutManagement.update.publishedAt', 'Published at')}:{' '}
+              {formatCheckedAt(result.publishedAt)}
+            </p>
+          ) : null}
+          {result.checkedAt ? (
+            <p>
+              {t('aboutManagement.update.checkedAt', 'Checked at')}:{' '}
+              {formatCheckedAt(result.checkedAt)}
+            </p>
+          ) : null}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (result.comparison === 'local_newer') {
+    return (
+      <Alert className="border-amber-500/25 bg-amber-500/5">
+        <IconArrowUpRight className="h-4 w-4 text-amber-600" />
+        <AlertTitle>
+          {t('aboutManagement.update.localNewerTitle', 'Local build is newer')}
         </AlertTitle>
         <AlertDescription className="space-y-2">
           <p>
             {t(
-              'aboutManagement.update.availableDescription',
-              'A newer release is available for download.'
+              'aboutManagement.update.localNewerDescription',
+              'The local build version is higher than the latest published GitHub release.'
             )}
           </p>
           <p>
@@ -219,6 +278,26 @@ function UpdateStatus({
 export function AboutManagement() {
   const { t } = useTranslation()
   const { data: versionInfo, isLoading: versionLoading } = useVersionInfo()
+  const {
+    isDesktop,
+    result: updateResult,
+    isLoadingState,
+    isChecking,
+    check,
+    ignore,
+    clearIgnore,
+    startDownload,
+    retryDownload,
+    applyUpdate,
+    download,
+    readyToApply,
+    isIgnoring,
+    isClearingIgnore,
+    isStartingDownload,
+    isRetryingDownload,
+    isApplyingUpdate,
+    error: updateError,
+  } = useDesktopUpdate()
   const [desktopInfo, setDesktopInfo] = useState<DesktopAppInfo | null>(null)
 
   const loadDesktopInfo = useCallback(async () => {
@@ -240,15 +319,7 @@ export function AboutManagement() {
     void loadDesktopInfo()
   }, [loadDesktopInfo])
 
-  const updateMutation = useMutation({
-    mutationFn: () => checkVersionUpdate(true),
-    onError: (error) => {
-      toast.error(translateError(error, t))
-    },
-  })
-  const updateErrorMessage = updateMutation.error
-    ? translateError(updateMutation.error, t)
-    : ''
+  const updateErrorMessage = updateError ? translateError(updateError, t) : ''
 
   const appName = desktopInfo?.name || t('aboutManagement.productName', 'Kite')
   const currentVersion = normalizeVersion(
@@ -257,6 +328,15 @@ export function AboutManagement() {
   const buildDate = desktopInfo?.buildDate || versionInfo?.buildDate || '-'
   const commitId = desktopInfo?.commitId || versionInfo?.commitId || '-'
   const runtime = desktopInfo?.runtime || '-'
+  const latestVersion = updateResult?.latestVersion || ''
+  const canDownloadUpdate =
+    isDesktop &&
+    updateResult?.comparison === 'update_available' &&
+    !updateResult.ignored &&
+    updateResult.assetAvailable &&
+    latestVersion &&
+    !download &&
+    !readyToApply
 
   const commitURL = useMemo(() => {
     if (!commitId || commitId === '-' || commitId === 'unknown') {
@@ -309,10 +389,10 @@ export function AboutManagement() {
           <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <Button
               type="button"
-              onClick={() => updateMutation.mutate()}
-              disabled={updateMutation.isPending}
+              onClick={() => check(true)}
+              disabled={isChecking}
             >
-              {updateMutation.isPending ? (
+              {isChecking ? (
                 <IconLoader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <IconRefresh className="h-4 w-4" />
@@ -327,23 +407,112 @@ export function AboutManagement() {
               <IconBrandGithub className="h-4 w-4" />
               {t('aboutManagement.actions.openGithub', 'GitHub Repository')}
             </Button>
-            {updateMutation.data?.releaseUrl ? (
+            {updateResult?.releaseUrl ? (
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void openURL(updateMutation.data!.releaseUrl)}
+                onClick={() => void openURL(updateResult.releaseUrl)}
               >
-                {updateMutation.data.hasNewVersion ? (
-                  <IconDownload className="h-4 w-4" />
+                <IconExternalLink className="h-4 w-4" />
+                {t('aboutManagement.actions.viewRelease', 'View release')}
+              </Button>
+            ) : null}
+            {canDownloadUpdate ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => startDownload(latestVersion)}
+                disabled={isStartingDownload}
+              >
+                {isStartingDownload ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <IconExternalLink className="h-4 w-4" />
+                  <IconDownload className="h-4 w-4" />
                 )}
-                {updateMutation.data.hasNewVersion
-                  ? t(
-                      'aboutManagement.actions.downloadUpdate',
-                      'Download update'
-                    )
-                  : t('aboutManagement.actions.viewRelease', 'View release')}
+                {t('aboutManagement.actions.downloadUpdate', 'Download update')}
+              </Button>
+            ) : null}
+            {download?.status === 'download_failed' ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => retryDownload()}
+                disabled={isRetryingDownload}
+              >
+                {isRetryingDownload ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconRefresh className="h-4 w-4" />
+                )}
+                {t('common.retry', 'Retry')}
+              </Button>
+            ) : null}
+            {readyToApply ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void revealPath(readyToApply.path)}
+                >
+                  <IconFolderOpen className="h-4 w-4" />
+                  {t(
+                    'aboutManagement.actions.showInstaller',
+                    'Show installer file'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => applyUpdate()}
+                  disabled={isApplyingUpdate}
+                >
+                  {isApplyingUpdate ? (
+                    <IconLoader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <IconPlayerPlay className="h-4 w-4" />
+                  )}
+                  {t(
+                    'aboutManagement.actions.restartAndInstall',
+                    'Restart and install'
+                  )}
+                </Button>
+              </>
+            ) : null}
+            {isDesktop &&
+            updateResult?.comparison === 'update_available' &&
+            updateResult.latestVersion &&
+            !updateResult.ignored &&
+            !download &&
+            !readyToApply ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => ignore(updateResult.latestVersion)}
+                disabled={isIgnoring}
+              >
+                {isIgnoring ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconPlayerPause className="h-4 w-4" />
+                )}
+                {t(
+                  'aboutManagement.actions.ignoreVersion',
+                  'Ignore this version'
+                )}
+              </Button>
+            ) : null}
+            {isDesktop && updateResult?.ignored ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => clearIgnore()}
+                disabled={isClearingIgnore}
+              >
+                {isClearingIgnore ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconRefresh className="h-4 w-4" />
+                )}
+                {t('aboutManagement.actions.clearIgnored', 'Show update again')}
               </Button>
             ) : null}
           </div>
@@ -351,9 +520,11 @@ export function AboutManagement() {
 
         <UpdateStatus
           t={t}
-          result={updateMutation.data}
+          result={updateResult}
           errorMessage={updateErrorMessage}
-          isPending={updateMutation.isPending}
+          isPending={
+            isChecking || (isDesktop && isLoadingState && !updateResult)
+          }
         />
 
         <div className="grid gap-4 md:grid-cols-2">

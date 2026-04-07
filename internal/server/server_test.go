@@ -90,6 +90,9 @@ func TestRegisterBaseRoutes(t *testing.T) {
 		if got["currentVersion"] != "dev" || got["hasNewVersion"] != false {
 			t.Fatalf("unexpected check-update payload: %#v", got)
 		}
+		if got["comparison"] != string(version.UpdateComparisonUncomparable) {
+			t.Fatalf("unexpected comparison payload: %#v", got)
+		}
 	})
 }
 

@@ -1,7 +1,19 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react'
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 
-import { DESKTOP_LOCAL_RUNTIME, getDesktopStatus } from '@/lib/desktop'
+import {
+  checkDesktopUpdate,
+  DESKTOP_LOCAL_RUNTIME,
+  getDesktopStatus,
+  getDesktopUpdateState,
+} from '@/lib/desktop'
 
 interface RuntimeContextType {
   isDesktop: boolean
@@ -11,6 +23,7 @@ interface RuntimeContextType {
 const RuntimeContext = createContext<RuntimeContextType | undefined>(undefined)
 
 export function RuntimeProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
   const [state, setState] = useState<RuntimeContextType>({
     isDesktop: false,
     isReady: false,
@@ -26,10 +39,26 @@ export function RuntimeProvider({ children }: { children: ReactNode }) {
         }
 
         setState({
-          isDesktop:
-            status.enabled && status.runtime === DESKTOP_LOCAL_RUNTIME,
+          isDesktop: status.enabled && status.runtime === DESKTOP_LOCAL_RUNTIME,
           isReady: true,
         })
+
+        if (status.enabled && status.runtime === DESKTOP_LOCAL_RUNTIME) {
+          void checkDesktopUpdate(false)
+            .then(() => getDesktopUpdateState())
+            .then((updateState) => {
+              if (!active || !updateState) {
+                return
+              }
+              queryClient.setQueryData(['desktop-update-state'], {
+                ignoredVersion: updateState.ignoredVersion || '',
+                lastCheck: updateState.lastCheck,
+                download: updateState.download,
+                readyToApply: updateState.readyToApply,
+              })
+            })
+            .catch(() => undefined)
+        }
       })
       .catch(() => {
         if (!active) {

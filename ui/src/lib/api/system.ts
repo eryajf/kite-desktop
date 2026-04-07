@@ -15,8 +15,19 @@ export interface VersionInfo {
 export interface UpdateCheckInfo {
   currentVersion: string
   latestVersion: string
+  comparison: 'update_available' | 'up_to_date' | 'local_newer' | 'uncomparable'
   hasNewVersion: boolean
   releaseUrl: string
+  releaseNotes: string
+  publishedAt: string
+  ignored: boolean
+  assetAvailable: boolean
+  asset?: {
+    name: string
+    downloadUrl: string
+    contentType?: string
+    size?: number
+  }
   checkedAt: string
 }
 

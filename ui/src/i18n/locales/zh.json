@@ -44,6 +44,7 @@
     "new": "新建",
     "all": "全部",
     "retry": "重试",
+    "later": "稍后",
     "required": "此字段为必填项",
     "description": "描述",
     "yaml": "YAML",
@@ -463,8 +464,8 @@
   "aboutManagement": {
     "title": "关于",
     "productName": "Kite",
-    "description": "查看构建信息，并将当前版本与 GitHub Release 最新版本进行比对。",
-    "subtitle": "基于 Kite 打造的桌面版，面向本地集群工作流。",
+    "description": "查看构建信息与更新状态。",
+    "subtitle": "面向本地集群工作流的桌面应用。",
     "versionLabel": "版本",
     "fields": {
       "version": "版本",
@@ -478,6 +479,10 @@
       "checkUpdate": "检查更新",
       "openGithub": "GitHub 仓库",
       "downloadUpdate": "下载更新",
+      "ignoreVersion": "忽略此版本",
+      "clearIgnored": "重新提示此更新",
+      "showInstaller": "查看安装包",
+      "restartAndInstall": "重启并安装",
       "viewRelease": "查看 Release",
       "viewCommit": "查看 Commit",
       "openRepository": "打开仓库"
@@ -490,17 +495,31 @@
       "checkingTitle": "正在检查更新...",
       "checkingDescription": "正在将当前构建与 GitHub 最新 Release 进行比较。",
       "availableTitle": "发现新版本",
-      "availableDescription": "检测到有更新版本可供下载。",
+      "availableDescription": "检测到有新版本可用。",
+      "ignoredTitle": "该更新已忽略",
+      "ignoredDescription": "这个版本已被标记为忽略，你随时可以重新恢复提示。",
       "upToDateTitle": "当前已是最新版本",
       "upToDateDescription": "当前构建已经与 GitHub 最新 Release 保持一致。",
+      "localNewerTitle": "本地构建版本更高",
+      "localNewerDescription": "当前本地构建版本高于 GitHub 已发布的最新 Release。",
+      "noAssetDescription": "已检测到新版本，但当前平台暂时没有可用于应用内更新的安装包。",
       "currentVersion": "当前版本",
       "latestVersion": "最新版本",
+      "publishedAt": "发布时间",
       "checkedAt": "检查时间",
       "errorTitle": "检查更新失败"
     },
     "messages": {
       "loadFailed": "加载应用信息失败"
     }
+  },
+  "updateToast": {
+    "downloadingTitle": "正在下载更新",
+    "failedTitle": "更新下载失败",
+    "downloadedTitle": "更新已准备就绪",
+    "downloadedDescription": "安装包已下载完成，重启应用后可继续执行更新。",
+    "showFile": "查看文件",
+    "apply": "重启并安装"
   },
   "generalManagement": {
     "title": "通用",

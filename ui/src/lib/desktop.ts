@@ -92,6 +92,51 @@ export interface DesktopAppInfo {
   paths: DesktopAppPaths
 }
 
+export interface DesktopUpdateAsset {
+  name: string
+  downloadUrl: string
+  contentType?: string
+  size?: number
+}
+
+export interface DesktopUpdateCheckInfo {
+  currentVersion: string
+  latestVersion: string
+  comparison: 'update_available' | 'up_to_date' | 'local_newer' | 'uncomparable'
+  hasNewVersion: boolean
+  releaseUrl: string
+  releaseNotes: string
+  publishedAt: string
+  ignored: boolean
+  assetAvailable: boolean
+  asset?: DesktopUpdateAsset
+  checkedAt: string
+}
+
+export interface DesktopUpdateState {
+  ignoredVersion: string
+  lastCheck?: DesktopUpdateCheckInfo
+  download?: {
+    status: 'downloading' | 'download_failed'
+    version: string
+    assetName: string
+    downloadUrl: string
+    targetPath: string
+    receivedBytes: number
+    totalBytes: number
+    speedBytesPerSec: number
+    error?: string
+    startedAt?: string
+    updatedAt?: string
+  }
+  readyToApply?: {
+    version: string
+    assetName: string
+    path: string
+    downloadedAt?: string
+  }
+}
+
 const DEFAULT_CAPABILITIES: DesktopCapabilities = {
   nativeFileDialog: false,
   nativeSaveDialog: false,
@@ -255,6 +300,76 @@ export async function getDesktopAppInfo(): Promise<DesktopAppInfo | null> {
   }
 
   return (await response.json()) as DesktopAppInfo
+}
+
+export async function getDesktopUpdateState(): Promise<DesktopUpdateState | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  const response = await fetch(withSubPath('/api/desktop/update/state'), {
+    credentials: 'include',
+  })
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({}))) as {
+      error?: string
+    }
+    throw new Error(error.error || `Desktop request failed: ${response.status}`)
+  }
+
+  return (await response.json()) as DesktopUpdateState
+}
+
+export async function checkDesktopUpdate(
+  force: boolean = false
+): Promise<DesktopUpdateCheckInfo | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  return postDesktop<DesktopUpdateCheckInfo>('/api/desktop/update/check', {
+    force,
+  })
+}
+
+export async function ignoreDesktopUpdate(version: string): Promise<boolean> {
+  return invokeDesktopAction('/api/desktop/update/ignore', { version })
+}
+
+export async function clearIgnoredDesktopUpdate(): Promise<boolean> {
+  return invokeDesktopAction('/api/desktop/update/clear-ignore')
+}
+
+export async function startDesktopUpdateDownload(
+  version: string
+): Promise<DesktopUpdateState | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  return postDesktop<DesktopUpdateState>('/api/desktop/update/download', {
+    version,
+  })
+}
+
+export async function retryDesktopUpdateDownload(): Promise<DesktopUpdateState | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  return postDesktop<DesktopUpdateState>('/api/desktop/update/retry', {})
+}
+
+export async function cancelDesktopUpdateDownload(): Promise<DesktopUpdateState | null> {
+  if (!(await isDesktopMode())) {
+    return null
+  }
+
+  return postDesktop<DesktopUpdateState>('/api/desktop/update/cancel', {})
+}
+
+export async function applyDesktopUpdate(): Promise<boolean> {
+  return invokeDesktopAction('/api/desktop/update/apply')
 }
 
 export function installDesktopTargetBlankInterceptor(): () => void {

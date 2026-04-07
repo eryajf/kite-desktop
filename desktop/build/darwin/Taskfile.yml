@@ -43,6 +43,7 @@ tasks:
       - task: common:generate:icons
     cmds:
       - go build {{.BUILD_FLAGS}} -o {{.OUTPUT}}
+      - env CGO_ENABLED=0 GOOS=darwin GOARCH='{{.ARCH | default ARCH}}' go build {{.BUILD_FLAGS}} -o "{{.BIN_DIR}}/{{.APP_NAME}}-updater" ../cmd/updater
     vars:
       VERSION_LDFLAGS:
         sh: |
@@ -85,6 +86,7 @@ tasks:
       - docker run --rm -v "{{.ROOT_DIR}}:/app" alpine chown -R $(id -u):$(id -g) /app/bin
       - mkdir -p {{.BIN_DIR}}
       - mv "bin/{{.APP_NAME}}-darwin-{{.DOCKER_ARCH}}" "{{.OUTPUT}}"
+      - env CGO_ENABLED=0 GOOS=darwin GOARCH='{{.DOCKER_ARCH}}' go build -trimpath -buildvcs=false -ldflags="-w -s{{if .KITE_VERSION}} -X github.com/zxh326/kite/pkg/version/Version={{.KITE_VERSION}}{{end}}{{if .KITE_BUILD_DATE}} -X github.com/zxh326/kite/pkg/version/BuildDate={{.KITE_BUILD_DATE}}{{end}}{{if .KITE_COMMIT_ID}} -X github.com/zxh326/kite/pkg/version/CommitID={{.KITE_COMMIT_ID}}{{end}}" -o "{{.BIN_DIR}}/{{.APP_NAME}}-updater" ../cmd/updater
     vars:
       DOCKER_ARCH: '{{if eq .ARCH "arm64"}}arm64{{else if eq .ARCH "amd64"}}amd64{{else}}arm64{{end}}'
       DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'
@@ -165,6 +167,7 @@ tasks:
           cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources"
         fi
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/MacOS"
+      - cp "{{.BIN_DIR}}/{{.APP_NAME}}-updater" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Resources/kite-updater"
       - cp build/darwin/Info.plist "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents"
       - task: '{{if eq OS "darwin"}}codesign:adhoc{{else}}codesign:skip{{end}}'
 
@@ -190,6 +193,7 @@ tasks:
           cp build/darwin/Assets.car "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources"
         fi
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/MacOS"
+      - cp "{{.BIN_DIR}}/{{.APP_NAME}}-updater" "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Resources/kite-updater"
       - cp "build/darwin/Info.dev.plist" "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/Info.plist"
       - codesign --force --deep --sign - "{{.BIN_DIR}}/{{.APP_NAME}}.dev.app"
       - '{{.BIN_DIR}}/{{.APP_NAME}}.dev.app/Contents/MacOS/{{.APP_NAME}}'

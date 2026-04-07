@@ -48,11 +48,13 @@ jobs:
             platform: macos
             arch: amd64
             package_suffix: macos-intel.dmg
+            update_suffix: macos-intel.zip
           - os: macos-15
             label: macos-apple-silicon
             platform: macos
             arch: arm64
             package_suffix: macos-apple-silicon.dmg
+            update_suffix: macos-apple-silicon.zip
           - os: windows-latest
             label: windows-amd64
             platform: windows
@@ -63,11 +65,6 @@ jobs:
             platform: windows
             arch: arm64
             package_suffix: windows-arm64-installer.exe
-          - os: ubuntu-24.04
-            label: linux-amd64
-            platform: linux
-            arch: amd64
-            package_suffix: linux-amd64.AppImage
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -89,22 +86,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
           cache-dependency-path: ui/pnpm-lock.yaml
-
-      - name: Install Linux build dependencies
-        if: ${{ matrix.platform == 'linux' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            pkg-config \
-            libgtk-3-dev \
-            libwebkit2gtk-4.1-dev \
-            libsoup-3.0-dev \
-            libfuse2t64 \
-            rpm
-          pkg-config --modversion gtk+-3.0 webkit2gtk-4.1 libsoup-3.0
 
       - name: Install Wails v3
         shell: bash
@@ -158,6 +139,9 @@ jobs:
             echo "missing ${APP_PATH}" >&2
             exit 1
           fi
+          ditto -c -k --sequesterRsrc --keepParent \
+            "${APP_PATH}" \
+            "Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.update_suffix }}"
           create-dmg \
             --volname "Kite Installer" \
             --window-pos 200 120 \
@@ -168,6 +152,7 @@ jobs:
             --app-drop-link 600 185 \
             "Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.package_suffix }}" \
             "${APP_PATH}"
+          mv "Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.update_suffix }}" ../../release-assets/
           mv "Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.package_suffix }}" ../../release-assets/
 
       - name: Build Windows installer
@@ -183,35 +168,6 @@ jobs:
             exit 1
           }
           Copy-Item -LiteralPath $source -Destination "../release-assets/Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.package_suffix }}" -Force
-
-      - name: Build Linux packages
-        if: ${{ matrix.platform == 'linux' }}
-        shell: bash
-        env:
-          GIT_COMMITTER_NAME: Kite Release Bot
-          GIT_COMMITTER_EMAIL: kite-release-bot@users.noreply.github.com
-        run: |
-          set -euo pipefail
-          mkdir -p release-assets
-          cd desktop
-          wails3 task linux:build ARCH=${{ matrix.arch }}
-          wails3 task linux:create:appimage ARCH=${{ matrix.arch }}
-          wails3 task linux:generate:deb ARCH=${{ matrix.arch }}
-          wails3 task linux:generate:rpm ARCH=${{ matrix.arch }}
-
-          APPIMAGE_FILE="$(find bin -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
-          DEB_FILE="$(find bin -maxdepth 1 -type f -name '*.deb' | head -n 1)"
-          RPM_FILE="$(find bin -maxdepth 1 -type f -name '*.rpm' | head -n 1)"
-
-          if [[ -z "${APPIMAGE_FILE}" || -z "${DEB_FILE}" || -z "${RPM_FILE}" ]]; then
-            echo "linux packages are incomplete" >&2
-            ls -la bin >&2 || true
-            exit 1
-          fi
-
-          cp "${APPIMAGE_FILE}" "../release-assets/Kite-${{ needs.prepare.outputs.tag_name }}-${{ matrix.package_suffix }}"
-          cp "${DEB_FILE}" "../release-assets/Kite-${{ needs.prepare.outputs.tag_name }}-linux-amd64.deb"
-          cp "${RPM_FILE}" "../release-assets/Kite-${{ needs.prepare.outputs.tag_name }}-linux-amd64.rpm"
 
       - name: Upload desktop artifacts
         uses: actions/upload-artifact@v4
@@ -278,10 +234,9 @@ jobs:
             emit_row "Windows" "x64" "Installer" "Kite-${TAG_NAME}-windows-amd64-installer.exe"
             emit_row "Windows" "ARM64" "Installer" "Kite-${TAG_NAME}-windows-arm64-installer.exe"
             emit_row "macOS" "Intel" "DMG" "Kite-${TAG_NAME}-macos-intel.dmg"
+            emit_row "macOS" "Intel" "ZIP" "Kite-${TAG_NAME}-macos-intel.zip"
             emit_row "macOS" "Apple Silicon" "DMG" "Kite-${TAG_NAME}-macos-apple-silicon.dmg"
-            emit_row "Linux" "x64" "AppImage" "Kite-${TAG_NAME}-linux-amd64.AppImage"
-            emit_row "Linux" "x64" "DEB" "Kite-${TAG_NAME}-linux-amd64.deb"
-            emit_row "Linux" "x64" "RPM" "Kite-${TAG_NAME}-linux-amd64.rpm"
+            emit_row "macOS" "Apple Silicon" "ZIP" "Kite-${TAG_NAME}-macos-apple-silicon.zip"
             echo
             if [[ -f release-assets/SHA256SUMS ]]; then
               echo '## Checksums'
