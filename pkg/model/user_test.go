@@ -1,6 +1,7 @@
 package model
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -14,13 +15,20 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		panic(err)
 	}
-	defer os.RemoveAll(tempDir)
 
 	common.DBType = "sqlite"
 	common.DBDSN = filepath.Join(tempDir, "model-test.db")
 	InitDB()
 
-	os.Exit(m.Run())
+	exitCode := m.Run()
+	if err := os.RemoveAll(tempDir); err != nil {
+		fmt.Fprintf(os.Stderr, "cleanup temp dir %q failed: %v\n", tempDir, err)
+		if exitCode == 0 {
+			exitCode = 1
+		}
+	}
+
+	os.Exit(exitCode)
 }
 
 func TestUserKey(t *testing.T) {
