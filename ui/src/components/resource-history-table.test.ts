@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { getResourceHistoryOperatorName } from './resource-history-table'
 import type { ResourceHistory } from '@/types/api'
+
+import { getResourceHistoryOperatorName } from './resource-history-table-utils'
 
 function createHistory(
   overrides: Partial<ResourceHistory> = {}

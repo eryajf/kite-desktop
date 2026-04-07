@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   IconFolderOpen,
   IconInfoCircle,
@@ -34,7 +34,7 @@ export function DesktopManagement() {
   const [info, setInfo] = useState<DesktopAppInfo | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const loadInfo = async () => {
+  const loadInfo = useCallback(async () => {
     setLoading(true)
     try {
       setInfo(await getDesktopAppInfo())
@@ -50,11 +50,11 @@ export function DesktopManagement() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [t])
 
   useEffect(() => {
     void loadInfo()
-  }, [])
+  }, [loadInfo])
 
   return (
     <Card>

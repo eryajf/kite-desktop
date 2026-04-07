@@ -103,6 +103,7 @@ export function MetricCell({
     metricRequest,
     formatValue,
     limitLabel,
+    t,
     type,
     showPercentage,
   ])

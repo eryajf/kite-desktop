@@ -12,7 +12,7 @@ import { installDesktopTargetBlankInterceptor } from './lib/desktop'
 import { QueryProvider } from './lib/query-provider'
 import { router } from './routes'
 
-function AppBootstrap() {
+export function AppBootstrap() {
   useEffect(() => {
     return installDesktopTargetBlankInterceptor()
   }, [])

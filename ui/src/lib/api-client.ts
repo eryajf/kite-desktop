@@ -41,7 +41,7 @@ class ApiClient {
     }
 
     try {
-      let response = await fetch(fullUrl, defaultOptions)
+      const response = await fetch(fullUrl, defaultOptions)
 
       if (response.status === 401) {
         throw new Error('Unauthorized')

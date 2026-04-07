@@ -45,7 +45,7 @@ export function CRListPage() {
         {t('yamlEditor.title')}
       </Button>,
     ]
-  }, [crdData, handleViewYaml])
+  }, [crdData, handleViewYaml, t])
   const columns = useMemo(() => {
     const baseColumns = [
       columnHelper.accessor('metadata.name', {

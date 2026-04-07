@@ -8,6 +8,7 @@ import { ResourceHistory, ResourceType, ResourceTypeMap } from '@/types/api'
 import { applyResource, useResourceHistory } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 
+import { getResourceHistoryOperatorName } from './resource-history-table-utils'
 import { Column, SimpleTable } from './simple-table'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
@@ -20,10 +21,6 @@ interface ResourceHistoryTableProps<T extends ResourceType> {
   name: string
   namespace?: string
   currentResource?: ResourceTypeMap[T]
-}
-
-export function getResourceHistoryOperatorName(item: ResourceHistory): string {
-  return item.operator?.username || '-'
 }
 
 export function ResourceHistoryTable<T extends ResourceType>({

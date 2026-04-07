@@ -101,7 +101,7 @@ export function YamlEditor<T extends ResourceType>({
         clearTimeout(validationTimeoutRef.current)
       }
     }
-  }, [editorValue])
+  }, [editorValue, t])
 
   const handleEditorChange = (value: string | undefined) => {
     const newValue = value || ''
