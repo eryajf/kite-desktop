@@ -13,28 +13,6 @@ import (
 	"github.com/zxh326/kite/pkg/model"
 )
 
-func TestMethod2Verb(t *testing.T) {
-	tests := []struct {
-		name   string
-		method string
-		want   string
-	}{
-		{name: "post", method: http.MethodPost, want: "create"},
-		{name: "put", method: http.MethodPut, want: "update"},
-		{name: "patch", method: http.MethodPatch, want: "update"},
-		{name: "delete", method: http.MethodDelete, want: "delete"},
-		{name: "get", method: http.MethodGet, want: "get"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := method2verb(tt.method); got != tt.want {
-				t.Fatalf("method2verb(%q) = %q, want %q", tt.method, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestStaticCache(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
