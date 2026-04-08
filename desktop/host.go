@@ -28,6 +28,16 @@ import (
 //go:embed build/appicon.png
 var desktopTrayIcon []byte
 
+//go:embed build/appicon-macos.png
+var desktopMacAppIcon []byte
+
+func desktopApplicationIcon() []byte {
+	if runtime.GOOS == "darwin" && len(desktopMacAppIcon) > 0 {
+		return desktopMacAppIcon
+	}
+	return desktopTrayIcon
+}
+
 type desktopPaths struct {
 	DataDir         string
 	LogsDir         string

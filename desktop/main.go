@@ -41,7 +41,7 @@ func main() {
 	appOptions := application.Options{
 		Name:        "Kite",
 		Description: "Modern Kubernetes Dashboard",
-		Icon:        desktopTrayIcon,
+		Icon:        desktopApplicationIcon(),
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
