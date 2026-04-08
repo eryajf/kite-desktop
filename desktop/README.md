@@ -58,12 +58,16 @@ wails3 build
 
 - `desktop/bin/kite`
 
+当前发布制品仅提供：
+
+- macOS
+- Windows
+
 ## 数据目录
 
 桌面模式默认会使用系统用户配置目录：
 
 - macOS: `~/Library/Application Support/Kite/`
-- Linux: `~/.config/Kite/` 或系统对应 `UserConfigDir`
 - Windows: `%AppData%/Kite/`
 
 默认 SQLite 路径：

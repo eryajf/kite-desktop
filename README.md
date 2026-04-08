@@ -28,9 +28,9 @@ The current desktop direction is built around:
 
 - `Go` for backend logic and Kubernetes integration
 - `React` for the application UI
-- `Wails v3` for desktop runtime, native windowing, system integration, and multi-platform packaging
+- `Wails v3` for desktop runtime, native windowing, system integration, and desktop packaging
 
-`Wails v3` is the key part of this transition. It is the foundation for native dialogs, local file access, external link handling, window behavior, and installer packaging across macOS, Windows, and Linux.
+`Wails v3` is the key part of this transition. It is the foundation for native dialogs, local file access, external link handling, window behavior, and installer packaging for macOS and Windows releases.
 
 ## Project Direction
 
@@ -98,9 +98,6 @@ The project is being prepared around desktop distribution, including:
 - macOS Apple Silicon
 - Windows x64
 - Windows ARM64
-- Linux AppImage
-- Linux DEB
-- Linux RPM
 
 ## Relationship With Upstream
 

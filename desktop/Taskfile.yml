@@ -4,7 +4,6 @@ includes:
   common: ./build/Taskfile.yml
   windows: ./build/windows/Taskfile.yml
   darwin: ./build/darwin/Taskfile.yml
-  linux: ./build/linux/Taskfile.yml
   ios: ./build/ios/Taskfile.yml
   android: ./build/android/Taskfile.yml
 
@@ -14,23 +13,37 @@ vars:
   VITE_PORT: '{{.WAILS_VITE_PORT | default 9245}}'
 
 tasks:
+  ensure:supported:desktop:
+    internal: true
+    preconditions:
+      - sh: '[ "{{OS}}" = "darwin" ] || [ "{{OS}}" = "windows" ]'
+        msg: "Desktop build/package/run/dev is only supported on macOS and Windows."
+
   build:
     summary: Builds the application
+    deps:
+      - task: ensure:supported:desktop
     cmds:
       - task: "{{OS}}:build"
 
   package:
     summary: Packages a production build of the application
+    deps:
+      - task: ensure:supported:desktop
     cmds:
       - task: "{{OS}}:package"
 
   run:
     summary: Runs the application
+    deps:
+      - task: ensure:supported:desktop
     cmds:
       - task: "{{OS}}:run"
 
   dev:
     summary: Runs the application in development mode
+    deps:
+      - task: ensure:supported:desktop
     cmds:
       - wails3 dev -config ./build/config.yml -port {{.VITE_PORT}}
 

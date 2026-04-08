@@ -28,7 +28,7 @@ _一个基于 Wails v3 打造、面向桌面端的 Kubernetes 管理应用_
 
 - `Go`：负责核心逻辑与 Kubernetes 交互能力
 - `React`：负责桌面应用界面
-- `Wails v3`：负责桌面运行时、原生窗口、系统能力接入与多平台打包
+- `Wails v3`：负责桌面运行时、原生窗口、系统能力接入，以及 macOS / Windows 安装包构建
 
 其中，`Wails v3` 是这次改造的关键基础设施。后续围绕桌面端的很多能力都会基于它展开，例如：
 
@@ -86,9 +86,6 @@ make build
 - macOS Apple Silicon
 - Windows x64
 - Windows ARM64
-- Linux AppImage
-- Linux DEB
-- Linux RPM
 
 ## 与原仓库的关系
 
