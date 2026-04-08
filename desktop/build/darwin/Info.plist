@@ -8,8 +8,6 @@
 		<string>Kite desktop application</string>
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
-		<key>CFBundleIconName</key>
-		<string>appicon</string>
 		<key>CFBundleIdentifier</key>
 		<string>io.kite.desktop</string>
 		<key>CFBundleName</key>

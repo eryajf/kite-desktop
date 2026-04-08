@@ -233,10 +233,10 @@ jobs:
             echo '| --- | --- | --- | --- |'
             emit_row "Windows" "x64" "Installer" "Kite-${TAG_NAME}-windows-amd64-installer.exe"
             emit_row "Windows" "ARM64" "Installer" "Kite-${TAG_NAME}-windows-arm64-installer.exe"
+            # macOS zip assets are published for in-app update checks and should
+            # not be shown in the public manual download table.
             emit_row "macOS" "Intel" "DMG" "Kite-${TAG_NAME}-macos-intel.dmg"
-            emit_row "macOS" "Intel" "ZIP" "Kite-${TAG_NAME}-macos-intel.zip"
             emit_row "macOS" "Apple Silicon" "DMG" "Kite-${TAG_NAME}-macos-apple-silicon.dmg"
-            emit_row "macOS" "Apple Silicon" "ZIP" "Kite-${TAG_NAME}-macos-apple-silicon.zip"
             echo
             if [[ -f release-assets/SHA256SUMS ]]; then
               echo '## Checksums'

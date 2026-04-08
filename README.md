@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="./docs/src/logo.svg" alt="Kite Desktop Logo" width="128" height="128">
+<img src="./docs/src/logo.png" alt="Kite Desktop Logo" width="128" height="128">
 
 _A desktop-first Kubernetes management application rebuilt with Wails v3_
 

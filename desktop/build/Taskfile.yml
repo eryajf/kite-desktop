@@ -130,11 +130,16 @@ tasks:
     sources:
       - "appicon.png"
       - "appicon.icon"
+      - "scripts/prepare_macos_icon.py"
     generates:
+      - "appicon-macos.png"
       - "darwin/icons.icns"
       - "windows/icon.ico"
     cmds:
+      - python3 scripts/prepare_macos_icon.py appicon.png appicon-macos.png appicon.icon/Assets/wails_icon_vector.svg
       - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico -iconcomposerinput appicon.icon -macassetdir darwin
+      - wails3 generate icons -input appicon-macos.png -macfilename darwin/icons.icns -windowsfilename windows/tmp.icon.ico
+      - rm -f windows/tmp.icon.ico
 
   dev:frontend:
     summary: Runs the frontend in development mode

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(python3:*)",
+      "Bash(cd:*)",
+      "Bash(iconutil --convert iconset darwin/icons.icns -o /tmp/kite_icons.iconset)",
+      "Read(//tmp/**)",
+      "Bash(wails3 generate:*)",
+      "Bash(iconutil:*)"
+    ]
+  }
+}

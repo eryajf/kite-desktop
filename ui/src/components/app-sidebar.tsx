@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useMemo } from 'react'
-import Icon from '@/assets/icon.svg'
+import Icon from '@/assets/icon.png'
 import { useSidebarConfig } from '@/contexts/sidebar-config-context'
 import { CollapsibleContent } from '@radix-ui/react-collapsible'
 import { IconLayoutDashboard } from '@tabler/icons-react'

@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import Icon from '@/assets/icon.svg'
+import Icon from '@/assets/icon.png'
 import {
   IconArrowUpRight,
   IconBrandGithub,
