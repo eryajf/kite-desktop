@@ -2,6 +2,7 @@ package version
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -64,7 +65,7 @@ func GetVersion(c *gin.Context) {
 
 func CheckUpdate(c *gin.Context) {
 	var req UpdateCheckRequest
-	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update-check payload"})
 		return
 	}

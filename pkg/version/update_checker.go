@@ -209,9 +209,10 @@ func matchReleaseAsset(assets []githubReleaseAsset, goos, goarch string) *Update
 	}
 
 	preferredExts := []string{".zip"}
-	if goos == "windows" {
+	switch goos {
+	case "windows":
 		preferredExts = []string{"-installer.exe"}
-	} else if goos == "darwin" {
+	case "darwin":
 		preferredExts = []string{".zip", ".dmg"}
 	}
 

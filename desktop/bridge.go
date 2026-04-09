@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -121,6 +122,17 @@ type saveFileResponse struct {
 	Path     string `json:"path,omitempty"`
 }
 
+func bindOptionalJSON(c *gin.Context, target any) error {
+	if err := c.ShouldBindJSON(target); err != nil && !errors.Is(err, io.EOF) {
+		return err
+	}
+	return nil
+}
+
+func newDesktopUpdateStateResponse(state desktopUpdateState) desktopUpdateStateResponse {
+	return desktopUpdateStateResponse(state)
+}
+
 type downloadToPathRequest struct {
 	Title         string           `json:"title"`
 	Message       string           `json:"message"`
@@ -219,12 +231,7 @@ func (d *desktopBridge) handleUpdateState(c *gin.Context) {
 	}
 
 	state := d.host.updateState()
-	c.JSON(http.StatusOK, desktopUpdateStateResponse{
-		IgnoredVersion: state.IgnoredVersion,
-		LastCheck:      state.LastCheck,
-		Download:       state.Download,
-		ReadyToApply:   state.ReadyToApply,
-	})
+	c.JSON(http.StatusOK, newDesktopUpdateStateResponse(state))
 }
 
 func (d *desktopBridge) handleUpdateCheck(c *gin.Context) {
@@ -234,7 +241,7 @@ func (d *desktopBridge) handleUpdateCheck(c *gin.Context) {
 	}
 
 	var req desktopUpdateCheckRequest
-	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+	if err := bindOptionalJSON(c, &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update-check payload"})
 		return
 	}
@@ -290,7 +297,7 @@ func (d *desktopBridge) handleUpdateDownload(c *gin.Context) {
 	}
 
 	var req desktopUpdateDownloadRequest
-	if err := c.ShouldBindJSON(&req); err != nil && err != io.EOF {
+	if err := bindOptionalJSON(c, &req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid update-download payload"})
 		return
 	}
@@ -300,12 +307,7 @@ func (d *desktopBridge) handleUpdateDownload(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, desktopUpdateStateResponse{
-		IgnoredVersion: state.IgnoredVersion,
-		LastCheck:      state.LastCheck,
-		Download:       state.Download,
-		ReadyToApply:   state.ReadyToApply,
-	})
+	c.JSON(http.StatusOK, newDesktopUpdateStateResponse(state))
 }
 
 func (d *desktopBridge) handleUpdateRetry(c *gin.Context) {
@@ -319,12 +321,7 @@ func (d *desktopBridge) handleUpdateRetry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, desktopUpdateStateResponse{
-		IgnoredVersion: state.IgnoredVersion,
-		LastCheck:      state.LastCheck,
-		Download:       state.Download,
-		ReadyToApply:   state.ReadyToApply,
-	})
+	c.JSON(http.StatusOK, newDesktopUpdateStateResponse(state))
 }
 
 func (d *desktopBridge) handleUpdateCancel(c *gin.Context) {
@@ -338,12 +335,7 @@ func (d *desktopBridge) handleUpdateCancel(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, desktopUpdateStateResponse{
-		IgnoredVersion: state.IgnoredVersion,
-		LastCheck:      state.LastCheck,
-		Download:       state.Download,
-		ReadyToApply:   state.ReadyToApply,
-	})
+	c.JSON(http.StatusOK, newDesktopUpdateStateResponse(state))
 }
 
 func (d *desktopBridge) handleUpdateApply(c *gin.Context) {
