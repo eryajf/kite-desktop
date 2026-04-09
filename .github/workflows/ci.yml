@@ -81,16 +81,16 @@ jobs:
           pnpm --dir ui install --frozen-lockfile
           go mod download
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.7.2
-
       - name: UI lint
         run: pnpm --dir ui run lint
 
       - name: UI build
         run: pnpm --dir ui run build
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.7.2
 
       - name: Test
         run: |
