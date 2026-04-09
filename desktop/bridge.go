@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	kiteversion "github.com/eryajf/kite-desktop/pkg/version"
 	"github.com/gin-gonic/gin"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	"github.com/zxh326/kite/pkg/common"
-	kiteversion "github.com/zxh326/kite/pkg/version"
 )
 
 type desktopBridge struct {

@@ -3,9 +3,9 @@ package resources
 import (
 	"fmt"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/common"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/common"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"

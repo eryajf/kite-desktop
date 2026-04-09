@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/utils"
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 )
 
 func TestMain(m *testing.M) {

@@ -7,10 +7,10 @@ import (
 	"time"
 
 	anthropic "github.com/anthropics/anthropic-sdk-go"
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
 	"github.com/openai/openai-go"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/model"
 	"k8s.io/klog/v2"
 )
 

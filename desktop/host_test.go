@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	kiteversion "github.com/eryajf/kite-desktop/pkg/version"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	kiteversion "github.com/zxh326/kite/pkg/version"
 )
 
 func TestBuildApplicationMenuIncludesEditMenu(t *testing.T) {

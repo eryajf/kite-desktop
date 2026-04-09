@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/utils"
 	"golang.org/x/sync/errgroup"
 	v1 "k8s.io/api/core/v1"
 )

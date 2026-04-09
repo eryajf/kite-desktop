@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-PACKAGE="github.com/zxh326/kite/pkg/version"
+PACKAGE="github.com/eryajf/kite-desktop/pkg/version"
 FLAGS=()
 
 if [[ -n "${KITE_VERSION:-}" ]]; then

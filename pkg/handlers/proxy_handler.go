@@ -3,9 +3,9 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/kube"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/kube"
 )
 
 type ProxyHandler struct{}

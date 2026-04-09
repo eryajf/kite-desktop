@@ -3,15 +3,15 @@ package server
 import (
 	"net/http"
 
+	"github.com/eryajf/kite-desktop/pkg/ai"
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/handlers"
+	"github.com/eryajf/kite-desktop/pkg/handlers/resources"
+	"github.com/eryajf/kite-desktop/pkg/middleware"
+	"github.com/eryajf/kite-desktop/pkg/version"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/zxh326/kite/pkg/ai"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/handlers"
-	"github.com/zxh326/kite/pkg/handlers/resources"
-	"github.com/zxh326/kite/pkg/middleware"
-	"github.com/zxh326/kite/pkg/version"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 

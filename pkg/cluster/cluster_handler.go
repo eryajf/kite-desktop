@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/model"
 	"gorm.io/gorm"
 	"k8s.io/client-go/tools/clientcmd"
 )

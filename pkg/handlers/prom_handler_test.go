@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zxh326/kite/pkg/prometheus"
+	"github.com/eryajf/kite-desktop/pkg/prometheus"
 )
 
 func TestMergeUsageDataPointsSum(t *testing.T) {

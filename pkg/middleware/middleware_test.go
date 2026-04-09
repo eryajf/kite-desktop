@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
 	dto "github.com/prometheus/client_model/go"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/model"
 )
 
 func TestStaticCache(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/zxh326/kite/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/cluster"
 )
 
 func TestPermissionNamespace(t *testing.T) {

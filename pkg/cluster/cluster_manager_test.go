@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/bytedance/mockey"
+	"github.com/eryajf/kite-desktop/pkg/kube"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/stretchr/testify/assert"
-	"github.com/zxh326/kite/pkg/kube"
-	"github.com/zxh326/kite/pkg/model"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"

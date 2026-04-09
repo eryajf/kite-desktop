@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/version"
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/version"
 	"k8s.io/klog/v2"
 )
 

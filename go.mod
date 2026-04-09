@@ -1,4 +1,4 @@
-module github.com/zxh326/kite
+module github.com/eryajf/kite-desktop
 
 go 1.25.0
 

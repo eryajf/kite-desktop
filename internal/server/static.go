@@ -5,10 +5,10 @@ import (
 	"io/fs"
 	"net/http"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/middleware"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/middleware"
-	"github.com/zxh326/kite/pkg/utils"
 )
 
 //go:embed static

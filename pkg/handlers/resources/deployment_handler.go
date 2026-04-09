@@ -3,8 +3,8 @@ package resources
 import (
 	"time"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/cluster"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/types"
 )

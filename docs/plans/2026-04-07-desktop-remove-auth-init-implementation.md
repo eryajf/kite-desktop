@@ -503,7 +503,7 @@ import (
     "net/http"
 
     "github.com/gin-gonic/gin"
-    "github.com/zxh326/kite/pkg/model"
+    "github.com/eryajf/kite-desktop/pkg/model"
 )
 
 // GetSidebarPreference returns the desktop-local sidebar preference.
@@ -802,7 +802,7 @@ func AuthorizeTool(c *gin.Context, cs *cluster.ClientSet, toolName string, args 
 }
 ```
 
-Remove `currentUserFromGin` function and all imports of `pkg/rbac` and `pkgmodel "github.com/zxh326/kite/pkg/model"` from this file (model is no longer needed here).
+Remove `currentUserFromGin` function and all imports of `pkg/rbac` and `pkgmodel "github.com/eryajf/kite-desktop/pkg/model"` from this file (model is no longer needed here).
 
 In `pkg/ai/tool_resource_execution.go`:
 - `executeCreateResource`, `executeUpdateResource`, `executePatchResource`, `executeDeleteResource` all accept a `user pkgmodel.User` parameter solely to call `recordResourceHistory`.

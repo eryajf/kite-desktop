@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zxh326/kite/pkg/kube"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/prometheus"
+	"github.com/eryajf/kite-desktop/pkg/kube"
+	"github.com/eryajf/kite-desktop/pkg/model"
+	"github.com/eryajf/kite-desktop/pkg/prometheus"
 	"gorm.io/gorm"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

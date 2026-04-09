@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/model"
 )
 
 // HandleAIStatus returns whether AI features are enabled.

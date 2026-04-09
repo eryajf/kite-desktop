@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zxh326/kite/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/common"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 

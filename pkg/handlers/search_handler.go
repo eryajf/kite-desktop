@@ -11,12 +11,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/handlers/resources"
+	"github.com/eryajf/kite-desktop/pkg/middleware"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/handlers/resources"
-	"github.com/zxh326/kite/pkg/middleware"
-	"github.com/zxh326/kite/pkg/utils"
 	"golang.org/x/sync/errgroup"
 )
 

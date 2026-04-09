@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/model"
 )
 
 var unlogPath = []string{

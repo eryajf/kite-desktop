@@ -9,13 +9,13 @@ import (
 	"testing"
 
 	"github.com/bytedance/mockey"
-	"github.com/zxh326/kite/pkg/model"
+	"github.com/eryajf/kite-desktop/pkg/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/zxh326/kite/pkg/kube"
+	"github.com/eryajf/kite-desktop/pkg/kube"
 )
 
 func init() {

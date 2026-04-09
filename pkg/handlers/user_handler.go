@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/eryajf/kite-desktop/pkg/model"
+	"github.com/eryajf/kite-desktop/pkg/rbac"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/rbac"
 	"k8s.io/klog/v2"
 )
 

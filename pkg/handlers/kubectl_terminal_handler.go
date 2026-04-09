@@ -10,17 +10,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/net/websocket"
 
-	"github.com/zxh326/kite/pkg/cluster"
-	"github.com/zxh326/kite/pkg/kube"
-	"github.com/zxh326/kite/pkg/model"
-	"github.com/zxh326/kite/pkg/utils"
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/kube"
+	"github.com/eryajf/kite-desktop/pkg/model"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/zxh326/kite/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/common"
 )
 
 const (

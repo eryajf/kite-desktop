@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/model"
 )
 
 // ListRoles returns all roles with assignments

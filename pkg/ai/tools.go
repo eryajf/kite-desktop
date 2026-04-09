@@ -2,9 +2,9 @@ package ai
 
 import (
 	anthropic "github.com/anthropics/anthropic-sdk-go"
+	"github.com/eryajf/kite-desktop/pkg/cluster"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/shared"
-	"github.com/zxh326/kite/pkg/cluster"
 )
 
 type agentToolDefinition struct {

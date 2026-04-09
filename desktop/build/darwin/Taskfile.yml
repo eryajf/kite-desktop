@@ -86,7 +86,7 @@ tasks:
       - docker run --rm -v "{{.ROOT_DIR}}:/app" alpine chown -R $(id -u):$(id -g) /app/bin
       - mkdir -p {{.BIN_DIR}}
       - mv "bin/{{.APP_NAME}}-darwin-{{.DOCKER_ARCH}}" "{{.OUTPUT}}"
-      - env CGO_ENABLED=0 GOOS=darwin GOARCH='{{.DOCKER_ARCH}}' go build -trimpath -buildvcs=false -ldflags="-w -s{{if .KITE_VERSION}} -X github.com/zxh326/kite/pkg/version/Version={{.KITE_VERSION}}{{end}}{{if .KITE_BUILD_DATE}} -X github.com/zxh326/kite/pkg/version/BuildDate={{.KITE_BUILD_DATE}}{{end}}{{if .KITE_COMMIT_ID}} -X github.com/zxh326/kite/pkg/version/CommitID={{.KITE_COMMIT_ID}}{{end}}" -o "{{.BIN_DIR}}/{{.APP_NAME}}-updater" ../cmd/updater
+      - env CGO_ENABLED=0 GOOS=darwin GOARCH='{{.DOCKER_ARCH}}' go build -trimpath -buildvcs=false -ldflags="-w -s{{if .KITE_VERSION}} -X github.com/eryajf/kite-desktop/pkg/version/Version={{.KITE_VERSION}}{{end}}{{if .KITE_BUILD_DATE}} -X github.com/eryajf/kite-desktop/pkg/version/BuildDate={{.KITE_BUILD_DATE}}{{end}}{{if .KITE_COMMIT_ID}} -X github.com/eryajf/kite-desktop/pkg/version/CommitID={{.KITE_COMMIT_ID}}{{end}}" -o "{{.BIN_DIR}}/{{.APP_NAME}}-updater" ../cmd/updater
     vars:
       DOCKER_ARCH: '{{if eq .ARCH "arm64"}}arm64{{else if eq .ARCH "amd64"}}amd64{{else}}arm64{{end}}'
       DEFAULT_OUTPUT: '{{.BIN_DIR}}/{{.APP_NAME}}'

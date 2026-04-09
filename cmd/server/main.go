@@ -4,9 +4,10 @@ import (
 	"flag"
 	"log"
 
-	appserver "github.com/zxh326/kite/internal/server"
-	"k8s.io/klog/v2"
 	_ "net/http/pprof"
+
+	appserver "github.com/eryajf/kite-desktop/internal/server"
+	"k8s.io/klog/v2"
 )
 
 func main() {

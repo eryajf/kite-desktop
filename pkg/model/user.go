@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/utils"
 	expirable "github.com/hashicorp/golang-lru/v2/expirable"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/utils"
 	"gorm.io/gorm"
 )
 

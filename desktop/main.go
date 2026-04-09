@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"time"
 
+	appserver "github.com/eryajf/kite-desktop/internal/server"
+	"github.com/eryajf/kite-desktop/pkg/common"
 	"github.com/wailsapp/wails/v3/pkg/application"
-	appserver "github.com/zxh326/kite/internal/server"
-	"github.com/zxh326/kite/pkg/common"
 )
 
 //go:embed all:assets

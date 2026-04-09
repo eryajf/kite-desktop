@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/eryajf/kite-desktop/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/handlers/resources"
+	"github.com/eryajf/kite-desktop/pkg/middleware"
 	"github.com/gin-gonic/gin"
-	"github.com/zxh326/kite/pkg/common"
-	"github.com/zxh326/kite/pkg/handlers/resources"
-	"github.com/zxh326/kite/pkg/middleware"
 )
 
 func TestNormalizeSearchQuery(t *testing.T) {

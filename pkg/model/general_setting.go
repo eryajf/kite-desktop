@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/zxh326/kite/pkg/common"
+	"github.com/eryajf/kite-desktop/pkg/common"
 	"gorm.io/gorm"
 	"k8s.io/klog/v2"
 )
