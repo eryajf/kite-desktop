@@ -20,6 +20,10 @@ import (
 var assets embed.FS
 
 func main() {
+	if err := waitForFrontendDevServer(); err != nil {
+		failDesktopStartup(err)
+	}
+
 	paths, err := resolveDesktopPaths()
 	if err != nil {
 		failDesktopStartup(err)
@@ -158,6 +162,27 @@ func waitForServer(url string) error {
 	}
 
 	return fmt.Errorf("desktop backend did not become ready in time")
+}
+
+func waitForFrontendDevServer() error {
+	frontendURL := os.Getenv("FRONTEND_DEVSERVER_URL")
+	if frontendURL == "" {
+		return nil
+	}
+
+	client := &http.Client{Timeout: 800 * time.Millisecond}
+	deadline := time.Now().Add(20 * time.Second)
+
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(frontendURL)
+		if err == nil {
+			_ = resp.Body.Close()
+			return nil
+		}
+		time.Sleep(300 * time.Millisecond)
+	}
+
+	return fmt.Errorf("frontend dev server did not become ready in time: %s", frontendURL)
 }
 
 func serverStartURL(baseURL string) string {

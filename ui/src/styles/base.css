@@ -336,3 +336,155 @@ body[data-scroll-locked] .width-before-scroll-bar {
 .ai-markdown strong {
   font-weight: 600;
 }
+
+@keyframes kite-about-drift {
+  0%,
+  100% {
+    transform: rotate(-8deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+  75% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes kite-about-reel {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.03);
+  }
+}
+
+@keyframes kite-about-line-glow {
+  0%,
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.25;
+  }
+  50% {
+    stroke-dashoffset: -18;
+    opacity: 0.55;
+  }
+}
+
+.kite-about-mark {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 24%, rgb(147 197 253 / 0.3), transparent 30%),
+    radial-gradient(circle at 78% 18%, rgb(253 224 71 / 0.16), transparent 24%),
+    linear-gradient(
+      160deg,
+      rgb(239 246 255 / 0.9) 0%,
+      rgb(255 255 255 / 0.98) 48%,
+      rgb(245 243 255 / 0.95) 100%
+    );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85);
+}
+
+.kite-about-mark__sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 72% 22%, rgb(191 219 254 / 0.28), transparent 24%),
+    radial-gradient(circle at 26% 68%, rgb(219 234 254 / 0.28), transparent 34%);
+}
+
+.kite-about-mark__line {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.kite-about-mark__line path {
+  fill: none;
+  stroke: rgb(132 150 180 / 0.62);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8px;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 1px 1px rgb(255 255 255 / 0.12));
+}
+
+.kite-about-mark__line-highlight {
+  stroke: rgb(255 255 255 / 0.26) !important;
+  stroke-width: 0.7px !important;
+  stroke-dasharray: 6 18;
+  animation: kite-about-line-glow 7.5s ease-in-out infinite;
+}
+
+.kite-about-mark__reel,
+.kite-about-mark__kite {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+}
+
+.kite-about-mark__reel {
+  left: 15%;
+  bottom: 16%;
+  width: 5.4rem;
+  height: 5.4rem;
+  transform-origin: 62% 60%;
+  animation: kite-about-reel 5.8s ease-in-out infinite;
+  filter: drop-shadow(0 12px 18px rgb(50 108 229 / 0.18));
+}
+
+.kite-about-mark__reel img {
+  width: 100%;
+  height: 100%;
+}
+
+.kite-about-mark__kite {
+  right: 7.2%;
+  top: 4%;
+  width: 4.6rem;
+  height: 4.6rem;
+  transform-origin: 18% 80%;
+  animation: kite-about-drift 6.4s ease-in-out infinite;
+  filter: drop-shadow(0 12px 24px rgb(236 72 153 / 0.16));
+}
+
+.kite-about-mark__kite img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 640px) {
+  .kite-about-mark__reel {
+    left: 10%;
+    bottom: 20%;
+    width: 4.6rem;
+    height: 4.6rem;
+  }
+
+  .kite-about-mark__kite {
+    right: 5.5%;
+    top: 3.5%;
+    width: 3.3rem;
+    height: 3.3rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kite-about-mark__reel,
+  .kite-about-mark__kite,
+  .kite-about-mark__line-highlight {
+    animation: none;
+  }
+}
