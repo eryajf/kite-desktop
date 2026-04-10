@@ -124,19 +124,23 @@ tasks:
     cmds:
       - wails3 generate bindings -f '{{.BINDINGS_FLAGS}}' -clean=true -ts
 
+  prepare:macos:icon:
+    summary: Regenerates the committed macOS icon assets from appicon.png (requires Pillow)
+    dir: build
+    cmds:
+      - python3 scripts/prepare_macos_icon.py appicon.png appicon-macos.png appicon.icon/Assets/wails_icon_vector.svg
+
   generate:icons:
-    summary: Generates Windows `.ico` and Mac `.icns` from an image; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).
+    summary: Generates Windows `.ico` and Mac `.icns` from the committed icon assets; on macOS, `-iconcomposerinput appicon.icon -macassetdir darwin` also produces `Assets.car` from a `.icon` file (skipped on other platforms).
     dir: build
     sources:
       - "appicon.png"
       - "appicon.icon"
-      - "scripts/prepare_macos_icon.py"
-    generates:
       - "appicon-macos.png"
+    generates:
       - "darwin/icons.icns"
       - "windows/icon.ico"
     cmds:
-      - python3 scripts/prepare_macos_icon.py appicon.png appicon-macos.png appicon.icon/Assets/wails_icon_vector.svg
       - wails3 generate icons -input appicon.png -macfilename darwin/icons.icns -windowsfilename windows/icon.ico -iconcomposerinput appicon.icon -macassetdir darwin
       - wails3 generate icons -input appicon-macos.png -macfilename darwin/icons.icns -windowsfilename windows/tmp.icon.ico
       - rm -f windows/tmp.icon.ico
