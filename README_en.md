@@ -10,7 +10,7 @@
 
 <img src="./docs/src/logo.png" alt="Kite Desktop Logo" width="128" height="128">
 
-_A desktop-first Kubernetes management application rebuilt with Wails v3_
+_A Wails v3-based desktop tool for multi-cluster K8S management._
 
 [中文说明](./README.md)
 

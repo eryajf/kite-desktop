@@ -10,7 +10,7 @@
 
 <img src="./docs/src/logo.png" alt="Kite Desktop Logo" width="128" height="128">
 
-_一个基于 Wails v3 打造、面向桌面端的 Kubernetes 管理应用_
+_一个基于 Wails v3 打造、面向桌面端的 K8S 多集群管理工具_
 
 [English](./README_en.md)
 
