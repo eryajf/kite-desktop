@@ -2,12 +2,9 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import KiteFlying from '@/assets/kite-flying.png'
-import K8sReel from '@/assets/k8s-reel.svg'
 import {
   IconArrowUpRight,
   IconBrandGithub,
@@ -46,127 +43,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
-
-function AnimatedAboutLogo({ appName }: { appName: string }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const reelRef = useRef<HTMLDivElement>(null)
-  const kiteRef = useRef<HTMLDivElement>(null)
-  const lineRef = useRef<SVGPathElement>(null)
-  const highlightLineRef = useRef<SVGPathElement>(null)
-  const linePathRef = useRef('M 18 76 C 34 61, 54 38, 78 20 C 84 15, 89 11, 91 10')
-
-  useEffect(() => {
-    const updateLinePath = () => {
-      const container = containerRef.current
-      const reel = reelRef.current
-      const kite = kiteRef.current
-      if (!container || !reel || !kite) {
-        return
-      }
-
-      const containerRect = container.getBoundingClientRect()
-      const reelRect = reel.getBoundingClientRect()
-      const kiteRect = kite.getBoundingClientRect()
-
-      if (containerRect.width === 0 || containerRect.height === 0) {
-        return
-      }
-
-      const startX =
-        ((reelRect.left - containerRect.left + reelRect.width * 0.78) /
-          containerRect.width) *
-        100
-      const startY =
-        ((reelRect.top - containerRect.top + reelRect.height * 0.42) /
-          containerRect.height) *
-        100
-      const endX =
-        ((kiteRect.left - containerRect.left + kiteRect.width * 0.64) /
-          containerRect.width) *
-        100
-      const endY =
-        ((kiteRect.top - containerRect.top + kiteRect.height * 0.22) /
-          containerRect.height) *
-        100
-      const spanX = endX - startX
-      const sag = Math.max(10, Math.abs(spanX) * 0.08)
-      const cp1X = startX + spanX * 0.26
-      const cp1Y = startY + Math.max(2, sag * 0.45)
-      const cp2X = startX + spanX * 0.72
-      const cp2Y = endY + sag
-      const nextPath =
-        `M ${startX.toFixed(2)} ${startY.toFixed(2)} ` +
-        `C ${cp1X.toFixed(2)} ${cp1Y.toFixed(2)}, ${cp2X.toFixed(2)} ${cp2Y.toFixed(2)}, ${endX.toFixed(2)} ${endY.toFixed(2)}`
-
-      if (nextPath === linePathRef.current) {
-        return
-      }
-      linePathRef.current = nextPath
-      lineRef.current?.setAttribute('d', nextPath)
-      highlightLineRef.current?.setAttribute('d', nextPath)
-    }
-
-    let frameId = 0
-    const tick = () => {
-      updateLinePath()
-      frameId = window.requestAnimationFrame(tick)
-    }
-
-    const resizeObserver = new ResizeObserver(() => {
-      updateLinePath()
-    })
-
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current)
-    }
-    if (reelRef.current) {
-      resizeObserver.observe(reelRef.current)
-    }
-    if (kiteRef.current) {
-      resizeObserver.observe(kiteRef.current)
-    }
-
-    tick()
-    window.addEventListener('resize', updateLinePath)
-
-    return () => {
-      window.cancelAnimationFrame(frameId)
-      resizeObserver.disconnect()
-      window.removeEventListener('resize', updateLinePath)
-    }
-  }, [])
-
-  return (
-    <div
-      ref={containerRef}
-      className="kite-about-mark"
-      role="img"
-      aria-label={`${appName} animated logo`}
-    >
-      <div className="kite-about-mark__sky" />
-      <svg
-        className="kite-about-mark__line"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path ref={lineRef} d={linePathRef.current} pathLength="100" />
-        <path
-          ref={highlightLineRef}
-          className="kite-about-mark__line-highlight"
-          d={linePathRef.current}
-          pathLength="100"
-        />
-      </svg>
-      <div ref={reelRef} className="kite-about-mark__reel">
-        <img src={K8sReel} alt="" aria-hidden="true" />
-      </div>
-      <div ref={kiteRef} className="kite-about-mark__kite" aria-hidden="true">
-        <img src={KiteFlying} alt="" aria-hidden="true" />
-      </div>
-    </div>
-  )
-}
+import AboutBanner from '../../../../docs/src/banner.svg'
 
 function InfoItem({
   label,
@@ -492,152 +369,162 @@ export function AboutManagement() {
       </CardHeader>
 
       <CardContent className="space-y-5">
-        <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background px-6 py-8 text-center min-h-[24rem] md:min-h-[27rem]">
-          <AnimatedAboutLogo appName={appName} />
-          <div className="relative z-10 mx-auto flex max-w-xl flex-col items-center pt-36 md:pt-44">
-            <div className="space-y-1.5">
-              <h2 className="text-2xl font-semibold tracking-tight">{appName}</h2>
-              <p className="text-sm text-muted-foreground">
-                {t(
-                  'aboutManagement.subtitle',
-                  'Desktop edition built on top of Kite for local cluster workflows.'
-                )}
-              </p>
-              <div className="inline-flex items-center rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur-sm">
-                {t('aboutManagement.versionLabel', 'Version')} v{currentVersion}
+        <div className="overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background p-3 text-center shadow-sm sm:p-4">
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(180deg,#5bb8f5_0%,#8bc8ec_58%,#b7dfe8_73%,#4bac49_74%,#3b9636_100%)] shadow-sm">
+            <img
+              src={AboutBanner}
+              alt={`${appName} banner`}
+              className="block h-auto w-full"
+            />
+            <div className="absolute inset-0 flex items-center justify-center px-6">
+              <div className="-translate-y-2 mx-auto flex max-w-xl flex-col items-center text-center sm:-translate-y-4">
+                <div className="space-y-1.5">
+                  <h2 className="text-3xl font-semibold tracking-tight text-foreground drop-shadow-[0_2px_10px_rgba(255,255,255,0.55)] sm:text-4xl">
+                    {appName}
+                  </h2>
+                  <p className="text-base font-medium text-foreground/80 drop-shadow-[0_2px_10px_rgba(255,255,255,0.5)] sm:text-lg">
+                    {t(
+                      'aboutManagement.subtitle',
+                      '一个基于 Wails v3 打造、面向桌面端的 K8S 多集群管理工具'
+                    )}
+                  </p>
+                  <div className="inline-flex items-center rounded-full border border-white/80 bg-background/88 px-3 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-sm">
+                    {t('aboutManagement.versionLabel', 'Version')} v{currentVersion}
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <div className="mx-auto mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Button
+              type="button"
+              onClick={() => check(true)}
+              disabled={isChecking}
+            >
+              {isChecking ? (
+                <IconLoader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <IconRefresh className="h-4 w-4" />
+              )}
+              {t('aboutManagement.actions.checkUpdate', 'Check for updates')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void openURL(PROJECT_REPOSITORY_URL)}
+            >
+              <IconBrandGithub className="h-4 w-4" />
+              {t('aboutManagement.actions.openGithub', 'GitHub Repository')}
+            </Button>
+            {updateResult?.releaseUrl ? (
               <Button
                 type="button"
-                onClick={() => check(true)}
-                disabled={isChecking}
+                variant="outline"
+                onClick={() => void openURL(updateResult.releaseUrl)}
               >
-                {isChecking ? (
+                <IconExternalLink className="h-4 w-4" />
+                {t('aboutManagement.actions.viewRelease', 'View release')}
+              </Button>
+            ) : null}
+            {canDownloadUpdate ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => startDownload(latestVersion)}
+                disabled={isStartingDownload}
+              >
+                {isStartingDownload ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconDownload className="h-4 w-4" />
+                )}
+                {t('aboutManagement.actions.downloadUpdate', 'Download update')}
+              </Button>
+            ) : null}
+            {download?.status === 'download_failed' ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => retryDownload()}
+                disabled={isRetryingDownload}
+              >
+                {isRetryingDownload ? (
                   <IconLoader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <IconRefresh className="h-4 w-4" />
                 )}
-                {t('aboutManagement.actions.checkUpdate', 'Check for updates')}
+                {t('common.retry', 'Retry')}
               </Button>
+            ) : null}
+            {readyToApply ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => void revealPath(readyToApply.path)}
+                >
+                  <IconFolderOpen className="h-4 w-4" />
+                  {t(
+                    'aboutManagement.actions.showInstaller',
+                    'Show installer file'
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => applyUpdate()}
+                  disabled={isApplyingUpdate}
+                >
+                  {isApplyingUpdate ? (
+                    <IconLoader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <IconPlayerPlay className="h-4 w-4" />
+                  )}
+                  {t(
+                    'aboutManagement.actions.restartAndInstall',
+                    'Restart and install'
+                  )}
+                </Button>
+              </>
+            ) : null}
+            {isDesktop &&
+            updateResult?.comparison === 'update_available' &&
+            updateResult.latestVersion &&
+            !updateResult.ignored &&
+            !download &&
+            !readyToApply ? (
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => void openURL(PROJECT_REPOSITORY_URL)}
+                onClick={() => ignore(updateResult.latestVersion)}
+                disabled={isIgnoring}
               >
-                <IconBrandGithub className="h-4 w-4" />
-                {t('aboutManagement.actions.openGithub', 'GitHub Repository')}
+                {isIgnoring ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconPlayerPause className="h-4 w-4" />
+                )}
+                {t(
+                  'aboutManagement.actions.ignoreVersion',
+                  'Ignore this version'
+                )}
               </Button>
-              {updateResult?.releaseUrl ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => void openURL(updateResult.releaseUrl)}
-                >
-                  <IconExternalLink className="h-4 w-4" />
-                  {t('aboutManagement.actions.viewRelease', 'View release')}
-                </Button>
-              ) : null}
-              {canDownloadUpdate ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => startDownload(latestVersion)}
-                  disabled={isStartingDownload}
-                >
-                  {isStartingDownload ? (
-                    <IconLoader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <IconDownload className="h-4 w-4" />
-                  )}
-                  {t('aboutManagement.actions.downloadUpdate', 'Download update')}
-                </Button>
-              ) : null}
-              {download?.status === 'download_failed' ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => retryDownload()}
-                  disabled={isRetryingDownload}
-                >
-                  {isRetryingDownload ? (
-                    <IconLoader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <IconRefresh className="h-4 w-4" />
-                  )}
-                  {t('common.retry', 'Retry')}
-                </Button>
-              ) : null}
-              {readyToApply ? (
-                <>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => void revealPath(readyToApply.path)}
-                  >
-                    <IconFolderOpen className="h-4 w-4" />
-                    {t(
-                      'aboutManagement.actions.showInstaller',
-                      'Show installer file'
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => applyUpdate()}
-                    disabled={isApplyingUpdate}
-                  >
-                    {isApplyingUpdate ? (
-                      <IconLoader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <IconPlayerPlay className="h-4 w-4" />
-                    )}
-                    {t(
-                      'aboutManagement.actions.restartAndInstall',
-                      'Restart and install'
-                    )}
-                  </Button>
-                </>
-              ) : null}
-              {isDesktop &&
-              updateResult?.comparison === 'update_available' &&
-              updateResult.latestVersion &&
-              !updateResult.ignored &&
-              !download &&
-              !readyToApply ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => ignore(updateResult.latestVersion)}
-                  disabled={isIgnoring}
-                >
-                  {isIgnoring ? (
-                    <IconLoader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <IconPlayerPause className="h-4 w-4" />
-                  )}
-                  {t(
-                    'aboutManagement.actions.ignoreVersion',
-                    'Ignore this version'
-                  )}
-                </Button>
-              ) : null}
-              {isDesktop && updateResult?.ignored ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => clearIgnore()}
-                  disabled={isClearingIgnore}
-                >
-                  {isClearingIgnore ? (
-                    <IconLoader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <IconRefresh className="h-4 w-4" />
-                  )}
-                  {t('aboutManagement.actions.clearIgnored', 'Show update again')}
-                </Button>
-              ) : null}
-            </div>
+            ) : null}
+            {isDesktop && updateResult?.ignored ? (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => clearIgnore()}
+                disabled={isClearingIgnore}
+              >
+                {isClearingIgnore ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <IconRefresh className="h-4 w-4" />
+                )}
+                {t('aboutManagement.actions.clearIgnored', 'Show update again')}
+              </Button>
+            ) : null}
           </div>
         </div>
 

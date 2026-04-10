@@ -371,7 +371,7 @@
     "title": "About",
     "productName": "Kite",
     "description": "View build info and update status.",
-    "subtitle": "Desktop app for local cluster workflows.",
+    "subtitle": "A Wails v3-based desktop tool for multi-cluster K8S management.",
     "versionLabel": "Version",
     "fields": {
       "version": "Version",

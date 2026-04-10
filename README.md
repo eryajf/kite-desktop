@@ -10,110 +10,105 @@
 
 <img src="./docs/src/logo.png" alt="Kite Desktop Logo" width="128" height="128">
 
-_A desktop-first Kubernetes management application rebuilt with Wails v3_
+_一个基于 Wails v3 打造、面向桌面端的 Kubernetes 管理应用_
 
-[中文说明](./README_zh.md)
+[English](./README_en.md)
 
 </div>
 
-## Acknowledgement
+## 致谢
 
-This project is based on the original open source project [Kite](https://github.com/kite-org/kite).
+当前项目基于原始开源项目 [Kite](https://github.com/kite-org/kite) 改造而来。
 
-Special thanks to the original Kite authors and contributors. The upstream project provided the core product foundation, including Kubernetes resource management, cluster workflows, backend capabilities, and the initial product direction. This repository stands on top of that work.
+首先感谢原项目 Kite 的作者与所有贡献者。原项目已经提供了非常坚实的基础，包括 Kubernetes 资源管理能力、集群管理流程、后端能力以及整体产品方向。当前仓库的桌面化改造，正是建立在这些成果之上。
 
-## Why This Repository Exists
+## 为什么会有这个仓库
 
-`Kite Desktop` is not a simple mirror of the original repository.
+`Kite Desktop` 并不是对原仓库的简单镜像，也不是只做了一层外壳包装。
 
-It is a desktop-focused rework built from the original Kite codebase, with the goal of turning it into a native desktop application for Kubernetes management. The focus is shifting from a browser/server-first form into a local, installable, desktop-first product.
+当前项目是在原始 Kite 基础上进行桌面端方向“魔改”的产物，目标是把原本偏 Web / Server 形态的能力，逐步重构为一个真正可安装、可分发、可本地使用的桌面端 Kubernetes 管理工具。
 
-## Tech Stack
+## 技术栈
 
-The current desktop direction is built around:
+当前桌面版的核心技术栈为：
 
-- `Go` for backend logic and Kubernetes integration
-- `React` for the application UI
-- `Wails v3` for desktop runtime, native windowing, system integration, and desktop packaging
+- `Go`：负责核心逻辑与 Kubernetes 交互能力
+- `React`：负责桌面应用界面
+- `Wails v3`：负责桌面运行时、原生窗口、系统能力接入，以及 macOS / Windows 安装包构建
 
-`Wails v3` is the key part of this transition. It is the foundation for native dialogs, local file access, external link handling, window behavior, and installer packaging for macOS and Windows releases.
+其中，`Wails v3` 是这次改造的关键基础设施。后续围绕桌面端的很多能力都会基于它展开，例如：
 
-## Project Direction
+- 原生窗口行为适配
+- 本地文件访问
+- 系统文件选择器
+- 外链与系统浏览器联动
+- 桌面安装包构建与发布
 
-From this point forward, this repository will gradually separate from the upstream Kite project and evolve independently for desktop use cases.
+## 当前项目方向
 
-That means:
+从现在开始，这个仓库会逐步与原始 Kite 仓库分离，单独围绕桌面端场景持续演进。
 
-- desktop-native capabilities will continue to be added
-- some web-first or server-first behavior may be reduced, adjusted, or removed
-- interaction flows will be optimized for local desktop usage
-- release, packaging, and installation experience will become first-class concerns
+这意味着：
 
-## Current Positioning
+- 会继续增强桌面端原生能力
+- 会根据桌面使用场景调整交互与功能边界
+- 对不再适合桌面端的部分进行裁剪、重构或替换
+- 针对桌面端新增更有价值的能力
+- 单独建设桌面应用的发布、安装与升级体系
 
-The current goal is practical:
+## 当前定位
 
-build a usable desktop edition first, then continue iterating specifically for desktop scenarios.
+当前仓库可以明确理解为：
 
-This repository is therefore best understood as:
+一个“基于原项目 Kite 深度改造而来的桌面端分支项目”。
 
-an independent desktop-oriented branch that started from Kite, thanks Kite, and now continues in its own direction.
+它保留了对原项目的感谢与尊重，但后续不再以“尽量保持与原仓库一致”为目标，而是会围绕桌面端体验和桌面端需求，独立做功能增减和产品演进。
 
-## Development
+## 开发方式
 
-Install dependencies:
+安装依赖：
 
 ```bash
 make deps
 ```
 
-Run the desktop app in development mode:
+启动桌面开发环境：
 
 ```bash
 make dev
 ```
 
-Build the desktop app:
+构建桌面应用：
 
 ```bash
 make build
 ```
 
-## Current Desktop Capabilities
+## 发布方向
 
-The current desktop runtime already includes:
-
-- explicit runtime identity via `APP_RUNTIME=desktop-local`
-- backend-driven local desktop user identity
-- single instance activation
-- tray and application menu
-- window hide-on-close and window state restore
-- native file open/save flows for desktop-specific actions
-- open config/log directories from the desktop host
-
-Reference docs:
-
-- [Desktop Runtime Contract](./docs/desktop-runtime-contract.md)
-- [Desktop Feature Boundary](./docs/desktop-feature-boundary.md)
-
-## Release Targets
-
-The project is being prepared around desktop distribution, including:
+当前项目将以桌面安装包作为主要交付形态，逐步完善以下平台支持：
 
 - macOS Intel
 - macOS Apple Silicon
 - Windows x64
 - Windows ARM64
 
-## Relationship With Upstream
+## 与原仓库的关系
 
-To be explicit:
+这里明确说明一下：
 
-- full respect and thanks go to the original Kite project
-- this repository is a desktop-focused derivative work
-- future feature additions and removals will be driven by desktop needs
-- this repository will continue as an independent desktop product direction
+- 原始 Kite 项目是当前仓库的重要基础来源
+- 当前仓库会持续保留对原项目的致谢
+- 当前仓库已经开始走向独立的桌面端方向
+- 后续功能的增加、删除与重构，将优先服务于桌面端产品目标
 
-## License
+## 最后说明
 
-This repository continues to follow the existing project license. See [LICENSE](./LICENSE).
+这个仓库后续的核心任务，不是继续维护一个传统 Web 版 Kubernetes Dashboard，而是持续把它打磨成一个真正好用的桌面端 Kubernetes 管理应用。
+
+感谢原项目 Kite 提供的基础。
+从现在开始，这个项目将作为桌面端方向的独立分支，继续演进。
+
+## 许可证
+
+本仓库继续沿用项目现有许可证，详见 [LICENSE](./LICENSE)。

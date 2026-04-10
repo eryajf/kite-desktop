@@ -465,7 +465,7 @@
     "title": "关于",
     "productName": "Kite",
     "description": "查看构建信息与更新状态。",
-    "subtitle": "面向本地集群工作流的桌面应用。",
+    "subtitle": "一个基于 Wails v3 打造、面向桌面端的 K8S 多集群管理工具",
     "versionLabel": "版本",
     "fields": {
       "version": "版本",
