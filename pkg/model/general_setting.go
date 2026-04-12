@@ -13,8 +13,8 @@ import (
 
 const DefaultGeneralAIModel = "gpt-4o-mini"
 const DefaultGeneralAnthropicModel = "claude-sonnet-4-5"
-const DefaultGeneralKubectlImage = "zzde/kubectl:latest"
-const DefaultGeneralNodeTerminalImage = "busybox:latest"
+const DefaultGeneralKubectlImage = "docker.cnb.cool/znb/images/kubectl:latest"
+const DefaultGeneralNodeTerminalImage = "docker.cnb.cool/znb/images/busybox:latest"
 
 const GeneralAIProviderOpenAI = "openai"
 const GeneralAIProviderAnthropic = "anthropic"
@@ -37,8 +37,8 @@ type GeneralSetting struct {
 	AIBaseURL               string       `json:"aiBaseUrl" gorm:"column:ai_base_url;type:varchar(500)"`
 	AIMaxTokens             int          `json:"aiMaxTokens" gorm:"column:ai_max_tokens;type:integer;default:4096"`
 	KubectlEnabled          bool         `json:"kubectlEnabled" gorm:"column:kubectl_enabled;type:boolean;not null;default:true"`
-	KubectlImage            string       `json:"kubectlImage" gorm:"column:kubectl_image;type:varchar(255);not null;default:'zzde/kubectl:latest'"`
-	NodeTerminalImage       string       `json:"nodeTerminalImage" gorm:"column:node_terminal_image;type:varchar(255);not null;default:'busybox:latest'"`
+	KubectlImage            string       `json:"kubectlImage" gorm:"column:kubectl_image;type:varchar(255);not null;default:'docker.cnb.cool/znb/images/kubectl:latest'"`
+	NodeTerminalImage       string       `json:"nodeTerminalImage" gorm:"column:node_terminal_image;type:varchar(255);not null;default:'docker.cnb.cool/znb/images/busybox:latest'"`
 	EnableAnalytics         bool         `json:"enableAnalytics" gorm:"column:enable_analytics;type:boolean;not null;default:true"`
 	EnableVersionCheck      bool         `json:"enableVersionCheck" gorm:"column:enable_version_check;type:boolean;not null;default:true"`
 	JWTSecret               SecretString `json:"-" gorm:"column:jwt_secret;type:text"`

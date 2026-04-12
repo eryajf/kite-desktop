@@ -567,6 +567,42 @@
       "loadFailed": "Failed to load clusters"
     },
     "deleteConfirmation": "This action will only remove the current cluster's configuration in kite and will not delete any cluster resources.",
+    "form": {
+      "name": {
+        "label": "Cluster Name",
+        "placeholder": "e.g., production, staging"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Brief description of this cluster"
+      },
+      "type": {
+        "label": "Cluster Type",
+        "external": "External Cluster",
+        "inCluster": "In-Cluster"
+      },
+      "config": {
+        "label": "Kubeconfig",
+        "editNote": "Leave empty to keep current configuration"
+      },
+      "kubeconfig": {
+        "placeholder": "Paste your kubeconfig content here..."
+      },
+      "prometheusURL": {
+        "label": "Prometheus URL",
+        "help": "Optional. Used to enable Prometheus-based monitoring features such as overview history charts and Pod metrics. If left empty, Kite will try to discover a Prometheus service in the cluster automatically."
+      },
+      "enabled": {
+        "label": "Enable Cluster"
+      },
+      "isDefault": {
+        "label": "Set as Default",
+        "help": "Use this cluster as the default for new operations"
+      },
+      "inCluster": {
+        "note": "This cluster uses the in-cluster ServiceAccount configuration and does not require an additional kubeconfig."
+      }
+    },
     "dialog": {
       "createTitle": "Add Cluster",
       "editTitle": "Edit Cluster",

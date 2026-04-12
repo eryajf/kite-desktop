@@ -750,7 +750,8 @@
         "placeholder": "在此粘贴 kubeconfig 内容..."
       },
       "prometheusURL": {
-        "label": "Prometheus URL"
+        "label": "Prometheus URL",
+        "help": "可选。用于启用基于 Prometheus 的监控能力，例如概览页的资源/网络历史图表和 Pod 监控指标。留空时，Kite 会尝试自动发现集群内的 Prometheus 服务；如果未发现，这些能力将不可用。"
       },
       "enabled": {
         "label": "启用集群"

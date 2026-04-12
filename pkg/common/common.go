@@ -32,8 +32,8 @@ var (
 	Host            = ""
 	Base            = ""
 
-	NodeTerminalImage    = "busybox:latest"
-	KubectlTerminalImage = "zzde/kubectl:latest"
+	NodeTerminalImage    = "docker.cnb.cool/znb/images/busybox:latest"
+	KubectlTerminalImage = "docker.cnb.cool/znb/images/kubectl:latest"
 	DBType               = "sqlite"
 	DBDSN                = "dev.db"
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { IconEdit, IconServer } from '@tabler/icons-react'
+import { IconEdit, IconInfoCircle, IconServer } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
 
 import { Cluster } from '@/types/api'
@@ -26,6 +26,11 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface ClusterDialogProps {
   open: boolean
@@ -279,9 +284,31 @@ function ClusterDialogContent({
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="prometheus-url">
-            {t('clusterManagement.form.prometheusURL.label', 'Prometheus URL')}
-          </Label>
+          <div className="flex items-center gap-1.5">
+            <Label htmlFor="prometheus-url">
+              {t('clusterManagement.form.prometheusURL.label', 'Prometheus URL')}
+            </Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-4 w-4 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={t(
+                    'clusterManagement.form.prometheusURL.label',
+                    'Prometheus URL'
+                  )}
+                >
+                  <IconInfoCircle className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-xs leading-relaxed">
+                {t(
+                  'clusterManagement.form.prometheusURL.help',
+                  'Optional. Used to enable Prometheus-based monitoring features such as overview history charts and Pod metrics. If left empty, Kite will try to discover a Prometheus service in the cluster automatically.'
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <Input
             id="prometheus-url"
             value={formData.prometheusURL}

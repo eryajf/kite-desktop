@@ -25,8 +25,9 @@ import { Switch } from '@/components/ui/switch'
 
 const DEFAULT_MODEL = 'gpt-4o-mini'
 const DEFAULT_ANTHROPIC_MODEL = 'claude-sonnet-4-5'
-const DEFAULT_KUBECTL_IMAGE = 'zzde/kubectl:latest'
-const DEFAULT_NODE_TERMINAL_IMAGE = 'busybox:latest'
+const DEFAULT_KUBECTL_IMAGE = 'docker.cnb.cool/znb/images/kubectl:latest'
+const DEFAULT_NODE_TERMINAL_IMAGE =
+  'docker.cnb.cool/znb/images/busybox:latest'
 
 interface GeneralSettingsFormData {
   aiAgentEnabled: boolean
