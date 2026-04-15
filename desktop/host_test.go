@@ -12,6 +12,151 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
 
+func TestLayoutAISidecarBounds(t *testing.T) {
+	tests := []struct {
+		name          string
+		mainBounds    application.Rect
+		workArea      application.Rect
+		width         int
+		height        int
+		preferredSide string
+		wantBounds    application.Rect
+		wantSide      string
+	}{
+		{
+			name:          "places on right when space is available",
+			mainBounds:    application.Rect{X: 100, Y: 80, Width: 1200, Height: 900},
+			workArea:      application.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
+			width:         440,
+			height:        860,
+			preferredSide: aiSidecarSideRight,
+			wantBounds:    application.Rect{X: 1300, Y: 80, Width: 440, Height: 860},
+			wantSide:      aiSidecarSideRight,
+		},
+		{
+			name:          "falls back to left when right side does not fit",
+			mainBounds:    application.Rect{X: 1500, Y: 40, Width: 380, Height: 900},
+			workArea:      application.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
+			width:         440,
+			height:        860,
+			preferredSide: aiSidecarSideRight,
+			wantBounds:    application.Rect{X: 1060, Y: 40, Width: 440, Height: 860},
+			wantSide:      aiSidecarSideLeft,
+		},
+		{
+			name:          "keeps left anchor when it still fits",
+			mainBounds:    application.Rect{X: 1100, Y: 120, Width: 500, Height: 900},
+			workArea:      application.Rect{X: 0, Y: 0, Width: 1920, Height: 1080},
+			width:         440,
+			height:        860,
+			preferredSide: aiSidecarSideLeft,
+			wantBounds:    application.Rect{X: 660, Y: 120, Width: 440, Height: 860},
+			wantSide:      aiSidecarSideLeft,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotBounds, gotSide := layoutAISidecarBounds(
+				tt.mainBounds,
+				tt.workArea,
+				tt.width,
+				tt.height,
+				aiSidecarGap,
+				tt.preferredSide,
+			)
+			if gotBounds != tt.wantBounds {
+				t.Fatalf("layoutAISidecarBounds() bounds = %#v, want %#v", gotBounds, tt.wantBounds)
+			}
+			if gotSide != tt.wantSide {
+				t.Fatalf("layoutAISidecarBounds() side = %q, want %q", gotSide, tt.wantSide)
+			}
+		})
+	}
+}
+
+func TestAdjustMainWindowBoundsForAISidecar(t *testing.T) {
+	tests := []struct {
+		name         string
+		mainBounds   application.Rect
+		workArea     application.Rect
+		sidecarWidth int
+		wantBounds   application.Rect
+		wantMoved    bool
+	}{
+		{
+			name:         "moves main window left when total width fits",
+			mainBounds:   application.Rect{X: 500, Y: 80, Width: 1200, Height: 900},
+			workArea:     application.Rect{X: 0, Y: 0, Width: 1800, Height: 1080},
+			sidecarWidth: 440,
+			wantBounds:   application.Rect{X: 160, Y: 80, Width: 1200, Height: 900},
+			wantMoved:    true,
+		},
+		{
+			name:         "does not move when right side already fits",
+			mainBounds:   application.Rect{X: 100, Y: 80, Width: 1200, Height: 900},
+			workArea:     application.Rect{X: 0, Y: 0, Width: 1800, Height: 1080},
+			sidecarWidth: 440,
+			wantBounds:   application.Rect{X: 100, Y: 80, Width: 1200, Height: 900},
+			wantMoved:    false,
+		},
+		{
+			name:         "does not move when total width cannot fit",
+			mainBounds:   application.Rect{X: 100, Y: 80, Width: 1480, Height: 900},
+			workArea:     application.Rect{X: 0, Y: 0, Width: 1728, Height: 1080},
+			sidecarWidth: 440,
+			wantBounds:   application.Rect{X: 100, Y: 80, Width: 1480, Height: 900},
+			wantMoved:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotBounds, gotMoved := adjustMainWindowBoundsForAISidecar(
+				tt.mainBounds,
+				tt.workArea,
+				tt.sidecarWidth,
+				aiSidecarGap,
+			)
+			if gotBounds != tt.wantBounds {
+				t.Fatalf("adjustMainWindowBoundsForAISidecar() bounds = %#v, want %#v", gotBounds, tt.wantBounds)
+			}
+			if gotMoved != tt.wantMoved {
+				t.Fatalf("adjustMainWindowBoundsForAISidecar() moved = %v, want %v", gotMoved, tt.wantMoved)
+			}
+		})
+	}
+}
+
+func TestNormalizeAndDenormalizeWindowBounds(t *testing.T) {
+	screen := &application.Screen{
+		ScaleFactor: 2,
+	}
+
+	original := application.Rect{
+		X:      600,
+		Y:      240,
+		Width:  1280,
+		Height: 860,
+	}
+
+	normalized := normalizeWindowBounds(original, screen)
+	expectedNormalized := application.Rect{
+		X:      300,
+		Y:      120,
+		Width:  1280,
+		Height: 860,
+	}
+	if normalized != expectedNormalized {
+		t.Fatalf("normalizeWindowBounds() = %#v, want %#v", normalized, expectedNormalized)
+	}
+
+	denormalized := denormalizeWindowBounds(normalized, screen)
+	if denormalized != original {
+		t.Fatalf("denormalizeWindowBounds() = %#v, want %#v", denormalized, original)
+	}
+}
+
 func TestBuildApplicationMenuIncludesEditMenu(t *testing.T) {
 	menu := buildApplicationMenu(nil, false)
 	if menu.FindByLabel("Edit") == nil {

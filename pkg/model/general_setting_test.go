@@ -103,6 +103,27 @@ func TestNormalizeAIChatHistorySessionLimit(t *testing.T) {
 	}
 }
 
+func TestNormalizeAIChatOpenMode(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"overlay", "overlay", AIChatOpenModeOverlay},
+		{"sidecar", " Sidecar ", AIChatOpenModeSidecar},
+		{"default when empty", "", DefaultAIChatOpenMode},
+		{"default when unknown", "popup", DefaultAIChatOpenMode},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NormalizeAIChatOpenMode(tt.input); got != tt.expected {
+				t.Fatalf("NormalizeAIChatOpenMode() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestApplyRuntimeGeneralSetting(t *testing.T) {
 	originalAnalytics := common.EnableAnalytics
 	originalVersionCheck := common.EnableVersionCheck

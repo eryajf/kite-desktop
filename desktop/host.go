@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -36,6 +37,11 @@ const (
 	pageFindOpenEvent     = "kite:page-find-open"
 	pageFindNextEvent     = "kite:page-find-next"
 	pageFindPreviousEvent = "kite:page-find-previous"
+	aiSidecarWindowName   = "ai-sidecar"
+	aiSidecarWindowTitle  = "Kite AI Chat"
+	aiSidecarGap          = 0
+	aiSidecarSideRight    = "right"
+	aiSidecarSideLeft     = "left"
 )
 
 func desktopApplicationIcon() []byte {
@@ -79,9 +85,12 @@ type desktopHost struct {
 	downloadManager *desktopUpdateDownloadManager
 
 	mainWindow *application.WebviewWindow
+	aiSidecar  *application.WebviewWindow
+	aiSide     string
 	systemTray *application.SystemTray
 
-	quitting atomic.Bool
+	aiSidecarClosing atomic.Bool
+	quitting         atomic.Bool
 }
 
 func resolveDesktopPaths() (desktopPaths, error) {
@@ -224,6 +233,7 @@ func (h *desktopHost) registerMainWindow(window *application.WebviewWindow) {
 	h.mainWindow = window
 
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		h.closeAISidecar()
 		if h.quitting.Load() || desktopDevMode() {
 			return
 		}
@@ -240,18 +250,34 @@ func (h *desktopHost) registerMainWindow(window *application.WebviewWindow) {
 
 	window.RegisterHook(events.Common.WindowDidMove, func(event *application.WindowEvent) {
 		saveIfNormal()
+		h.syncAISidecarPosition()
 	})
 	window.RegisterHook(events.Common.WindowDidResize, func(event *application.WindowEvent) {
 		saveIfNormal()
+		h.syncAISidecarPosition()
+	})
+	window.RegisterHook(events.Common.WindowFocus, func(event *application.WindowEvent) {
+		h.raiseAISidecar()
+	})
+	window.RegisterHook(events.Common.WindowShow, func(event *application.WindowEvent) {
+		h.raiseAISidecar()
 	})
 	window.RegisterHook(events.Common.WindowMaximise, func(event *application.WindowEvent) {
 		h.saveMainWindowState(true)
+		h.syncAISidecarPosition()
 	})
 	window.RegisterHook(events.Common.WindowUnMaximise, func(event *application.WindowEvent) {
 		h.saveMainWindowState(false)
+		h.syncAISidecarPosition()
 	})
 
 	if runtime.GOOS == "darwin" {
+		h.app.Event.OnApplicationEvent(events.Mac.ApplicationDidBecomeActive, func(event *application.ApplicationEvent) {
+			h.raiseAISidecar()
+		})
+		h.app.Event.OnApplicationEvent(events.Mac.ApplicationDidResignActive, func(event *application.ApplicationEvent) {
+			h.setAISidecarAlwaysOnTop(false)
+		})
 		h.app.Event.OnApplicationEvent(events.Mac.ApplicationShouldHandleReopen, func(event *application.ApplicationEvent) {
 			h.focusMainWindow()
 		})
@@ -308,11 +334,389 @@ func (h *desktopHost) hideMainWindow() {
 	if h.mainWindow == nil {
 		return
 	}
+	h.closeAISidecar()
 	h.mainWindow.Hide()
+}
+
+func layoutAISidecarBounds(
+	mainBounds application.Rect,
+	workArea application.Rect,
+	width, height, gap int,
+	preferredSide string,
+) (application.Rect, string) {
+	bounds := application.Rect{
+		X:      mainBounds.X + mainBounds.Width + gap,
+		Y:      mainBounds.Y,
+		Width:  width,
+		Height: height,
+	}
+
+	if workArea.Width <= 0 || workArea.Height <= 0 {
+		if preferredSide == aiSidecarSideLeft {
+			bounds.X = mainBounds.X - gap - bounds.Width
+			return bounds, aiSidecarSideLeft
+		}
+		return bounds, aiSidecarSideRight
+	}
+
+	if bounds.Width > workArea.Width {
+		bounds.Width = workArea.Width
+	}
+	if bounds.Height > workArea.Height {
+		bounds.Height = workArea.Height
+	}
+
+	rightX := mainBounds.X + mainBounds.Width + gap
+	leftX := mainBounds.X - gap - bounds.Width
+	workAreaRight := workArea.X + workArea.Width
+	workAreaBottom := workArea.Y + workArea.Height
+	canPlaceRight := rightX+bounds.Width <= workAreaRight
+	canPlaceLeft := leftX >= workArea.X
+
+	sideOrder := []string{aiSidecarSideRight, aiSidecarSideLeft}
+	if preferredSide == aiSidecarSideLeft {
+		sideOrder = []string{aiSidecarSideLeft, aiSidecarSideRight}
+	}
+
+	actualSide := aiSidecarSideRight
+	positioned := false
+	for _, side := range sideOrder {
+		switch {
+		case side == aiSidecarSideRight && canPlaceRight:
+			bounds.X = rightX
+			actualSide = aiSidecarSideRight
+			positioned = true
+		case side == aiSidecarSideLeft && canPlaceLeft:
+			bounds.X = leftX
+			actualSide = aiSidecarSideLeft
+			positioned = true
+		}
+		if positioned {
+			break
+		}
+	}
+
+	if !positioned {
+		actualSide = aiSidecarSideRight
+		maxX := workAreaRight - bounds.Width
+		if maxX < workArea.X {
+			maxX = workArea.X
+		}
+		if rightX < workArea.X {
+			bounds.X = workArea.X
+		} else if rightX > maxX {
+			bounds.X = maxX
+		} else {
+			bounds.X = rightX
+		}
+	}
+	maxY := workAreaBottom - bounds.Height
+	if maxY < workArea.Y {
+		maxY = workArea.Y
+	}
+	if bounds.Y < workArea.Y {
+		bounds.Y = workArea.Y
+	} else if bounds.Y > maxY {
+		bounds.Y = maxY
+	}
+
+	return bounds, actualSide
+}
+
+func adjustMainWindowBoundsForAISidecar(
+	mainBounds application.Rect,
+	workArea application.Rect,
+	sidecarWidth, gap int,
+) (application.Rect, bool) {
+	if workArea.Width <= 0 || sidecarWidth <= 0 {
+		return mainBounds, false
+	}
+
+	requiredWidth := mainBounds.Width + gap + sidecarWidth
+	if requiredWidth > workArea.Width {
+		return mainBounds, false
+	}
+
+	workAreaRight := workArea.X + workArea.Width
+	maxMainX := workAreaRight - requiredWidth
+	if maxMainX < workArea.X {
+		maxMainX = workArea.X
+	}
+	if mainBounds.X <= maxMainX {
+		return mainBounds, false
+	}
+
+	mainBounds.X = maxMainX
+	return mainBounds, true
+}
+
+func windowPositionScaleFactor(screen *application.Screen) float64 {
+	if runtime.GOOS != "darwin" || screen == nil || screen.ScaleFactor <= 0 {
+		return 1
+	}
+	return float64(screen.ScaleFactor)
+}
+
+func normalizeWindowBounds(bounds application.Rect, screen *application.Screen) application.Rect {
+	scale := windowPositionScaleFactor(screen)
+	if scale == 1 {
+		return bounds
+	}
+
+	bounds.X = int(math.Round(float64(bounds.X) / scale))
+	bounds.Y = int(math.Round(float64(bounds.Y) / scale))
+	return bounds
+}
+
+func denormalizeWindowBounds(bounds application.Rect, screen *application.Screen) application.Rect {
+	scale := windowPositionScaleFactor(screen)
+	if scale == 1 {
+		return bounds
+	}
+
+	bounds.X = int(math.Round(float64(bounds.X) * scale))
+	bounds.Y = int(math.Round(float64(bounds.Y) * scale))
+	return bounds
+}
+
+func (h *desktopHost) buildAISidecarBounds(width, height int, preferredSide string) (application.Rect, string) {
+	bounds := application.Rect{
+		X:      0,
+		Y:      0,
+		Width:  width,
+		Height: height,
+	}
+	if h == nil || h.mainWindow == nil {
+		return bounds, aiSidecarSideRight
+	}
+
+	mainBounds := h.mainWindow.Bounds()
+	screen, err := h.mainWindow.GetScreen()
+	if err != nil || screen == nil {
+		return layoutAISidecarBounds(
+			mainBounds,
+			application.Rect{},
+			width,
+			height,
+			aiSidecarGap,
+			preferredSide,
+		)
+	}
+
+	mainBounds = normalizeWindowBounds(mainBounds, screen)
+
+	return layoutAISidecarBounds(
+		mainBounds,
+		screen.WorkArea,
+		width,
+		height,
+		aiSidecarGap,
+		preferredSide,
+	)
+}
+
+func (h *desktopHost) syncAISidecarPosition() {
+	if h == nil || h.aiSidecarClosing.Load() {
+		return
+	}
+	sidecar, ok := h.getAISidecar()
+	if !ok || h.mainWindow == nil {
+		return
+	}
+
+	mainBounds := h.mainWindow.Bounds()
+	sidecarBounds := sidecar.Bounds()
+	bounds, side := h.buildAISidecarBounds(
+		sidecarBounds.Width,
+		mainBounds.Height,
+		h.aiSide,
+	)
+	h.aiSide = side
+	if screen, err := h.mainWindow.GetScreen(); err == nil && screen != nil {
+		sidecar.SetBounds(denormalizeWindowBounds(bounds, screen))
+		return
+	}
+	sidecar.SetBounds(bounds)
+}
+
+func (h *desktopHost) setAISidecarAlwaysOnTop(alwaysOnTop bool) {
+	if h == nil || h.aiSidecarClosing.Load() {
+		return
+	}
+	sidecar, ok := h.getAISidecar()
+	if !ok {
+		return
+	}
+	sidecar.SetAlwaysOnTop(alwaysOnTop)
+}
+
+func (h *desktopHost) raiseAISidecar() {
+	if h == nil || h.aiSidecarClosing.Load() {
+		return
+	}
+	sidecar, ok := h.getAISidecar()
+	if !ok {
+		return
+	}
+	sidecar.SetAlwaysOnTop(false)
+	sidecar.SetAlwaysOnTop(true)
+}
+
+func (h *desktopHost) getAISidecar() (*application.WebviewWindow, bool) {
+	if h == nil || h.app == nil || h.aiSidecarClosing.Load() {
+		return nil, false
+	}
+	window, ok := h.app.Window.GetByName(aiSidecarWindowName)
+	if !ok {
+		return nil, false
+	}
+	sidecar, ok := window.(*application.WebviewWindow)
+	if !ok {
+		return nil, false
+	}
+	h.aiSidecar = sidecar
+	return sidecar, true
+}
+
+func (h *desktopHost) registerAISidecarWindow(sidecar *application.WebviewWindow) {
+	if sidecar == nil {
+		return
+	}
+
+	sidecar.RegisterHook(events.Common.WindowFocus, func(event *application.WindowEvent) {
+		h.raiseAISidecar()
+	})
+	sidecar.RegisterHook(events.Common.WindowShow, func(event *application.WindowEvent) {
+		h.raiseAISidecar()
+	})
+	sidecar.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
+		h.aiSidecarClosing.Store(true)
+		h.aiSidecar = nil
+		h.aiSide = ""
+	})
+}
+
+func (h *desktopHost) openAISidecar(targetURL string, width, height, minWidth, minHeight int) {
+	if h == nil || h.app == nil {
+		return
+	}
+	h.aiSidecarClosing.Store(false)
+
+	if width <= 0 {
+		width = 440
+	}
+	if minWidth <= 0 {
+		minWidth = 360
+	}
+	if width < minWidth {
+		width = minWidth
+	}
+	if minHeight <= 0 {
+		minHeight = 640
+	}
+
+	if h.mainWindow != nil {
+		mainBounds := h.mainWindow.Bounds()
+		if mainBounds.Height > 0 {
+			height = mainBounds.Height
+		}
+	}
+	if height <= 0 {
+		height = 860
+	}
+	if height < minHeight {
+		height = minHeight
+	}
+
+	if h.mainWindow != nil {
+		if screen, err := h.mainWindow.GetScreen(); err == nil && screen != nil {
+			mainBounds := normalizeWindowBounds(h.mainWindow.Bounds(), screen)
+			if adjustedBounds, moved := adjustMainWindowBoundsForAISidecar(
+				mainBounds,
+				screen.WorkArea,
+				width,
+				aiSidecarGap,
+			); moved {
+				adjustedBounds = denormalizeWindowBounds(adjustedBounds, screen)
+				h.mainWindow.SetPosition(adjustedBounds.X, adjustedBounds.Y)
+			}
+		}
+	}
+
+	bounds, side := h.buildAISidecarBounds(width, height, aiSidecarSideRight)
+	h.aiSide = side
+
+	if sidecar, ok := h.getAISidecar(); ok {
+		sidecar.SetTitle(aiSidecarWindowTitle)
+		sidecar.SetMinSize(minWidth, minHeight)
+		if screen, err := h.mainWindow.GetScreen(); err == nil && screen != nil {
+			sidecar.SetBounds(denormalizeWindowBounds(bounds, screen))
+		} else {
+			sidecar.SetBounds(bounds)
+		}
+		sidecar.Restore()
+		sidecar.Show()
+		sidecar.Focus()
+		h.raiseAISidecar()
+		return
+	}
+
+	initialBounds := bounds
+	if screen, err := h.mainWindow.GetScreen(); err == nil && screen != nil {
+		initialBounds = denormalizeWindowBounds(bounds, screen)
+	}
+
+	sidecar := h.app.Window.NewWithOptions(desktopWindowOptions(application.WebviewWindowOptions{
+		Name:            aiSidecarWindowName,
+		Title:           aiSidecarWindowTitle,
+		URL:             targetURL,
+		Width:           initialBounds.Width,
+		Height:          initialBounds.Height,
+		InitialPosition: application.WindowXY,
+		X:               initialBounds.X,
+		Y:               initialBounds.Y,
+		MinWidth:        minWidth,
+		MinHeight:       minHeight,
+	}))
+	sidecar.SetBounds(initialBounds)
+	h.registerAISidecarWindow(sidecar)
+	h.aiSidecar = sidecar
+	h.syncAISidecarPosition()
+	h.raiseAISidecar()
+}
+
+func (h *desktopHost) toggleAISidecar(targetURL string, width, height, minWidth, minHeight int) {
+	if _, ok := h.getAISidecar(); ok {
+		h.closeAISidecar()
+		return
+	}
+	h.openAISidecar(targetURL, width, height, minWidth, minHeight)
+}
+
+func (h *desktopHost) closeAISidecar() {
+	if h == nil {
+		return
+	}
+	if h.aiSidecarClosing.Load() {
+		h.aiSidecar = nil
+		h.aiSide = ""
+		return
+	}
+	sidecar, ok := h.getAISidecar()
+	if !ok {
+		h.aiSidecar = nil
+		h.aiSide = ""
+		return
+	}
+	h.aiSidecarClosing.Store(true)
+	h.aiSidecar = nil
+	h.aiSide = ""
+	sidecar.Close()
 }
 
 func (h *desktopHost) quit() {
 	h.quitting.Store(true)
+	h.closeAISidecar()
 	h.persistStateOnShutdown()
 	h.app.Quit()
 }

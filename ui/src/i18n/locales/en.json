@@ -451,12 +451,23 @@
       "description": "Enable AI assistant and configure model endpoint.",
       "form": {
         "model": "Model",
+        "provider": "Provider",
         "apiKey": "API Key",
         "apiKeyPlaceholder": "Leave empty to keep current API Key",
         "baseUrl": "Base URL",
         "maxTokens": "Max Tokens",
         "chatHistorySessionLimit": "Chat History Session Limit",
-        "chatHistorySessionLimitHint": "Maximum number of AI chat sessions to keep per cluster."
+        "chatHistorySessionLimitHint": "Maximum number of AI chat sessions to keep per cluster.",
+        "openMode": "AI Chat Open Mode",
+        "openModeHint": "Choose whether AI chat opens as an in-window overlay or a docked sidecar window.",
+        "openModes": {
+          "overlay": "Overlay",
+          "sidecar": "Sidecar Window"
+        },
+        "providers": {
+          "openai": "OpenAI",
+          "anthropic": "Anthropic"
+        }
       }
     },
     "kubectl": {
@@ -1057,37 +1068,105 @@
       "overview": {
         "clusterHealth": "Run a cluster health check and highlight top risks",
         "errorPods": "List error pods with probable causes and priority",
-        "namespaceSummary": "Summarize health and anomalies by namespace"
+        "namespaceSummary": "Summarize health and anomalies by namespace",
+        "topRisks": "List the 5 issues that deserve the highest priority right now",
+        "riskTheme": "Decide whether current cluster risk leans more toward resources, network, scheduling, or config",
+        "investigationOrder": "Give me today's inspection order and troubleshooting priority"
+      },
+      "podsList": {
+        "anomalies": "Find abnormal pods on this page and sort them by impact",
+        "restarts": "List the pods with the most restarts and explain the likely causes",
+        "probeIssues": "Which pods are likely suffering from probe failures or startup issues",
+        "oomRisk": "Which pods may have OOM or resource sizing problems",
+        "unstableNamespaces": "Which namespaces have the most unstable pods",
+        "nextActions": "Give me a prioritized troubleshooting order from highest to lowest"
+      },
+      "deploymentsList": {
+        "rolloutIssues": "Find deployments with rollout issues and sort them by impact",
+        "replicaGap": "Which deployments have the largest gap between desired and available replicas",
+        "failedReleases": "Which deployments may have had failed releases recently",
+        "availabilityRisk": "Summarize current deployment availability risks",
+        "topDeployments": "List the 5 deployments that deserve the most attention",
+        "nextActions": "Give me a short action plan for the current deployment list"
+      },
+      "nodesList": {
+        "pressure": "Which nodes are under the highest resource pressure",
+        "unhealthy": "List NotReady or Pressure nodes and explain the risk",
+        "workloadImpact": "Which nodes are most likely to affect workload stability",
+        "riskTheme": "Decide whether the main issue is CPU, memory, disk, or network",
+        "priorityNodes": "Give me a prioritized list of nodes to handle first",
+        "nextActions": "Summarize node-side risks and the handling order"
+      },
+      "eventsList": {
+        "hotEvents": "Summarize the most frequent recent abnormal events",
+        "repeatedFailures": "Which events are repeating",
+        "namespaceBreakdown": "Group current abnormal events by namespace",
+        "faultPattern": "Infer the main failure pattern from these events",
+        "priorityEvents": "Find the events that deserve the highest priority",
+        "summary": "Give me a short event troubleshooting summary"
       },
       "podDetail": {
         "rootCause": "Analyze {{resourceKind}}/{{resourceName}} using status, events, and logs",
         "riskCheck": "Check restart, OOM, and probe failures for {{resourceKind}}/{{resourceName}}",
-        "troubleshoot": "Give a prioritized troubleshooting path for {{resourceKind}}/{{resourceName}} in {{namespace}}"
+        "troubleshoot": "Give a prioritized troubleshooting path for {{resourceKind}}/{{resourceName}} in {{namespace}}",
+        "phaseCheck": "Decide which stage this {{resourceKind}}/{{resourceName}} is most likely stuck in",
+        "resourceConfig": "Analyze whether this {{resourceKind}}/{{resourceName}} has unreasonable resource configuration",
+        "businessImpact": "Summarize the real business impact of this {{resourceKind}}/{{resourceName}}"
       },
       "deploymentDetail": {
         "releaseCheck": "Check release progress and rollout blockers for {{resourceKind}}/{{resourceName}}",
         "replicaGap": "Explain desired vs available replica gap for {{resourceKind}}/{{resourceName}}",
-        "recentEvents": "Review recent events for {{resourceKind}}/{{resourceName}} and suggest fixes"
+        "recentEvents": "Review recent events for {{resourceKind}}/{{resourceName}} and suggest fixes",
+        "releaseRootCause": "What is the most likely root cause of this {{resourceKind}}/{{resourceName}} rollout failure",
+        "runtimeRisk": "Check probe, resource, and scheduling risks for this {{resourceKind}}/{{resourceName}}",
+        "recoveryPlan": "Give a minimal-impact recovery plan for {{resourceKind}}/{{resourceName}}"
       },
       "nodeDetail": {
         "health": "Check node health, pressure conditions, and critical alerts",
         "workloadRisk": "Analyze workload risks on {{resourceKind}}/{{resourceName}}",
-        "actions": "Provide prioritized remediation actions for {{resourceKind}}/{{resourceName}}"
+        "actions": "Provide prioritized remediation actions for {{resourceKind}}/{{resourceName}}",
+        "topRisk": "What is the biggest current stability risk on this {{resourceKind}}/{{resourceName}}",
+        "impactedWorkloads": "Which workloads are most likely affected by this {{resourceKind}}/{{resourceName}}",
+        "maintenanceCheck": "If I need to maintain this {{resourceKind}}/{{resourceName}}, what are the prerequisite risks"
+      },
+      "serviceDetail": {
+        "selectorMatch": "Check whether selectors and backend endpoints match for {{resourceKind}}/{{resourceName}}",
+        "noEndpoints": "Why might this {{resourceKind}}/{{resourceName}} have no usable traffic",
+        "portRisk": "Check port mapping and exposure risk for {{resourceKind}}/{{resourceName}}",
+        "accessPath": "Analyze the main access-path risks for this {{resourceKind}}/{{resourceName}}",
+        "likelyLayer": "Decide whether the issue is more likely in the {{resourceKind}}, endpoints, or backend pods",
+        "nextAction": "Give me a connectivity troubleshooting path for {{resourceKind}}/{{resourceName}}"
+      },
+      "namespaceDetail": {
+        "healthSummary": "Summarize health and major anomalies in namespace {{resourceName}}",
+        "abnormalResources": "Find the most abnormal resources in namespace {{resourceName}}",
+        "businessImpact": "Which issues are most likely to affect workloads in namespace {{resourceName}}",
+        "priorityOrder": "Give me a prioritized handling order for namespace {{resourceName}}",
+        "riskDistribution": "Summarize risk distribution in {{resourceName}} by resource type",
+        "diagnosis": "Decide whether this looks more like a capacity, config, or runtime problem"
       },
       "detail": {
         "summary": "Summarize current status and key conditions for {{resourceKind}}/{{resourceName}}",
         "anomaly": "Identify anomalies and likely root causes for {{resourceKind}}/{{resourceName}}",
-        "nextSteps": "Give minimal-impact next actions for {{resourceKind}}/{{resourceName}} in {{namespace}}"
+        "nextSteps": "Give minimal-impact next actions for {{resourceKind}}/{{resourceName}} in {{namespace}}",
+        "riskPoint": "What is the biggest current risk point for {{resourceKind}}/{{resourceName}}",
+        "upstreamImpact": "Has this {{resourceKind}}/{{resourceName}} already affected upstream or downstream objects",
+        "checkOrder": "Give me an on-call friendly troubleshooting path for {{resourceKind}}/{{resourceName}}"
       },
       "list": {
         "anomalies": "Find abnormal resources on this page and sort by impact",
         "namespaceHotspots": "Highlight namespaces with the most issues on this page",
-        "nextActions": "Give a short action list for the current resource list"
+        "nextActions": "Give a short action list for the current resource list",
+        "riskPattern": "Summarize the dominant risk pattern in the current list",
+        "priorityObjects": "Which objects are most worth checking first",
+        "systemicIssues": "Does this list suggest a systemic issue"
       },
       "default": {
         "healthCheck": "Run a quick cluster check and list top 3 risks",
         "workloadIssues": "List problematic workloads and probable root causes",
-        "runbook": "Provide a prioritized troubleshooting runbook"
+        "runbook": "Provide a prioritized troubleshooting runbook",
+        "riskSummary": "What is the single most important issue to focus on right now",
+        "nextCheck": "Give me the best next check for the current page"
       }
     }
   },

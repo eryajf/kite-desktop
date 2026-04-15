@@ -365,6 +365,7 @@ export interface GeneralSetting {
   aiBaseUrl: string
   aiMaxTokens: number
   aiChatHistorySessionLimit: number
+  aiChatOpenMode: 'overlay' | 'sidecar'
   kubectlEnabled: boolean
   kubectlImage: string
   nodeTerminalImage: string
@@ -380,6 +381,7 @@ export interface GeneralSettingUpdateRequest {
   aiBaseUrl?: string
   aiMaxTokens?: number
   aiChatHistorySessionLimit?: number
+  aiChatOpenMode?: 'overlay' | 'sidecar'
   kubectlEnabled?: boolean
   kubectlImage?: string
   nodeTerminalImage?: string

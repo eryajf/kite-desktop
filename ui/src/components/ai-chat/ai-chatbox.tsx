@@ -53,8 +53,21 @@ const DEFAULT_WIDTH = 420
 const DESKTOP_MARGIN = 16
 const MOBILE_DEFAULT_HEIGHT_RATIO = 0.62
 const MAX_INPUT_HEIGHT = 220
+const MAX_VISIBLE_SUGGESTED_PROMPTS = 5
 
 /** Build a human-readable summary from tool name + args. */
+function formatMarkdownWithSoftBreaks(content: string): string {
+  return content
+    .split(/(```[\s\S]*?```)/g)
+    .map((segment) => {
+      if (segment.startsWith('```') && segment.endsWith('```')) {
+        return segment
+      }
+      return segment.replace(/(?<!\n)\n(?!\n)/g, '  \n')
+    })
+    .join('')
+}
+
 function describeAction(tool: string, args: Record<string, unknown>): string {
   const kind = (args.kind as string) || ''
   const name = (args.name as string) || ''
@@ -548,7 +561,7 @@ function MessageBubble({
             {hasContent && (
               <div className="ai-markdown">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {message.content}
+                  {formatMarkdownWithSoftBreaks(message.content)}
                 </ReactMarkdown>
               </div>
             )}
@@ -708,36 +721,104 @@ function SuggestedPrompts({
       'aiChat.suggestedPrompts.overview.clusterHealth',
       'aiChat.suggestedPrompts.overview.errorPods',
       'aiChat.suggestedPrompts.overview.namespaceSummary',
+      'aiChat.suggestedPrompts.overview.topRisks',
+      'aiChat.suggestedPrompts.overview.riskTheme',
+      'aiChat.suggestedPrompts.overview.investigationOrder',
+    ],
+    'pods-list': [
+      'aiChat.suggestedPrompts.podsList.anomalies',
+      'aiChat.suggestedPrompts.podsList.restarts',
+      'aiChat.suggestedPrompts.podsList.probeIssues',
+      'aiChat.suggestedPrompts.podsList.oomRisk',
+      'aiChat.suggestedPrompts.podsList.unstableNamespaces',
+      'aiChat.suggestedPrompts.podsList.nextActions',
+    ],
+    'deployments-list': [
+      'aiChat.suggestedPrompts.deploymentsList.rolloutIssues',
+      'aiChat.suggestedPrompts.deploymentsList.replicaGap',
+      'aiChat.suggestedPrompts.deploymentsList.failedReleases',
+      'aiChat.suggestedPrompts.deploymentsList.availabilityRisk',
+      'aiChat.suggestedPrompts.deploymentsList.topDeployments',
+      'aiChat.suggestedPrompts.deploymentsList.nextActions',
+    ],
+    'nodes-list': [
+      'aiChat.suggestedPrompts.nodesList.pressure',
+      'aiChat.suggestedPrompts.nodesList.unhealthy',
+      'aiChat.suggestedPrompts.nodesList.workloadImpact',
+      'aiChat.suggestedPrompts.nodesList.riskTheme',
+      'aiChat.suggestedPrompts.nodesList.priorityNodes',
+      'aiChat.suggestedPrompts.nodesList.nextActions',
+    ],
+    'events-list': [
+      'aiChat.suggestedPrompts.eventsList.hotEvents',
+      'aiChat.suggestedPrompts.eventsList.repeatedFailures',
+      'aiChat.suggestedPrompts.eventsList.namespaceBreakdown',
+      'aiChat.suggestedPrompts.eventsList.faultPattern',
+      'aiChat.suggestedPrompts.eventsList.priorityEvents',
+      'aiChat.suggestedPrompts.eventsList.summary',
     ],
     'pod-detail': [
       'aiChat.suggestedPrompts.podDetail.rootCause',
       'aiChat.suggestedPrompts.podDetail.riskCheck',
       'aiChat.suggestedPrompts.podDetail.troubleshoot',
+      'aiChat.suggestedPrompts.podDetail.phaseCheck',
+      'aiChat.suggestedPrompts.podDetail.resourceConfig',
+      'aiChat.suggestedPrompts.podDetail.businessImpact',
     ],
     'deployment-detail': [
       'aiChat.suggestedPrompts.deploymentDetail.releaseCheck',
       'aiChat.suggestedPrompts.deploymentDetail.replicaGap',
       'aiChat.suggestedPrompts.deploymentDetail.recentEvents',
+      'aiChat.suggestedPrompts.deploymentDetail.releaseRootCause',
+      'aiChat.suggestedPrompts.deploymentDetail.runtimeRisk',
+      'aiChat.suggestedPrompts.deploymentDetail.recoveryPlan',
     ],
     'node-detail': [
       'aiChat.suggestedPrompts.nodeDetail.health',
       'aiChat.suggestedPrompts.nodeDetail.workloadRisk',
       'aiChat.suggestedPrompts.nodeDetail.actions',
+      'aiChat.suggestedPrompts.nodeDetail.topRisk',
+      'aiChat.suggestedPrompts.nodeDetail.impactedWorkloads',
+      'aiChat.suggestedPrompts.nodeDetail.maintenanceCheck',
+    ],
+    'service-detail': [
+      'aiChat.suggestedPrompts.serviceDetail.selectorMatch',
+      'aiChat.suggestedPrompts.serviceDetail.noEndpoints',
+      'aiChat.suggestedPrompts.serviceDetail.portRisk',
+      'aiChat.suggestedPrompts.serviceDetail.accessPath',
+      'aiChat.suggestedPrompts.serviceDetail.likelyLayer',
+      'aiChat.suggestedPrompts.serviceDetail.nextAction',
+    ],
+    'namespace-detail': [
+      'aiChat.suggestedPrompts.namespaceDetail.healthSummary',
+      'aiChat.suggestedPrompts.namespaceDetail.abnormalResources',
+      'aiChat.suggestedPrompts.namespaceDetail.businessImpact',
+      'aiChat.suggestedPrompts.namespaceDetail.priorityOrder',
+      'aiChat.suggestedPrompts.namespaceDetail.riskDistribution',
+      'aiChat.suggestedPrompts.namespaceDetail.diagnosis',
     ],
     detail: [
       'aiChat.suggestedPrompts.detail.summary',
       'aiChat.suggestedPrompts.detail.anomaly',
       'aiChat.suggestedPrompts.detail.nextSteps',
+      'aiChat.suggestedPrompts.detail.riskPoint',
+      'aiChat.suggestedPrompts.detail.upstreamImpact',
+      'aiChat.suggestedPrompts.detail.checkOrder',
     ],
     list: [
       'aiChat.suggestedPrompts.list.anomalies',
       'aiChat.suggestedPrompts.list.namespaceHotspots',
       'aiChat.suggestedPrompts.list.nextActions',
+      'aiChat.suggestedPrompts.list.riskPattern',
+      'aiChat.suggestedPrompts.list.priorityObjects',
+      'aiChat.suggestedPrompts.list.systemicIssues',
     ],
     default: [
       'aiChat.suggestedPrompts.default.healthCheck',
       'aiChat.suggestedPrompts.default.workloadIssues',
       'aiChat.suggestedPrompts.default.runbook',
+      'aiChat.suggestedPrompts.default.riskSummary',
+      'aiChat.suggestedPrompts.default.nextCheck',
     ],
   }
 
@@ -761,7 +842,10 @@ function SuggestedPrompts({
       pageContext.namespace || t('aiChat.suggestedPrompts.fallback.namespace'),
   }
 
-  const pagePrompts = prompts[promptSetKey]
+  const pagePrompts = prompts[promptSetKey].slice(
+    0,
+    MAX_VISIBLE_SUGGESTED_PROMPTS
+  )
 
   return (
     <div className="flex flex-col items-center gap-2 p-4">

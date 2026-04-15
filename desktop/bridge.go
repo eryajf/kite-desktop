@@ -86,6 +86,23 @@ type openURLRequest struct {
 	MinHeight int    `json:"minHeight"`
 }
 
+type aiChatPageContextRequest struct {
+	Page         string `json:"page"`
+	Namespace    string `json:"namespace"`
+	ResourceName string `json:"resourceName"`
+	ResourceKind string `json:"resourceKind"`
+}
+
+type aiChatSidecarRequest struct {
+	PageContext aiChatPageContextRequest `json:"pageContext"`
+	SessionID   string                   `json:"sessionId"`
+	Title       string                   `json:"title"`
+	Width       int                      `json:"width"`
+	Height      int                      `json:"height"`
+	MinWidth    int                      `json:"minWidth"`
+	MinHeight   int                      `json:"minHeight"`
+}
+
 type openFileRequest struct {
 	Title       string           `json:"title"`
 	Message     string           `json:"message"`
@@ -187,6 +204,9 @@ func (d *desktopBridge) registerRoutes(engine *gin.Engine) {
 	api.POST("/reveal-path", d.handleRevealPath)
 	api.POST("/open-logs-dir", d.handleOpenLogsDir)
 	api.POST("/open-config-dir", d.handleOpenConfigDir)
+	api.POST("/ai-sidecar/open", d.handleOpenAISidecar)
+	api.POST("/ai-sidecar/toggle", d.handleToggleAISidecar)
+	api.POST("/ai-sidecar/close", d.handleCloseAISidecar)
 	api.POST("/window/focus", d.handleFocusWindow)
 	api.POST("/window/hide", d.handleHideWindow)
 	api.POST("/window/quit", d.handleQuitWindow)
@@ -577,6 +597,50 @@ func (d *desktopBridge) handleOpenPath(c *gin.Context) {
 	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
 }
 
+func (d *desktopBridge) handleOpenAISidecar(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req aiChatSidecarRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ai-sidecar payload"})
+		return
+	}
+
+	targetURL := d.buildAIChatBoxURL(req)
+	d.host.openAISidecar(targetURL, req.Width, req.Height, req.MinWidth, req.MinHeight)
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleToggleAISidecar(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req aiChatSidecarRequest
+	if err := bindOptionalJSON(c, &req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ai-sidecar payload"})
+		return
+	}
+
+	targetURL := d.buildAIChatBoxURL(req)
+	d.host.toggleAISidecar(targetURL, req.Width, req.Height, req.MinWidth, req.MinHeight)
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
+func (d *desktopBridge) handleCloseAISidecar(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	d.host.closeAISidecar()
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
 func (d *desktopBridge) handleRevealPath(c *gin.Context) {
 	if d.host == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
@@ -710,6 +774,35 @@ func (d *desktopBridge) resolveURL(rawURL string) (*url.URL, bool, error) {
 	}
 
 	return target, false, nil
+}
+
+func (d *desktopBridge) buildAIChatBoxURL(req aiChatSidecarRequest) string {
+	params := url.Values{}
+	if req.PageContext.Page != "" {
+		params.Set("page", req.PageContext.Page)
+	}
+	if req.PageContext.Namespace != "" {
+		params.Set("namespace", req.PageContext.Namespace)
+	}
+	if req.PageContext.ResourceName != "" {
+		params.Set("resourceName", req.PageContext.ResourceName)
+	}
+	if req.PageContext.ResourceKind != "" {
+		params.Set("resourceKind", req.PageContext.ResourceKind)
+	}
+	if strings.TrimSpace(req.SessionID) != "" {
+		params.Set("sessionId", strings.TrimSpace(req.SessionID))
+	}
+
+	path := "/ai-chat-box"
+	if common.Base != "" && common.Base != "/" {
+		path = strings.TrimRight(common.Base, "/") + path
+	}
+
+	return d.baseURL.ResolveReference(&url.URL{
+		Path:     path,
+		RawQuery: params.Encode(),
+	}).String()
 }
 
 func (d *desktopBridge) openInternalWindow(targetURL string, req openURLRequest) {

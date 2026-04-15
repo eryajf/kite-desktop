@@ -16,10 +16,14 @@ const DefaultGeneralAnthropicModel = "claude-sonnet-4-5"
 const DefaultGeneralKubectlImage = "docker.cnb.cool/znb/images/kubectl:latest"
 const DefaultGeneralNodeTerminalImage = "docker.cnb.cool/znb/images/busybox:latest"
 const DefaultAIChatHistorySessionLimit = 200
+const DefaultAIChatOpenMode = AIChatOpenModeSidecar
 
 const GeneralAIProviderOpenAI = "openai"
 const GeneralAIProviderAnthropic = "anthropic"
 const DefaultGeneralAIProvider = GeneralAIProviderOpenAI
+
+const AIChatOpenModeOverlay = "overlay"
+const AIChatOpenModeSidecar = "sidecar"
 
 func DefaultGeneralNodeTerminalImageValue() string {
 	image := strings.TrimSpace(common.NodeTerminalImage)
@@ -38,6 +42,7 @@ type GeneralSetting struct {
 	AIBaseURL                 string       `json:"aiBaseUrl" gorm:"column:ai_base_url;type:varchar(500)"`
 	AIMaxTokens               int          `json:"aiMaxTokens" gorm:"column:ai_max_tokens;type:integer;default:4096"`
 	AIChatHistorySessionLimit int          `json:"aiChatHistorySessionLimit" gorm:"column:ai_chat_history_session_limit;type:integer;not null;default:200"`
+	AIChatOpenMode            string       `json:"aiChatOpenMode" gorm:"column:ai_chat_open_mode;type:varchar(50);not null;default:'sidecar'"`
 	KubectlEnabled            bool         `json:"kubectlEnabled" gorm:"column:kubectl_enabled;type:boolean;not null;default:true"`
 	KubectlImage              string       `json:"kubectlImage" gorm:"column:kubectl_image;type:varchar(255);not null;default:'docker.cnb.cool/znb/images/kubectl:latest'"`
 	NodeTerminalImage         string       `json:"nodeTerminalImage" gorm:"column:node_terminal_image;type:varchar(255);not null;default:'docker.cnb.cool/znb/images/busybox:latest'"`
@@ -77,6 +82,17 @@ func NormalizeAIChatHistorySessionLimit(limit int) int {
 	return limit
 }
 
+func NormalizeAIChatOpenMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case AIChatOpenModeOverlay:
+		return AIChatOpenModeOverlay
+	case AIChatOpenModeSidecar:
+		return AIChatOpenModeSidecar
+	default:
+		return DefaultAIChatOpenMode
+	}
+}
+
 func GetGeneralSetting() (*GeneralSetting, error) {
 	var setting GeneralSetting
 	err := DB.First(&setting, 1).Error
@@ -100,6 +116,11 @@ func GetGeneralSetting() (*GeneralSetting, error) {
 		if setting.AIChatHistorySessionLimit != normalizedHistoryLimit {
 			setting.AIChatHistorySessionLimit = normalizedHistoryLimit
 			updates["ai_chat_history_session_limit"] = normalizedHistoryLimit
+		}
+		normalizedOpenMode := NormalizeAIChatOpenMode(setting.AIChatOpenMode)
+		if setting.AIChatOpenMode != normalizedOpenMode {
+			setting.AIChatOpenMode = normalizedOpenMode
+			updates["ai_chat_open_mode"] = normalizedOpenMode
 		}
 		if setting.KubectlImage == "" {
 			setting.KubectlImage = DefaultGeneralKubectlImage
@@ -132,6 +153,7 @@ func GetGeneralSetting() (*GeneralSetting, error) {
 		AIModel:                   DefaultGeneralAIModel,
 		AIMaxTokens:               4096,
 		AIChatHistorySessionLimit: DefaultAIChatHistorySessionLimit,
+		AIChatOpenMode:            DefaultAIChatOpenMode,
 		KubectlEnabled:            true,
 		KubectlImage:              DefaultGeneralKubectlImage,
 		NodeTerminalImage:         DefaultGeneralNodeTerminalImageValue(),

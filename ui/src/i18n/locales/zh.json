@@ -552,6 +552,12 @@
         "maxTokens": "最大 Token 数",
         "chatHistorySessionLimit": "聊天历史会话上限",
         "chatHistorySessionLimitHint": "每个集群最多保留多少条 AI 对话会话。",
+        "openMode": "AI 对话打开方式",
+        "openModeHint": "选择 AI 对话是以内嵌浮层打开，还是以右侧 Sidecar 窗口打开。",
+        "openModes": {
+          "overlay": "浮层",
+          "sidecar": "侧边栏窗口"
+        },
         "providers": {
           "openai": "OpenAI",
           "anthropic": "Anthropic"
@@ -1060,37 +1066,105 @@
       "overview": {
         "clusterHealth": "做一次集群健康检查，并标出最高风险项",
         "errorPods": "列出处于异常状态的 Pod，并给出可能原因和优先级",
-        "namespaceSummary": "按命名空间汇总健康度和异常情况"
+        "namespaceSummary": "按命名空间汇总健康度和异常情况",
+        "topRisks": "列出当前最值得优先处理的 5 个问题",
+        "riskTheme": "判断当前集群风险更偏向资源、网络、调度还是配置",
+        "investigationOrder": "给出今天的巡检顺序和排查优先级"
+      },
+      "podsList": {
+        "anomalies": "找出当前页面中异常 Pod 并按影响排序",
+        "restarts": "列出重启次数最高的 Pod，并分析可能原因",
+        "probeIssues": "哪些 Pod 可能存在探针失败或启动异常",
+        "oomRisk": "哪些 Pod 可能存在 OOM 或资源配置问题",
+        "unstableNamespaces": "哪些命名空间的 Pod 最不稳定",
+        "nextActions": "给出一份从高到低的排查顺序"
+      },
+      "deploymentsList": {
+        "rolloutIssues": "找出 rollout 异常的 Deployment 并按影响排序",
+        "replicaGap": "哪些 Deployment 期望副本与可用副本差异最大",
+        "failedReleases": "哪些 Deployment 最近可能发生了失败发布",
+        "availabilityRisk": "汇总当前部署可用性风险",
+        "topDeployments": "列出最需要优先关注的 5 个 Deployment",
+        "nextActions": "给出当前 Deployment 列表的快速处理建议"
+      },
+      "nodesList": {
+        "pressure": "哪些节点资源压力最大",
+        "unhealthy": "列出 NotReady 或存在 Pressure 的节点并解释风险",
+        "workloadImpact": "哪些节点最可能影响工作负载稳定性",
+        "riskTheme": "判断问题更偏向 CPU、内存、磁盘还是网络",
+        "priorityNodes": "给出优先处理的节点列表",
+        "nextActions": "汇总当前节点侧主要风险和处理顺序"
+      },
+      "eventsList": {
+        "hotEvents": "汇总最近高频异常事件",
+        "repeatedFailures": "哪些事件在重复出现",
+        "namespaceBreakdown": "按命名空间归类当前异常事件",
+        "faultPattern": "从事件中推断当前主要故障模式",
+        "priorityEvents": "找出最值得优先处理的事件",
+        "summary": "给出一份简短事件排障摘要"
       },
       "podDetail": {
         "rootCause": "结合状态、事件和日志分析 {{resourceKind}}/{{resourceName}} 的根因",
         "riskCheck": "检查 {{resourceKind}}/{{resourceName}} 的重启、OOM 和探针失败风险",
-        "troubleshoot": "给出 {{namespace}} 中 {{resourceKind}}/{{resourceName}} 的优先级排障路径"
+        "troubleshoot": "给出 {{namespace}} 中 {{resourceKind}}/{{resourceName}} 的优先级排障路径",
+        "phaseCheck": "判断这个 {{resourceKind}}/{{resourceName}} 当前最可能卡在哪个阶段",
+        "resourceConfig": "分析这个 {{resourceKind}}/{{resourceName}} 是否存在资源配置不合理的问题",
+        "businessImpact": "总结这个 {{resourceKind}}/{{resourceName}} 对业务可用性的实际影响"
       },
       "deploymentDetail": {
         "releaseCheck": "检查 {{resourceKind}}/{{resourceName}} 的发布进度和阻塞点",
         "replicaGap": "分析 {{resourceKind}}/{{resourceName}} 期望副本与可用副本差异",
-        "recentEvents": "梳理 {{resourceKind}}/{{resourceName}} 最近事件并给出修复建议"
+        "recentEvents": "梳理 {{resourceKind}}/{{resourceName}} 最近事件并给出修复建议",
+        "releaseRootCause": "判断这次 {{resourceKind}}/{{resourceName}} 发布失败最可能的根因",
+        "runtimeRisk": "检查这个 {{resourceKind}}/{{resourceName}} 的探针、资源和调度风险",
+        "recoveryPlan": "给出 {{resourceKind}}/{{resourceName}} 的最小影响恢复方案"
       },
       "nodeDetail": {
         "health": "检查节点健康状态、资源压力和关键告警",
         "workloadRisk": "分析 {{resourceKind}}/{{resourceName}} 上工作负载风险",
-        "actions": "给出 {{resourceKind}}/{{resourceName}} 的优先级修复动作"
+        "actions": "给出 {{resourceKind}}/{{resourceName}} 的优先级修复动作",
+        "topRisk": "判断这个 {{resourceKind}}/{{resourceName}} 当前最主要的稳定性风险",
+        "impactedWorkloads": "哪些工作负载最可能受到这个 {{resourceKind}}/{{resourceName}} 影响",
+        "maintenanceCheck": "如果需要维护这个 {{resourceKind}}/{{resourceName}}，前置风险有哪些"
+      },
+      "serviceDetail": {
+        "selectorMatch": "检查 {{resourceKind}}/{{resourceName}} 的选择器和后端端点是否匹配",
+        "noEndpoints": "为什么这个 {{resourceKind}}/{{resourceName}} 可能没有可用流量",
+        "portRisk": "检查 {{resourceKind}}/{{resourceName}} 的端口映射和暴露风险",
+        "accessPath": "分析这个 {{resourceKind}}/{{resourceName}} 的访问链路主要风险点",
+        "likelyLayer": "判断问题更可能在 {{resourceKind}}、Endpoints 还是后端 Pod",
+        "nextAction": "给出 {{resourceKind}}/{{resourceName}} 的连通性排查路径"
+      },
+      "namespaceDetail": {
+        "healthSummary": "汇总 {{resourceName}} 命名空间的健康度和主要异常",
+        "abnormalResources": "找出 {{resourceName}} 命名空间最异常的资源",
+        "businessImpact": "哪些问题最可能影响 {{resourceName}} 中的业务",
+        "priorityOrder": "给出 {{resourceName}} 命名空间的优先处理顺序",
+        "riskDistribution": "按资源类型总结 {{resourceName}} 中的风险分布",
+        "diagnosis": "判断这里更像容量问题、配置问题还是运行时问题"
       },
       "detail": {
         "summary": "汇总 {{resourceKind}}/{{resourceName}} 当前状态和关键条件",
         "anomaly": "识别 {{resourceKind}}/{{resourceName}} 的异常与可能根因",
-        "nextSteps": "给出 {{namespace}} 中 {{resourceKind}}/{{resourceName}} 的最小影响下一步操作"
+        "nextSteps": "给出 {{namespace}} 中 {{resourceKind}}/{{resourceName}} 的最小影响下一步操作",
+        "riskPoint": "判断这个 {{resourceKind}}/{{resourceName}} 当前最大的风险点",
+        "upstreamImpact": "这个 {{resourceKind}}/{{resourceName}} 是否已经影响上游或下游对象",
+        "checkOrder": "给出 {{resourceKind}}/{{resourceName}} 的一份适合值班处理的排查路径"
       },
       "list": {
         "anomalies": "找出当前页面资源中的异常对象并按影响排序",
         "namespaceHotspots": "指出当前页面中问题最集中的命名空间",
-        "nextActions": "给出当前资源列表的快速处理建议"
+        "nextActions": "给出当前资源列表的快速处理建议",
+        "riskPattern": "汇总当前列表最主要的风险模式",
+        "priorityObjects": "判断哪些对象最值得优先排查",
+        "systemicIssues": "总结当前列表是否存在系统性问题"
       },
       "default": {
         "healthCheck": "做一次集群快速体检并列出 Top 3 风险",
         "workloadIssues": "列出异常工作负载及可能根因",
-        "runbook": "给出按优先级排序的排障清单"
+        "runbook": "给出按优先级排序的排障清单",
+        "riskSummary": "现在最值得优先关注的问题是什么",
+        "nextCheck": "给出适合当前页面的下一步检查建议"
       }
     }
   },

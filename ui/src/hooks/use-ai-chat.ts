@@ -79,6 +79,7 @@ type APIChatMessage = { role: 'user' | 'assistant'; content: string }
 const HISTORY_STORAGE_KEY_PREFIX = 'ai-chat-history-'
 const LEGACY_HISTORY_STORAGE_KEY = `${HISTORY_STORAGE_KEY_PREFIX}desktop`
 const HISTORY_MIGRATION_STORAGE_KEY_PREFIX = 'ai-chat-history-migrated-v1-'
+const ACTIVE_SESSION_STORAGE_KEY_PREFIX = 'ai-chat-active-session-'
 const MAX_HISTORY_SESSIONS = 50
 
 function loadLegacyHistoryFromStorage(): ChatSession[] {
@@ -93,6 +94,23 @@ function loadLegacyHistoryFromStorage(): ChatSession[] {
 
 function getMigrationStorageKey(clusterName: string) {
   return `${HISTORY_MIGRATION_STORAGE_KEY_PREFIX}${clusterName || 'default'}`
+}
+
+function getActiveSessionStorageKey(clusterName: string) {
+  return `${ACTIVE_SESSION_STORAGE_KEY_PREFIX}${clusterName || 'default'}`
+}
+
+function loadActiveSessionId(clusterName: string) {
+  return localStorage.getItem(getActiveSessionStorageKey(clusterName)) || ''
+}
+
+function persistActiveSessionId(clusterName: string, sessionId: string) {
+  if (!sessionId) return
+  localStorage.setItem(getActiveSessionStorageKey(clusterName), sessionId)
+}
+
+function clearActiveSessionId(clusterName: string) {
+  localStorage.removeItem(getActiveSessionStorageKey(clusterName))
 }
 
 function hasLegacyHistoryMigrated(clusterName: string) {
@@ -202,6 +220,7 @@ export function useAIChat() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const activeAssistantMsgIdRef = useRef<string | null>(null)
   const startNewAssistantSegmentRef = useRef(false)
+  const didAttemptRestoreRef = useRef(false)
 
   useEffect(() => {
     currentSessionIdRef.current = currentSessionId
@@ -337,6 +356,7 @@ export function useAIChat() {
 
   useEffect(() => {
     let cancelled = false
+    didAttemptRestoreRef.current = false
 
     const loadHistory = async () => {
       try {
@@ -385,13 +405,14 @@ export function useAIChat() {
         messagesRef.current,
         resolvedPageContext
       )
+      persistActiveSessionId(currentCluster, resolvedSessionId)
       if (currentSessionId !== resolvedSessionId) {
         setCurrentSessionId(resolvedSessionId)
         currentSessionIdRef.current = resolvedSessionId
       }
       return resolvedSessionId
     },
-    [currentSessionId, persistSessionSnapshot]
+    [currentCluster, currentSessionId, persistSessionSnapshot]
   )
 
   const appendAssistantError = useCallback(
@@ -897,6 +918,7 @@ export function useAIChat() {
       ]
 
       replaceMessages(nextMessages)
+      persistActiveSessionId(currentCluster, sessionId)
       void persistSessionSnapshot(sessionId, nextMessages, pageContext)
       setIsLoading(true)
 
@@ -937,6 +959,7 @@ export function useAIChat() {
       replaceMessages,
       saveCurrentSession,
       streamChat,
+      currentCluster,
     ]
   )
 
@@ -1214,7 +1237,8 @@ export function useAIChat() {
     setMessages([])
     setCurrentSessionId(null)
     currentSessionIdRef.current = null
-  }, [])
+    clearActiveSessionId(currentCluster)
+  }, [currentCluster])
 
   const stopGeneration = useCallback(() => {
     abortControllerRef.current?.abort()
@@ -1230,6 +1254,7 @@ export function useAIChat() {
         replaceMessages(session.messages || [])
         setCurrentSessionId(sessionId)
         currentSessionIdRef.current = sessionId
+        persistActiveSessionId(currentCluster, sessionId)
         if (session.pageContext) {
           lastPageContextRef.current = session.pageContext
         }
@@ -1240,14 +1265,56 @@ export function useAIChat() {
         setIsLoading(false)
       }
     },
-    [mergeHistorySession, replaceMessages]
+    [currentCluster, mergeHistorySession, replaceMessages]
   )
+
+  useEffect(() => {
+    if (didAttemptRestoreRef.current) {
+      return
+    }
+    if (currentSessionId || history.length === 0) {
+      return
+    }
+
+    didAttemptRestoreRef.current = true
+    const activeSessionId = loadActiveSessionId(currentCluster)
+    if (!activeSessionId) {
+      return
+    }
+    if (!history.some((session) => session.id === activeSessionId)) {
+      clearActiveSessionId(currentCluster)
+      return
+    }
+
+    void loadSession(activeSessionId)
+  }, [currentCluster, currentSessionId, history, loadSession])
 
   const deleteSession = useCallback(
     (sessionId: string) => {
-      setHistory((prev) => prev.filter((session) => session.id !== sessionId))
+      const activeSessionId = loadActiveSessionId(currentCluster)
+      let nextActiveSessionId = ''
+      setHistory((prev) => {
+        const next = prev.filter((session) => session.id !== sessionId)
+        if (activeSessionId === sessionId) {
+          nextActiveSessionId = next[0]?.id || ''
+          if (nextActiveSessionId) {
+            persistActiveSessionId(currentCluster, nextActiveSessionId)
+          } else {
+            clearActiveSessionId(currentCluster)
+          }
+        }
+        return next
+      })
       if (currentSessionId === sessionId) {
-        clearMessages()
+        messagesRef.current = []
+        setMessages([])
+        setCurrentSessionId(null)
+        currentSessionIdRef.current = null
+        if (nextActiveSessionId) {
+          persistActiveSessionId(currentCluster, nextActiveSessionId)
+        } else {
+          clearActiveSessionId(currentCluster)
+        }
       }
 
       void deleteChatSession(sessionId).catch((error) => {
@@ -1255,7 +1322,7 @@ export function useAIChat() {
         void reloadHistory()
       })
     },
-    [clearMessages, currentSessionId, reloadHistory]
+    [currentCluster, currentSessionId, reloadHistory]
   )
 
   const newSession = useCallback(() => {

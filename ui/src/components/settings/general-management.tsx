@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRuntime } from '@/contexts/runtime-context'
 import { IconRobot, IconSettings, IconTerminal2 } from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -37,6 +38,7 @@ interface GeneralSettingsFormData {
   aiBaseUrl: string
   aiMaxTokens: number
   aiChatHistorySessionLimit: number
+  aiChatOpenMode: 'overlay' | 'sidecar'
   kubectlEnabled: boolean
   kubectlImage: string
   nodeTerminalImage: string
@@ -46,6 +48,7 @@ interface GeneralSettingsFormData {
 
 export function GeneralManagement() {
   const { t } = useTranslation()
+  const { isDesktop } = useRuntime()
   const queryClient = useQueryClient()
   const { data, isLoading } = useGeneralSetting()
   const [formData, setFormData] = useState<GeneralSettingsFormData>({
@@ -57,6 +60,7 @@ export function GeneralManagement() {
     aiBaseUrl: '',
     aiMaxTokens: 4096,
     aiChatHistorySessionLimit: 200,
+    aiChatOpenMode: 'sidecar',
     kubectlEnabled: true,
     kubectlImage: DEFAULT_KUBECTL_IMAGE,
     nodeTerminalImage: DEFAULT_NODE_TERMINAL_IMAGE,
@@ -75,6 +79,7 @@ export function GeneralManagement() {
       aiBaseUrl: data.aiBaseUrl || '',
       aiMaxTokens: data.aiMaxTokens || 4096,
       aiChatHistorySessionLimit: data.aiChatHistorySessionLimit || 200,
+      aiChatOpenMode: data.aiChatOpenMode || 'sidecar',
       kubectlEnabled: data.kubectlEnabled ?? true,
       kubectlImage: data.kubectlImage || DEFAULT_KUBECTL_IMAGE,
       nodeTerminalImage: data.nodeTerminalImage || DEFAULT_NODE_TERMINAL_IMAGE,
@@ -152,6 +157,7 @@ export function GeneralManagement() {
       aiBaseUrl: formData.aiBaseUrl.trim(),
       aiMaxTokens: formData.aiMaxTokens || 4096,
       aiChatHistorySessionLimit: formData.aiChatHistorySessionLimit || 200,
+      aiChatOpenMode: formData.aiChatOpenMode,
       kubectlEnabled: formData.kubectlEnabled,
       kubectlImage: formData.kubectlImage.trim() || DEFAULT_KUBECTL_IMAGE,
       nodeTerminalImage:
@@ -362,6 +368,50 @@ export function GeneralManagement() {
                   )}
                 </p>
               </div>
+
+              {isDesktop ? (
+                <div className="space-y-2">
+                  <Label htmlFor="general-ai-open-mode">
+                    {t(
+                      'generalManagement.aiAgent.form.openMode',
+                      'AI Chat Open Mode'
+                    )}
+                  </Label>
+                  <Select
+                    value={formData.aiChatOpenMode}
+                    onValueChange={(value: 'overlay' | 'sidecar') =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        aiChatOpenMode: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id="general-ai-open-mode">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="overlay">
+                        {t(
+                          'generalManagement.aiAgent.form.openModes.overlay',
+                          'Overlay'
+                        )}
+                      </SelectItem>
+                      <SelectItem value="sidecar">
+                        {t(
+                          'generalManagement.aiAgent.form.openModes.sidecar',
+                          'Sidecar Window'
+                        )}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'generalManagement.aiAgent.form.openModeHint',
+                      'Choose whether AI chat opens as an in-window overlay or a docked sidecar window.'
+                    )}
+                  </p>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

@@ -204,6 +204,7 @@ func HandleGetGeneralSetting(c *gin.Context) {
 		"aiBaseUrl":                 setting.AIBaseURL,
 		"aiMaxTokens":               setting.AIMaxTokens,
 		"aiChatHistorySessionLimit": setting.AIChatHistorySessionLimit,
+		"aiChatOpenMode":            setting.AIChatOpenMode,
 		"kubectlEnabled":            setting.KubectlEnabled,
 		"kubectlImage":              setting.KubectlImage,
 		"nodeTerminalImage":         setting.NodeTerminalImage,
@@ -220,6 +221,7 @@ type UpdateGeneralSettingRequest struct {
 	AIBaseURL                 string  `json:"aiBaseUrl"`
 	AIMaxTokens               int     `json:"aiMaxTokens"`
 	AIChatHistorySessionLimit int     `json:"aiChatHistorySessionLimit"`
+	AIChatOpenMode            string  `json:"aiChatOpenMode"`
 	KubectlEnabled            bool    `json:"kubectlEnabled"`
 	KubectlImage              string  `json:"kubectlImage"`
 	NodeTerminalImage         string  `json:"nodeTerminalImage"`
@@ -288,6 +290,7 @@ func HandleUpdateGeneralSetting(c *gin.Context) {
 		aiMaxTokens = 4096
 	}
 	aiChatHistorySessionLimit := model.NormalizeAIChatHistorySessionLimit(req.AIChatHistorySessionLimit)
+	aiChatOpenMode := model.NormalizeAIChatOpenMode(req.AIChatOpenMode)
 
 	updates := map[string]interface{}{
 		"ai_agent_enabled":              req.AIAgentEnabled,
@@ -296,6 +299,7 @@ func HandleUpdateGeneralSetting(c *gin.Context) {
 		"ai_base_url":                   strings.TrimSpace(req.AIBaseURL),
 		"ai_max_tokens":                 aiMaxTokens,
 		"ai_chat_history_session_limit": aiChatHistorySessionLimit,
+		"ai_chat_open_mode":             aiChatOpenMode,
 		"kubectl_enabled":               req.KubectlEnabled,
 		"kubectl_image":                 kubectlImage,
 		"node_terminal_image":           nodeTerminalImage,
@@ -322,6 +326,7 @@ func HandleUpdateGeneralSetting(c *gin.Context) {
 		"aiBaseUrl":                 updated.AIBaseURL,
 		"aiMaxTokens":               updated.AIMaxTokens,
 		"aiChatHistorySessionLimit": updated.AIChatHistorySessionLimit,
+		"aiChatOpenMode":            updated.AIChatOpenMode,
 		"kubectlEnabled":            updated.KubectlEnabled,
 		"kubectlImage":              updated.KubectlImage,
 		"nodeTerminalImage":         updated.NodeTerminalImage,
