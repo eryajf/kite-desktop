@@ -402,11 +402,12 @@ func layoutAISidecarBounds(
 		if maxX < workArea.X {
 			maxX = workArea.X
 		}
-		if rightX < workArea.X {
+		switch {
+		case rightX < workArea.X:
 			bounds.X = workArea.X
-		} else if rightX > maxX {
+		case rightX > maxX:
 			bounds.X = maxX
-		} else {
+		default:
 			bounds.X = rightX
 		}
 	}
