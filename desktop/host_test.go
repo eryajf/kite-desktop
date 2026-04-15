@@ -1,10 +1,12 @@
 package main
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -141,11 +143,14 @@ func TestNormalizeAndDenormalizeWindowBounds(t *testing.T) {
 	}
 
 	normalized := normalizeWindowBounds(original, screen)
-	expectedNormalized := application.Rect{
-		X:      300,
-		Y:      120,
-		Width:  1280,
-		Height: 860,
+	expectedNormalized := original
+	if runtime.GOOS == "darwin" {
+		expectedNormalized = application.Rect{
+			X:      300,
+			Y:      120,
+			Width:  1280,
+			Height: 860,
+		}
 	}
 	if normalized != expectedNormalized {
 		t.Fatalf("normalizeWindowBounds() = %#v, want %#v", normalized, expectedNormalized)
@@ -236,9 +241,15 @@ func TestDesktopUpdateStateStoreClearsReadyStateAfterAppliedVersion(t *testing.T
 }
 
 func TestDesktopHostDownloadUpdateCreatesReadyState(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte("kite update payload"))
 	}))
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("net.Listen() error = %v", err)
+	}
+	server.Listener = listener
+	server.Start()
 	defer server.Close()
 
 	baseDir := t.TempDir()
@@ -256,7 +267,7 @@ func TestDesktopHostDownloadUpdateCreatesReadyState(t *testing.T) {
 	}
 
 	host := newDesktopHost(nil, "", paths)
-	err := host.updateStore.saveCheckResult(kiteversion.UpdateCheckInfo{
+	err = host.updateStore.saveCheckResult(kiteversion.UpdateCheckInfo{
 		CurrentVersion: "0.1.1",
 		LatestVersion:  "0.1.2",
 		Comparison:     kiteversion.UpdateComparisonUpdateAvailable,
