@@ -8,7 +8,14 @@ import {
   CustomResource,
   ResourceType,
 } from '@/types/api'
-import { DeploymentStatusType, PodStatus, SimpleContainer } from '@/types/k8s'
+import {
+  DeploymentOverviewStatusTone,
+  DeploymentOverviewViewModel,
+  DeploymentResourceSummaryValue,
+  DeploymentStatusType,
+  PodStatus,
+  SimpleContainer,
+} from '@/types/k8s'
 
 import { getAge } from './utils'
 
@@ -299,6 +306,211 @@ export function getDeploymentStatus(
   }
 
   return 'Unknown'
+}
+
+const binaryMemoryUnits: Record<string, number> = {
+  Ki: 1024,
+  Mi: 1024 ** 2,
+  Gi: 1024 ** 3,
+  Ti: 1024 ** 4,
+  Pi: 1024 ** 5,
+  Ei: 1024 ** 6,
+}
+
+const decimalUnits: Record<string, number> = {
+  n: 1e-9,
+  u: 1e-6,
+  m: 1e-3,
+  '': 1,
+  k: 1e3,
+  M: 1e6,
+  G: 1e9,
+  T: 1e12,
+  P: 1e15,
+  E: 1e18,
+}
+
+function parseCpuQuantity(value?: string): number | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const match = value.trim().match(/^([+-]?\d+(?:\.\d+)?)(n|u|m|k|M|G|T|P|E)?$/)
+  if (!match) {
+    return undefined
+  }
+
+  const amount = Number(match[1])
+  const suffix = match[2] ?? ''
+  if (Number.isNaN(amount) || !(suffix in decimalUnits)) {
+    return undefined
+  }
+
+  return Math.round(amount * decimalUnits[suffix] * 1000)
+}
+
+function formatCpuQuantity(millicores?: number): string | undefined {
+  if (millicores === undefined) {
+    return undefined
+  }
+
+  if (millicores % 1000 === 0) {
+    return String(millicores / 1000)
+  }
+
+  return `${millicores}m`
+}
+
+function parseMemoryQuantity(value?: string): number | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const match = value
+    .trim()
+    .match(/^([+-]?\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|Pi|Ei|K|M|G|T|P|E)?$/)
+  if (!match) {
+    return undefined
+  }
+
+  const amount = Number(match[1])
+  const suffix = match[2] ?? ''
+  if (Number.isNaN(amount)) {
+    return undefined
+  }
+
+  if (suffix in binaryMemoryUnits) {
+    return Math.round(amount * binaryMemoryUnits[suffix])
+  }
+
+  if (suffix in decimalUnits) {
+    return Math.round(amount * decimalUnits[suffix])
+  }
+
+  return Math.round(amount)
+}
+
+function formatMemoryQuantity(bytes?: number): string | undefined {
+  if (bytes === undefined) {
+    return undefined
+  }
+
+  const orderedUnits = Object.entries(binaryMemoryUnits).sort(
+    (a, b) => b[1] - a[1]
+  )
+
+  for (const [suffix, unitValue] of orderedUnits) {
+    if (bytes >= unitValue && bytes % unitValue === 0) {
+      return `${bytes / unitValue}${suffix}`
+    }
+  }
+
+  return `${bytes}`
+}
+
+function sumResourceValues(
+  containers: Container[] | undefined,
+  key: 'requests' | 'limits',
+  resource: 'cpu' | 'memory'
+): number | undefined {
+  if (!containers?.length) {
+    return undefined
+  }
+
+  let total = 0
+  let hasValue = false
+
+  containers.forEach((container) => {
+    const value = container.resources?.[key]?.[resource]
+    const parsed =
+      resource === 'cpu' ? parseCpuQuantity(value) : parseMemoryQuantity(value)
+
+    if (parsed !== undefined) {
+      total += parsed
+      hasValue = true
+    }
+  })
+
+  return hasValue ? total : undefined
+}
+
+export function aggregateContainerResources(containers?: Container[]): {
+  requests: DeploymentResourceSummaryValue
+  limits: DeploymentResourceSummaryValue
+} {
+  return {
+    requests: {
+      cpu: formatCpuQuantity(sumResourceValues(containers, 'requests', 'cpu')),
+      memory: formatMemoryQuantity(
+        sumResourceValues(containers, 'requests', 'memory')
+      ),
+    },
+    limits: {
+      cpu: formatCpuQuantity(sumResourceValues(containers, 'limits', 'cpu')),
+      memory: formatMemoryQuantity(
+        sumResourceValues(containers, 'limits', 'memory')
+      ),
+    },
+  }
+}
+
+function getDeploymentStatusTone(
+  status: DeploymentStatusType
+): DeploymentOverviewStatusTone {
+  switch (status) {
+    case 'Available':
+      return 'success'
+    case 'Progressing':
+    case 'Paused':
+      return 'warning'
+    case 'Terminating':
+    case 'Not Available':
+      return 'danger'
+    case 'Scaled Down':
+    case 'Unknown':
+    default:
+      return 'muted'
+  }
+}
+
+export function buildDeploymentOverviewViewModel(
+  deployment: Deployment
+): DeploymentOverviewViewModel {
+  const status = getDeploymentStatus(deployment)
+  const containers = deployment.spec?.template?.spec?.containers
+  const resources = aggregateContainerResources(containers)
+  const generation = deployment.metadata?.generation
+  const observedGeneration = deployment.status?.observedGeneration
+  const createdAt = deployment.metadata?.creationTimestamp
+
+  return {
+    status,
+    statusTone: getDeploymentStatusTone(status),
+    readyReplicas: deployment.status?.readyReplicas || 0,
+    specReplicas: deployment.spec?.replicas || 0,
+    updatedReplicas: deployment.status?.updatedReplicas || 0,
+    availableReplicas: deployment.status?.availableReplicas || 0,
+    observedGeneration,
+    generation,
+    isObserved:
+      generation === undefined ||
+      observedGeneration === undefined ||
+      observedGeneration >= generation,
+    createdAt,
+    age: createdAt ? getAge(createdAt) : undefined,
+    strategy: deployment.spec?.strategy?.type || 'RollingUpdate',
+    hostNetwork: deployment.spec?.template?.spec?.hostNetwork === true,
+    schedulerName: deployment.spec?.template?.spec?.schedulerName,
+    resourceRequests: resources.requests,
+    resourceLimits: resources.limits,
+    selectorLabels: deployment.spec?.selector?.matchLabels || {},
+    revision:
+      deployment.metadata?.annotations?.['deployment.kubernetes.io/revision'],
+    serviceLinksEnabled:
+      deployment.spec?.template?.spec?.enableServiceLinks !== false,
+    labels: deployment.metadata?.labels || {},
+    annotations: deployment.metadata?.annotations || {},
+  }
 }
 
 export function isStandardK8sResource(kind: string): boolean {

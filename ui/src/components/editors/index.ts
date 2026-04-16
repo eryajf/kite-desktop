@@ -1,4 +1,8 @@
 export { ImageEditor } from './image-editor'
 export { ResourceEditor } from './resource-editor'
 export { EnvironmentEditor } from './environment-editor'
+export { VolumeMountEditor } from './volume-mount-editor'
+export { VolumeSourceEditor } from './volume-source-editor'
+export { ProbeEditor } from './probe-editor'
+export { ProbeGroupEditor } from './probe-group-editor'
 export { DeploymentCreateDialog } from './deployment-create-dialog'

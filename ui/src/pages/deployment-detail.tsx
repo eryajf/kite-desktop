@@ -18,7 +18,11 @@ import {
   useResource,
   useResourcesWatch,
 } from '@/lib/api'
-import { getDeploymentStatus, toSimpleContainer } from '@/lib/k8s'
+import {
+  buildDeploymentOverviewViewModel,
+  getDeploymentStatus,
+  toSimpleContainer,
+} from '@/lib/k8s'
 import { formatDate, translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,12 +35,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
+import { ContainerEditDialog } from '@/components/container-edit-dialog'
 import { ContainerTable } from '@/components/container-table'
-import { DeploymentStatusIcon } from '@/components/deployment-status-icon'
+import { DeploymentOverviewInfoCard } from '@/components/deployment-overview-info-card'
+import { DeploymentOverviewStatusCard } from '@/components/deployment-overview-status-card'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
-import { LabelsAnno } from '@/components/lables-anno'
 import { LogViewer } from '@/components/log-viewer'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
@@ -57,6 +62,8 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [refreshInterval, setRefreshInterval] = useState<number>(0)
+  const [isContainerEditorOpen, setIsContainerEditorOpen] = useState(false)
+  const [selectedContainerName, setSelectedContainerName] = useState<string>()
   const { t } = useTranslation()
 
   // Fetch deployment data
@@ -175,6 +182,19 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
     setYamlContent(content)
   }
 
+  const openContainerEditor = useCallback(
+    (containerName?: string) => {
+      const nextContainerName =
+        containerName ||
+        deployment?.spec?.template?.spec?.containers?.[0]?.name ||
+        undefined
+
+      setSelectedContainerName(nextContainerName)
+      setIsContainerEditorOpen(true)
+    },
+    [deployment]
+  )
+
   const handleContainerUpdate = async (
     updatedContainer: Container,
     init = false
@@ -224,6 +244,21 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
     }
   }
 
+  const handleDeploymentSave = useCallback(
+    async (updatedDeployment: Deployment) => {
+      try {
+        await updateResource('deployments', name, namespace, updatedDeployment)
+        toast.success(t('containerEditor.saveSuccess'))
+        setRefreshInterval(1000)
+      } catch (error) {
+        console.error('Failed to update deployment:', error)
+        toast.error(translateError(error, t))
+        throw error
+      }
+    },
+    [name, namespace, t]
+  )
+
   if (isLoadingDeployment) {
     return (
       <div className="p-6">
@@ -254,8 +289,9 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
   }
 
   const { status } = deployment
-  const readyReplicas = status?.readyReplicas || 0
-  const totalReplicas = status?.replicas || 0
+  const overview = buildDeploymentOverviewViewModel(deployment)
+  const containerCount =
+    deployment.spec?.template?.spec?.containers?.length || 0
 
   return (
     <div className="space-y-2">
@@ -401,119 +437,12 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
-                {/* Status Overview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <DeploymentStatusIcon
-                            status={getDeploymentStatus(deployment)}
-                          />
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            Status
-                          </p>
-                          <p className="text-sm font-medium">
-                            {getDeploymentStatus(deployment)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Ready Replicas
-                        </p>
-                        <p className="text-sm font-medium">
-                          {readyReplicas} / {totalReplicas}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Updated Replicas
-                        </p>
-                        <p className="text-sm font-medium">
-                          {status?.updatedReplicas || 0}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          Available Replicas
-                        </p>
-                        <p className="text-sm font-medium">
-                          {status?.availableReplicas || 0}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Deployment Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      {t('detail.sections.deploymentInformation')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm">
-                          {formatDate(
-                            deployment.metadata?.creationTimestamp || '',
-                            true
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.strategy')}
-                        </Label>
-                        <p className="text-sm">
-                          {deployment.spec?.strategy?.type || 'RollingUpdate'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.replicas')}
-                        </Label>
-                        <p className="text-sm">
-                          {deployment.spec?.replicas || 0}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.selector')}
-                        </Label>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {Object.entries(
-                            deployment.spec?.selector?.matchLabels || {}
-                          ).map(([key, value]) => (
-                            <Badge
-                              key={key}
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {key}: {value}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                    <LabelsAnno
-                      labels={deployment.metadata?.labels || {}}
-                      annotations={deployment.metadata?.annotations || {}}
-                    />
-                  </CardContent>
-                </Card>
+                <DeploymentOverviewStatusCard overview={overview} />
+                <DeploymentOverviewInfoCard
+                  overview={overview}
+                  containerCount={containerCount}
+                  onEdit={() => openContainerEditor()}
+                />
 
                 {deployment.spec?.template.spec?.initContainers?.length &&
                   deployment.spec?.template.spec?.initContainers?.length >
@@ -567,8 +496,8 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
                             <ContainerTable
                               key={container.name}
                               container={container}
-                              onContainerUpdate={(updatedContainer) =>
-                                handleContainerUpdate(updatedContainer)
+                              onEditRequest={(selectedContainer) =>
+                                openContainerEditor(selectedContainer.name)
                               }
                             />
                           )
@@ -773,6 +702,17 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
         resourceType="deployments"
         namespace={namespace}
       />
+      {isContainerEditorOpen ? (
+        <ContainerEditDialog
+          mode="deployment"
+          open={isContainerEditorOpen}
+          onOpenChange={setIsContainerEditorOpen}
+          deployment={deployment}
+          namespace={namespace}
+          initialContainerName={selectedContainerName}
+          onSaveDeployment={handleDeploymentSave}
+        />
+      ) : null}
     </div>
   )
 }

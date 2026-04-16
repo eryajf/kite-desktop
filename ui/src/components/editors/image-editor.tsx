@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Container } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 
@@ -36,6 +36,10 @@ export function ImageEditor({ container, onUpdate }: ImageEditorProps) {
     getImagePrefix(container.image || '')
   )
 
+  useEffect(() => {
+    setImagePrefix(getImagePrefix(container.image || ''))
+  }, [container.image, getImagePrefix])
+
   const updateImage = useCallback(
     (image: string) => {
       onUpdate({ image })
@@ -70,7 +74,9 @@ export function ImageEditor({ container, onUpdate }: ImageEditorProps) {
   return (
     <div className="space-y-4">
       <div className="space-y-2 relative">
-        <Label htmlFor="container-image">{t('imageEditor.containerImage')}</Label>
+        <Label htmlFor="container-image">
+          {t('imageEditor.containerImage')}
+        </Label>
         <Input
           id="container-image"
           ref={inputRef}

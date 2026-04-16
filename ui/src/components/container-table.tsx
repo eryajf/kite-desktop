@@ -10,9 +10,10 @@ import { Label } from './ui/label'
 export function ContainerTable(props: {
   container: Container
   onContainerUpdate?: (updatedContainer: Container) => void
+  onEditRequest?: (container: Container) => void
   init?: boolean
 }) {
-  const { container, onContainerUpdate, init } = props
+  const { container, onContainerUpdate, onEditRequest, init } = props
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
 
@@ -55,12 +56,16 @@ export function ContainerTable(props: {
                   {container.imagePullPolicy}
                 </Badge>
               )}
-              {onContainerUpdate && (
+              {(onContainerUpdate || onEditRequest) && (
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={(e) => {
                     e.stopPropagation()
+                    if (onEditRequest) {
+                      onEditRequest(container)
+                      return
+                    }
                     setEditDialogOpen(true)
                   }}
                   className="h-8 w-8 p-0"
@@ -436,12 +441,14 @@ export function ContainerTable(props: {
         )}
       </div>
 
-      <ContainerEditDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        container={container}
-        onSave={handleContainerUpdate}
-      />
+      {onEditRequest ? null : (
+        <ContainerEditDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          container={container}
+          onSave={handleContainerUpdate}
+        />
+      )}
     </>
   )
 }
