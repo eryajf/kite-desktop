@@ -12,6 +12,7 @@ import {
   formatDate,
   formatMemory,
   formatPodMetrics,
+  formatRelativeTimeStrict,
   getAge,
   parseBytes,
   parseRBACError,
@@ -104,6 +105,11 @@ describe('time formatting helpers', () => {
     expect(formatDate('2024-01-03T12:34:56Z')).toMatch(
       /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/
     )
+  })
+
+  it('formats strict relative time without approximate wording', () => {
+    expect(formatRelativeTimeStrict('2024-01-01T12:00:00Z')).toContain('2')
+    expect(formatRelativeTimeStrict('2024-01-01T12:00:00Z')).toBe('2 days ago')
   })
 
   it('passes the expected options to locale formatting', () => {

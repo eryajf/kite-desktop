@@ -38,7 +38,6 @@ import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
 import { ContainerEditDialog } from '@/components/container-edit-dialog'
 import { ContainerTable } from '@/components/container-table'
 import { DeploymentOverviewInfoCard } from '@/components/deployment-overview-info-card'
-import { DeploymentOverviewStatusCard } from '@/components/deployment-overview-status-card'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
@@ -437,7 +436,6 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
-                <DeploymentOverviewStatusCard overview={overview} />
                 <DeploymentOverviewInfoCard
                   overview={overview}
                   containerCount={containerCount}

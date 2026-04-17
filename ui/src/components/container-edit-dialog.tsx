@@ -115,7 +115,6 @@ function SimpleContainerEditDialogContent({
           {t('containerEditor.description')}
         </DialogDescription>
       </DialogHeader>
-
       <Tabs defaultValue="image" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="image">
@@ -241,7 +240,6 @@ function DeploymentContainerEditDialogContent({
           {t('containerEditor.description')}
         </DialogDescription>
       </DialogHeader>
-
       {containers.length > 1 ? (
         <div className="space-y-2">
           <label className="text-sm font-medium">

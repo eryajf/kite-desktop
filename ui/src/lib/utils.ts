@@ -76,6 +76,39 @@ export function formatRelativeTime(timestamp: string): string {
   })
 }
 
+export function formatRelativeTimeStrict(timestamp: string): string {
+  const target = new Date(timestamp)
+  const now = new Date()
+  const diffMs = Math.max(0, now.getTime() - target.getTime())
+  const isZh = i18n.resolvedLanguage?.startsWith('zh')
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  const diffHours = Math.floor(
+    (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+  )
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+  const diffSeconds = Math.floor((diffMs % (1000 * 60)) / 1000)
+
+  if (diffDays > 0) {
+    return isZh ? `${diffDays}天前` : `${diffDays} days ago`
+  }
+
+  if (diffHours > 0) {
+    return isZh
+      ? `${diffHours}小时前`
+      : `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`
+  }
+
+  if (diffMinutes > 0) {
+    return isZh
+      ? `${diffMinutes}分钟前`
+      : `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`
+  }
+
+  return isZh
+    ? `${diffSeconds}秒前`
+    : `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`
+}
+
 export function formatChartXTicks(
   timestamp: string,
   isSameDay: boolean
