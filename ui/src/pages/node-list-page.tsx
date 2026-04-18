@@ -109,7 +109,7 @@ function getNodeIP(node: NodeWithMetrics): string {
     return hostname.address
   }
 
-  return 'N/A'
+  return ''
 }
 
 export function NodeListPage() {
@@ -203,46 +203,46 @@ export function NodeListPage() {
       }),
       columnHelper.accessor((row) => getNodeIP(row), {
         id: 'ip',
-        header: 'IP Address',
+        header: t('nodes.ipAddress'),
         cell: ({ getValue }) => {
           const ip = getValue()
           return (
             <span className="text-sm font-mono text-muted-foreground">
-              {ip}
+              {ip || t('common.na')}
             </span>
           )
         },
       }),
       columnHelper.accessor('status.nodeInfo.kubeletVersion', {
-        header: 'Version',
+        header: t('nodes.version'),
         cell: ({ getValue }) => {
           const version = getValue()
           return version ? (
             <span className="text-sm">{version}</span>
           ) : (
-            <span className="text-muted-foreground">N/A</span>
+            <span className="text-muted-foreground">{t('common.na')}</span>
           )
         },
       }),
       columnHelper.accessor('status.nodeInfo.kernelVersion', {
-        header: 'Kernel Version',
+        header: t('nodes.kernelVersion'),
         cell: ({ getValue }) => {
           const kernelVersion = getValue()
           return kernelVersion ? (
             <span className="text-sm">{kernelVersion}</span>
           ) : (
-            <span className="text-muted-foreground">N/A</span>
+            <span className="text-muted-foreground">{t('common.na')}</span>
           )
         },
       }),
       columnHelper.accessor('status.nodeInfo.osImage', {
-        header: 'OS Image',
+        header: t('nodes.os'),
         cell: ({ getValue }) => {
           const osImage = getValue()
           return osImage ? (
             <span className="text-sm">{osImage}</span>
           ) : (
-            <span className="text-muted-foreground">N/A</span>
+            <span className="text-muted-foreground">{t('common.na')}</span>
           )
         },
       }),

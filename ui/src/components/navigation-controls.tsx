@@ -21,7 +21,7 @@ export function NavigationControls() {
         className="size-8 rounded-md text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:opacity-100"
       >
         <ArrowLeft className="h-4 w-4" />
-        <span className="sr-only">Back</span>
+        <span className="sr-only">{t('common.back')}</span>
       </Button>
       <Button
         type="button"
@@ -34,7 +34,7 @@ export function NavigationControls() {
         className="size-8 rounded-md text-muted-foreground hover:text-foreground disabled:text-muted-foreground/40 disabled:opacity-100"
       >
         <ArrowRight className="h-4 w-4" />
-        <span className="sr-only">Forward</span>
+        <span className="sr-only">{t('common.forward')}</span>
       </Button>
     </div>
   )

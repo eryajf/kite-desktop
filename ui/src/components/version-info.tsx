@@ -1,8 +1,11 @@
+import { useTranslation } from 'react-i18next'
+
 import { useVersionInfo } from '@/lib/api'
 import { openURL } from '@/lib/desktop'
 import { PROJECT_REPOSITORY_URL } from '@/lib/project'
 
 export function VersionInfo() {
+  const { t } = useTranslation()
   const { data: versionInfo } = useVersionInfo()
 
   if (!versionInfo) return null
@@ -20,7 +23,7 @@ export function VersionInfo() {
       <button
         onClick={handleCommitClick}
         className="hover:text-primary/80 hover:underline transition-colors cursor-pointer"
-        title={`View commit ${versionInfo.commitId} on GitHub`}
+        title={t('versionInfo.viewCommit', { commitId: versionInfo.commitId })}
       >
         {versionInfo.commitId.slice(0, 7)}
       </button>

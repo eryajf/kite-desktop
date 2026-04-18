@@ -577,7 +577,7 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
                 <YamlEditor
                   key={refreshKey}
                   value={yamlContent}
-                  title="StatefulSet Configuration"
+                  title={t('yamlEditor.statefulSetTitle')}
                   onSave={handleSaveYaml}
                   onChange={handleYamlChange}
                   isSaving={isSavingYaml}

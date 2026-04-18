@@ -523,7 +523,7 @@ export function Terminal({
           <div className="flex items-center gap-2">
             <CardTitle className="text-lg flex items-center gap-2">
               <IconTerminal className="h-5 w-5" />
-              Terminal
+              {t('pods.terminal')}
             </CardTitle>
             <ConnectionIndicator
               isConnected={isConnected}
@@ -562,7 +562,9 @@ export function Terminal({
               variant="outline"
               size="sm"
               onClick={cycleTheme}
-              title={`Current theme: ${TERMINAL_THEMES[terminalTheme].name} (Ctrl+T to cycle)`}
+              title={t('terminalContent.currentThemeShortcut', {
+                name: TERMINAL_THEMES[terminalTheme].name,
+              })}
               className="relative"
             >
               <IconPalette className="h-4 w-4" />
@@ -586,7 +588,9 @@ export function Terminal({
                   {/* Terminal Theme Selector */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="terminal-theme">Terminal Theme</Label>
+                      <Label htmlFor="terminal-theme">
+                        {t('terminalContent.terminalTheme')}
+                      </Label>
                       <Select
                         value={terminalTheme}
                         onValueChange={handleThemeChange}
@@ -655,7 +659,7 @@ export function Terminal({
                   {/* Font Size Selector */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="font-size">Font Size</Label>
+                      <Label htmlFor="font-size">{t('logViewer.fontSize')}</Label>
                       <Select
                         value={fontSize.toString()}
                         onValueChange={(value) =>
@@ -685,7 +689,9 @@ export function Terminal({
                   {/* Cursor Style Selector */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="cursor-style">Cursor Style</Label>
+                      <Label htmlFor="cursor-style">
+                        {t('terminalContent.cursorStyle')}
+                      </Label>
                       <Select
                         value={cursorStyle}
                         onValueChange={handleCursorStyleChange}
@@ -694,9 +700,15 @@ export function Terminal({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="block">Block</SelectItem>
-                          <SelectItem value="underline">Underline</SelectItem>
-                          <SelectItem value="bar">Bar</SelectItem>
+                          <SelectItem value="block">
+                            {t('terminalContent.block')}
+                          </SelectItem>
+                          <SelectItem value="underline">
+                            {t('terminalContent.underline')}
+                          </SelectItem>
+                          <SelectItem value="bar">
+                            {t('terminalContent.bar')}
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

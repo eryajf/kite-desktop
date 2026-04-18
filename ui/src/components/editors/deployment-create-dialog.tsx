@@ -535,7 +535,9 @@ export function DeploymentCreateDialog({
         return (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Deployment Name *</Label>
+              <Label htmlFor="name">
+                {t('deploymentCreateDialog.deploymentNameRequired')}
+              </Label>
               <Input
                 id="name"
                 value={formData.name}
@@ -557,7 +559,9 @@ export function DeploymentCreateDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="namespace">Namespace *</Label>
+              <Label htmlFor="namespace">
+                {t('deploymentCreateDialog.namespaceRequired')}
+              </Label>
               <NamespaceSelector
                 selectedNamespace={formData.namespace}
                 handleNamespaceChange={(namespace) =>
@@ -567,7 +571,7 @@ export function DeploymentCreateDialog({
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Labels *</Label>
+                <Label>{t('deploymentCreateDialog.labelsRequired')}</Label>
                 <Button
                   type="button"
                   variant="outline"
@@ -575,7 +579,7 @@ export function DeploymentCreateDialog({
                   onClick={addLabel}
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Label
+                  {t('deploymentCreateDialog.addLabel')}
                 </Button>
               </div>
               <div className="space-y-2">
@@ -610,7 +614,9 @@ export function DeploymentCreateDialog({
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="replicas">Replicas *</Label>
+              <Label htmlFor="replicas">
+                {t('deploymentCreateDialog.replicasRequired')}
+              </Label>
               <Input
                 id="replicas"
                 type="number"
@@ -628,7 +634,7 @@ export function DeploymentCreateDialog({
         return (
           <div className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Label>Volume</Label>
+              <Label>{t('deploymentCreateDialog.volume')}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -636,7 +642,7 @@ export function DeploymentCreateDialog({
                 onClick={addVolume}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Volume
+                {t('deploymentCreateDialog.addVolume')}
               </Button>
             </div>
             <div className="space-y-2">
@@ -657,7 +663,9 @@ export function DeploymentCreateDialog({
                     }
                   >
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select Volume Type" />
+                      <SelectValue
+                        placeholder={t('deploymentCreateDialog.selectVolumeType')}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="emptyDir">emptyDir</SelectItem>
@@ -741,7 +749,9 @@ export function DeploymentCreateDialog({
         return (
           <div className="space-y-6">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <Label className="text-lg font-medium">Containers</Label>
+              <Label className="text-lg font-medium">
+                {t('deploymentCreateDialog.containers')}
+              </Label>
               <Button
                 type="button"
                 variant="outline"
@@ -749,7 +759,7 @@ export function DeploymentCreateDialog({
                 onClick={addContainer}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Container
+                {t('deploymentCreateDialog.addContainer')}
               </Button>
             </div>
             {formData.containers.map((containerConfig, containerIndex) => (
@@ -757,7 +767,9 @@ export function DeploymentCreateDialog({
                 <CardHeader className="pb-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <CardTitle className="text-base">
-                      Container {containerIndex + 1}
+                      {t('deploymentCreateDialog.containerCard', {
+                        index: containerIndex + 1,
+                      })}
                     </CardTitle>
                     {formData.containers.length > 1 && (
                       <Button
@@ -765,7 +777,12 @@ export function DeploymentCreateDialog({
                         variant="outline"
                         size="sm"
                         onClick={() => removeContainer(containerIndex)}
-                        aria-label={`Remove container ${containerIndex + 1}`}
+                        aria-label={t(
+                          'deploymentCreateDialog.removeContainer',
+                          {
+                            index: containerIndex + 1,
+                          }
+                        )}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -790,7 +807,7 @@ export function DeploymentCreateDialog({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor={`name-${containerIndex}`}>
-                        Container Name *
+                        {t('deploymentCreateDialog.containerNameRequired')}
                       </Label>
                       <Input
                         id={`name-${containerIndex}`}
@@ -811,11 +828,11 @@ export function DeploymentCreateDialog({
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Resources (optional)</Label>
+                    <Label>{t('deploymentCreateDialog.resourcesOptional')}</Label>
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">
-                          Requests
+                          {t('monitoring.requests')}
                         </Label>
                         <div className="space-y-1">
                           <Input
@@ -852,7 +869,7 @@ export function DeploymentCreateDialog({
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm text-muted-foreground">
-                          Limits
+                          {t('monitoring.limits')}
                         </Label>
                         <div className="space-y-1">
                           <Input
@@ -908,7 +925,7 @@ export function DeploymentCreateDialog({
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor={`port-${containerIndex}`}>
-                        Container Port (optional)
+                        {t('deploymentCreateDialog.containerPortOptional')}
                       </Label>
                       <Input
                         id={`port-${containerIndex}`}
@@ -928,7 +945,7 @@ export function DeploymentCreateDialog({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor={`pullPolicy-${containerIndex}`}>
-                        Image Pull Policy
+                        {t('imageEditor.imagePullPolicy')}
                       </Label>
                       <Select
                         value={containerConfig.pullPolicy}
@@ -957,7 +974,7 @@ export function DeploymentCreateDialog({
                   {(formData.podSpec?.volumes?.length || 0) > 0 && (
                     <div className="space-y-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label>Volume Mounts</Label>
+                        <Label>{t('deploymentCreateDialog.volumeMounts')}</Label>
                         <Button
                           type="button"
                           variant="outline"
@@ -983,7 +1000,7 @@ export function DeploymentCreateDialog({
                           }}
                         >
                           <Plus className="w-4 h-4 mr-2" />
-                          Add Volume Mount
+                          {t('deploymentCreateDialog.addVolumeMount')}
                         </Button>
                       </div>
 
@@ -1009,7 +1026,11 @@ export function DeploymentCreateDialog({
                               }}
                             >
                               <SelectTrigger className="w-full sm:w-[160px]">
-                                <SelectValue placeholder="Volume name" />
+                                <SelectValue
+                                  placeholder={t(
+                                    'deploymentCreateDialog.volumeName'
+                                  )}
+                                />
                               </SelectTrigger>
                               <SelectContent>
                                 {(formData.podSpec?.volumes || []).map(
@@ -1076,8 +1097,12 @@ export function DeploymentCreateDialog({
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="true">ReadOnly</SelectItem>
-                                <SelectItem value="false">Writable</SelectItem>
+                                <SelectItem value="true">
+                                  {t('deploymentCreateDialog.readOnly')}
+                                </SelectItem>
+                                <SelectItem value="false">
+                                  {t('deploymentCreateDialog.writable')}
+                                </SelectItem>
                               </SelectContent>
                             </Select>
 
@@ -1086,7 +1111,12 @@ export function DeploymentCreateDialog({
                               variant="outline"
                               size="icon"
                               className="w-7 h-7"
-                              aria-label={`Remove volume mount ${mountIndex + 1}`}
+                              aria-label={t(
+                                'deploymentCreateDialog.removeVolumeMount',
+                                {
+                                  index: mountIndex + 1,
+                                }
+                              )}
                               onClick={() => {
                                 const updatedMounts =
                                   containerConfig.volumeMounts?.filter(
@@ -1116,11 +1146,11 @@ export function DeploymentCreateDialog({
       case 4:
         return (
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Review & Edit Configuration</h3>
+            <h3 className="text-lg font-medium">
+              {t('deploymentCreateDialog.reviewAndEdit')}
+            </h3>
             <p className="text-sm text-muted-foreground">
-              Review and edit the generated YAML configuration before creating
-              the deployment. You can modify any part of the configuration
-              directly in the editor below.
+              {t('deploymentCreateDialog.reviewDescription')}
             </p>
             <SimpleYamlEditor
               value={generateDeploymentYaml()}
@@ -1139,13 +1169,13 @@ export function DeploymentCreateDialog({
   const getStepTitle = () => {
     switch (step) {
       case 1:
-        return 'Basic Configuration'
+        return t('deploymentCreateDialog.step.basicConfiguration')
       case 2:
-        return 'Pod Configuration'
+        return t('deploymentCreateDialog.step.podConfiguration')
       case 3:
-        return 'Containers & Resources'
+        return t('deploymentCreateDialog.step.containersAndResources')
       case 4:
-        return 'Edit YAML & Create'
+        return t('deploymentCreateDialog.step.editYamlAndCreate')
       default:
         return ''
     }
@@ -1163,9 +1193,13 @@ export function DeploymentCreateDialog({
         }}
       >
         <DialogHeader>
-          <DialogTitle>Create Deployment</DialogTitle>
+          <DialogTitle>{t('deploymentCreateDialog.title')}</DialogTitle>
           <DialogDescription>
-            Step {step} of {totalSteps}: {getStepTitle()}
+            {t('deploymentCreateDialog.stepProgress', {
+              step,
+              totalSteps,
+              title: getStepTitle(),
+            })}
           </DialogDescription>
         </DialogHeader>
 

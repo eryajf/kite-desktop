@@ -15,7 +15,7 @@ export function GatewayListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -27,11 +27,11 @@ export function GatewayListPage() {
         ),
       }),
       columnHelper.accessor('spec.gatewayClassName', {
-        header: 'Gateway Class',
-        cell: ({ row }) => row.original.spec?.gatewayClassName || 'N/A',
+        header: t('gateways.gatewayClass'),
+        cell: ({ row }) => row.original.spec?.gatewayClassName || t('common.na'),
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -41,7 +41,7 @@ export function GatewayListPage() {
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   const filter = useCallback((ns: Gateway, query: string) => {

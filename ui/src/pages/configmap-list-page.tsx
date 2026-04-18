@@ -16,7 +16,7 @@ export function ConfigMapListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -30,7 +30,7 @@ export function ConfigMapListPage() {
         ),
       }),
       columnHelper.accessor('data', {
-        header: 'Data Keys',
+        header: t('configMaps.dataKeys'),
         cell: ({ getValue }) => {
           const data = getValue() || {}
           const keys = Object.keys(data)
@@ -48,7 +48,7 @@ export function ConfigMapListPage() {
         },
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -58,7 +58,7 @@ export function ConfigMapListPage() {
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   // Custom filter for configmap search

@@ -17,7 +17,7 @@ export function SecretListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -31,14 +31,14 @@ export function SecretListPage() {
         ),
       }),
       columnHelper.accessor('type', {
-        header: 'Type',
+        header: t('common.type'),
         cell: ({ getValue }) => {
           const type = getValue() || 'Opaque'
           return <Badge variant="outline">{type}</Badge>
         },
       }),
       columnHelper.accessor('data', {
-        header: 'Data Keys',
+        header: t('secrets.dataKeys'),
         cell: ({ getValue }) => {
           const data = getValue() || {}
           const keys = Object.keys(data)
@@ -56,7 +56,7 @@ export function SecretListPage() {
         },
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -66,7 +66,7 @@ export function SecretListPage() {
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   // Custom filter for secret search

@@ -21,6 +21,7 @@
     "language": "Language",
     "close": "Close",
     "clear": "Clear",
+    "add": "Add",
     "apply": "Apply",
     "applying": "Applying...",
     "new": "New",
@@ -36,8 +37,17 @@
     "forward": "Forward",
     "yes": "Yes",
     "no": "No",
+    "type": "Type",
+    "breadcrumb": "Breadcrumb",
     "default": "Default",
-    "system": "System"
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "more": "More",
+    "na": "N/A"
+  },
+  "modeToggle": {
+    "toggleTheme": "Toggle theme"
   },
   "globalSearch": {
     "title": "Global Search",
@@ -96,7 +106,27 @@
     "unsetGlobal": "Unset global sidebar",
     "unsetGlobalSuccess": "Global sidebar disabled successfully",
     "unsetGlobalError": "Failed to disable global sidebar",
-    "newVersionAvailable": "New version available"
+    "newVersionAvailable": "New version available",
+    "mobileTitle": "Sidebar",
+    "mobileDescription": "Displays the mobile sidebar.",
+    "toggle": "Toggle sidebar",
+    "customGroup": "Custom",
+    "hide": "Hide",
+    "show": "Show",
+    "hideGroup": "Hide group",
+    "showGroup": "Show group",
+    "deleteCustomGroup": "Delete custom group",
+    "unpin": "Unpin",
+    "pinToTop": "Pin to top",
+    "removeFromGroup": "Remove from group",
+    "selectCrdToAdd": "Select CRD to add...",
+    "addCrdToGroup": "Add CRD to group",
+    "groupNamePlaceholder": "Group name (e.g., CRDs)",
+    "createCrdGroup": "Create CRD group",
+    "showItem": "Show item",
+    "hideItem": "Hide item",
+    "moveUp": "Move up",
+    "moveDown": "Move down"
   },
   "nav": {
     "overview": "Overview",
@@ -194,14 +224,57 @@
   "services": {
     "title": "Services",
     "type": "Type",
+    "serviceName": "Service Name",
     "clusterIP": "Cluster IP",
     "externalIP": "External IP",
     "ports": "Ports",
     "age": "Age"
   },
+  "jobs": {
+    "completions": "Completions",
+    "started": "Started",
+    "completed": "Completed",
+    "running": "Running",
+    "complete": "Complete"
+  },
+  "cronjobs": {
+    "schedule": "Schedule",
+    "state": "State",
+    "activeJobs": "Active Jobs",
+    "lastSchedule": "Last Schedule",
+    "lastSuccess": "Last Success",
+    "suspended": "Suspended",
+    "active": "Active"
+  },
+  "ingresses": {
+    "ingressClass": "Ingress Class",
+    "hosts": "Hosts",
+    "loadBalancer": "Load Balancer"
+  },
+  "gateways": {
+    "gatewayClass": "Gateway Class"
+  },
+  "httproutes": {
+    "hostnames": "Hostnames"
+  },
+  "configMaps": {
+    "dataKeys": "Data Keys"
+  },
+  "secrets": {
+    "dataKeys": "Data Keys"
+  },
+  "crds": {
+    "group": "Group",
+    "versions": "Versions",
+    "scope": "Scope",
+    "age": "Age",
+    "established": "Established",
+    "notReady": "Not Ready"
+  },
   "nodes": {
     "title": "Nodes",
     "roles": "Roles",
+    "ipAddress": "IP Address",
     "version": "Version",
     "internalIP": "Internal IP",
     "externalIP": "External IP",
@@ -211,6 +284,7 @@
   },
   "events": {
     "title": "Events",
+    "involvedObject": "Involved Object",
     "type": "Type",
     "reason": "Reason",
     "object": "Object",
@@ -1054,6 +1128,8 @@
   },
   "yamlEditor": {
     "title": "YAML Configuration",
+    "daemonSetTitle": "DaemonSet Configuration",
+    "statefulSetTitle": "StatefulSet Configuration",
     "save": "Save",
     "cancel": "Cancel",
     "edit": "Edit",
@@ -1075,7 +1151,11 @@
     "modified": "Modified",
     "actions": "Actions",
     "loadingFiles": "Loading files...",
-    "noFilesFound": "No files found"
+    "noFilesFound": "No files found",
+    "enterDirectory": "Enter directory {{name}}",
+    "previewFile": "Preview file",
+    "downloadDirectoryArchive": "Download directory as .tar archive",
+    "downloadFile": "Download file"
   },
   "siteHeader": {
     "createNewResource": "Create new resource",
@@ -1385,13 +1465,20 @@
     "showingRows": "Showing {{filtered}} of {{total}} row(s)",
     "filteredBy": "filtered by \"{{query}}\"",
     "rowsTotal": "{{total}} row(s) total.",
-    "rowsPerPage": "Rows per page:"
+    "rowsPerPage": "Rows per page:",
+    "all": "All",
+    "pageOf": "Page {{current}} of {{total}}",
+    "previousPage": "Go to previous page",
+    "nextPage": "Go to next page"
   },
   "selector": {
     "search": "Search...",
     "noResults": "No results.",
     "allNamespaces": "All Namespaces",
     "selectNamespace": "Select namespace...",
+    "selectCrd": "Select CRD...",
+    "searchCrds": "Search CRDs...",
+    "noCrdsFound": "No CRDs found.",
     "searchPods": "Search pods...",
     "noPodsFound": "No pods found.",
     "allPods": "All Pods",
@@ -1474,6 +1561,30 @@
     "exitFullscreen": "Exit fullscreen (ESC)",
     "loadingEditor": "Loading editor..."
   },
+  "monitoringControls": {
+    "selectTimeRange": "Select time range",
+    "selectRefreshInterval": "Select refresh interval",
+    "last30Min": "Last 30 min",
+    "last1Hour": "Last 1 hour",
+    "last24Hours": "Last 24 hours",
+    "off": "Off",
+    "seconds": "{{count}} seconds"
+  },
+  "terminalContent": {
+    "currentThemeShortcut": "Current theme: {{name}} (Ctrl+T to cycle)",
+    "terminalTheme": "Terminal Theme",
+    "cursorStyle": "Cursor Style",
+    "block": "Block",
+    "underline": "Underline",
+    "bar": "Bar"
+  },
+  "floatingTerminal": {
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen",
+    "restore": "Restore",
+    "minimize": "Minimize",
+    "closeSession": "Close (ends session)"
+  },
   "containerInfo": {
     "running": "Running",
     "since": "since {{time}}",
@@ -1513,6 +1624,87 @@
     "period": "period",
     "imageId": "Image ID",
     "containerId": "Container ID"
+  },
+  "environmentEditor": {
+    "variables": "Environment Variables",
+    "addVariable": "Add Variable",
+    "variableNamePlaceholder": "Variable name",
+    "directValue": "Direct Value",
+    "valueFrom": "Value From",
+    "source": "Source",
+    "selectSourceType": "Select source type",
+    "fieldReference": "Field Reference",
+    "resourceField": "Resource Field",
+    "secretName": "Secret Name",
+    "selectSecret": "Select secret",
+    "key": "Key",
+    "keyPlaceholder": "key",
+    "configMapName": "ConfigMap Name",
+    "selectConfigMap": "Select configmap",
+    "fieldPath": "Field Path",
+    "resource": "Resource",
+    "containerName": "Container Name",
+    "value": "Value",
+    "variableValuePlaceholder": "Variable value",
+    "fullValue": "Full value:",
+    "emptyVariables": "No environment variables configured",
+    "environmentFrom": "Environment From",
+    "addSource": "Add Source",
+    "prefixOptional": "Prefix (Optional)",
+    "emptySources": "No environment sources configured"
+  },
+  "deploymentCreateDialog": {
+    "title": "Create Deployment",
+    "stepProgress": "Step {{step}} of {{totalSteps}}: {{title}}",
+    "deploymentNameRequired": "Deployment Name *",
+    "namespaceRequired": "Namespace *",
+    "labelsRequired": "Labels *",
+    "addLabel": "Add Label",
+    "replicasRequired": "Replicas *",
+    "volume": "Volume",
+    "addVolume": "Add Volume",
+    "selectVolumeType": "Select Volume Type",
+    "containers": "Containers",
+    "addContainer": "Add Container",
+    "containerCard": "Container {{index}}",
+    "removeContainer": "Remove container {{index}}",
+    "containerNameRequired": "Container Name *",
+    "resourcesOptional": "Resources (optional)",
+    "containerPortOptional": "Container Port (optional)",
+    "volumeMounts": "Volume Mounts",
+    "addVolumeMount": "Add Volume Mount",
+    "volumeName": "Volume name",
+    "readOnly": "ReadOnly",
+    "writable": "Writable",
+    "removeVolumeMount": "Remove volume mount {{index}}",
+    "reviewAndEdit": "Review & Edit Configuration",
+    "reviewDescription": "Review and edit the generated YAML configuration before creating the deployment. You can modify any part of the configuration directly in the editor below.",
+    "step": {
+      "basicConfiguration": "Basic Configuration",
+      "podConfiguration": "Pod Configuration",
+      "containersAndResources": "Containers & Resources",
+      "editYamlAndCreate": "Edit YAML & Create"
+    }
+  },
+  "keyValueDataViewer": {
+    "noEntries": "No entries",
+    "copiedToClipboard": "Copied to clipboard",
+    "entryCount_one": "{{count}} entry",
+    "entryCount_other": "{{count}} entries",
+    "hideAll": "Hide All",
+    "revealAll": "Reveal All",
+    "hide": "Hide",
+    "reveal": "Reveal",
+    "copyValue": "Copy value"
+  },
+  "versionInfo": {
+    "viewCommit": "View commit {{commitId}} on GitHub"
+  },
+  "templateManagement": {
+    "dialog": {
+      "namePlaceholder": "e.g., Pod",
+      "descriptionPlaceholder": "e.g., A basic Pod with a single container"
+    }
   },
   "namespaceCreateDialog": {
     "title": "Create Namespace",

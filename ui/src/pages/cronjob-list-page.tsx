@@ -11,7 +11,7 @@ import { ResourceTable } from '@/components/resource-table'
 function getSuspendBadge(cronjob: CronJob) {
   const isSuspended = cronjob.spec?.suspend ?? false
   return {
-    label: isSuspended ? 'Suspended' : 'Active',
+    labelKey: isSuspended ? 'cronjobs.suspended' : 'cronjobs.active',
     variant: isSuspended ? ('secondary' as const) : ('default' as const),
   }
 }
@@ -38,7 +38,7 @@ export function CronJobListPage() {
       }),
       columnHelper.display({
         id: 'schedule',
-        header: 'Schedule',
+        header: t('cronjobs.schedule'),
         cell: ({ row }) => (
           <span className="text-sm text-muted-foreground">
             {row.original.spec?.schedule || '-'}
@@ -47,15 +47,15 @@ export function CronJobListPage() {
       }),
       columnHelper.display({
         id: 'suspend',
-        header: 'State',
+        header: t('cronjobs.state'),
         cell: ({ row }) => {
           const badge = getSuspendBadge(row.original)
-          return <Badge variant={badge.variant}>{badge.label}</Badge>
+          return <Badge variant={badge.variant}>{t(badge.labelKey)}</Badge>
         },
       }),
       columnHelper.display({
         id: 'active',
-        header: 'Active Jobs',
+        header: t('cronjobs.activeJobs'),
         cell: ({ row }) => (
           <span className="text-sm">
             {row.original.status?.active?.length || 0}
@@ -64,7 +64,7 @@ export function CronJobListPage() {
       }),
       columnHelper.display({
         id: 'lastSchedule',
-        header: 'Last Schedule',
+        header: t('cronjobs.lastSchedule'),
         cell: ({ row }) => {
           const lastSchedule = row.original.status?.lastScheduleTime
           if (!lastSchedule) {
@@ -79,7 +79,7 @@ export function CronJobListPage() {
       }),
       columnHelper.display({
         id: 'lastSuccess',
-        header: 'Last Success',
+        header: t('cronjobs.lastSuccess'),
         cell: ({ row }) => {
           const lastSuccess = row.original.status?.lastSuccessfulTime
           if (!lastSuccess) {

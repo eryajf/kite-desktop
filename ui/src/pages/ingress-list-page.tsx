@@ -16,7 +16,7 @@ export function IngressListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -28,35 +28,37 @@ export function IngressListPage() {
         ),
       }),
       columnHelper.accessor('spec.ingressClassName', {
-        header: 'Ingress Class',
-        cell: ({ row }) => row.original.spec?.ingressClassName || 'N/A',
+        header: t('ingresses.ingressClass'),
+        cell: ({ row }) => row.original.spec?.ingressClassName || t('common.na'),
       }),
       columnHelper.accessor('spec.rules', {
-        header: 'Hosts',
+        header: t('ingresses.hosts'),
         cell: ({ row }) => {
           const rules = row.original.spec?.rules || []
           return (
             <Badge variant="outline" className="ml-2 ">
-              {rules.length > 0 ? rules.map((r) => r.host).join(', ') : 'N/A'}
+              {rules.length > 0
+                ? rules.map((r) => r.host).join(', ')
+                : t('common.na')}
             </Badge>
           )
         },
       }),
       columnHelper.accessor('status.loadBalancer.ingress', {
-        header: 'Load Balancer',
+        header: t('ingresses.loadBalancer'),
         cell: ({ row }) => {
           const ingress = row.original.status?.loadBalancer?.ingress || []
           return (
             <div>
               {ingress.length > 0
                 ? ingress.map((i) => i.ip || i.hostname).join(', ')
-                : 'N/A'}
+                : t('common.na')}
             </div>
           )
         },
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -66,7 +68,7 @@ export function IngressListPage() {
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   const filter = useCallback((ns: Ingress, query: string) => {

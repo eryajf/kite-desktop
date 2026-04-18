@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Container, Pod } from 'kubernetes-types/core/v1'
+import { useTranslation } from 'react-i18next'
 
 import { usePodMetrics } from '@/lib/api'
 import { toSimpleContainer } from '@/lib/k8s'
@@ -37,6 +38,7 @@ export function PodMonitoring({
   initContainers = [],
   labelSelector,
 }: PodMonitoringProps) {
+  const { t } = useTranslation()
   const containers = useMemo(() => {
     return toSimpleContainer(initContainers, _containers)
   }, [_containers, initContainers])
@@ -71,17 +73,17 @@ export function PodMonitoring({
   )
 
   const timeRangeOptions = [
-    { value: '30m', label: 'Last 30 min' },
-    { value: '1h', label: 'Last 1 hour' },
-    { value: '24h', label: 'Last 24 hours' },
+    { value: '30m', label: t('monitoringControls.last30Min') },
+    { value: '1h', label: t('monitoringControls.last1Hour') },
+    { value: '24h', label: t('monitoringControls.last24Hours') },
   ]
 
   const refreshIntervalOptions = [
-    { value: 0, label: 'Off' },
-    { value: 5 * 1000, label: '5 seconds' },
-    { value: 10 * 1000, label: '10 seconds' },
-    { value: 30 * 1000, label: '30 seconds' },
-    { value: 60 * 1000, label: '60 seconds' },
+    { value: 0, label: t('monitoringControls.off') },
+    { value: 5 * 1000, label: t('monitoringControls.seconds', { count: 5 }) },
+    { value: 10 * 1000, label: t('monitoringControls.seconds', { count: 10 }) },
+    { value: 30 * 1000, label: t('monitoringControls.seconds', { count: 30 }) },
+    { value: 60 * 1000, label: t('monitoringControls.seconds', { count: 60 }) },
   ]
 
   return (
@@ -91,7 +93,7 @@ export function PodMonitoring({
         <div className="w-full space-y-2 md:w-auto">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Select time range" />
+              <SelectValue placeholder={t('monitoringControls.selectTimeRange')} />
             </SelectTrigger>
             <SelectContent>
               {timeRangeOptions.map((option) => (
@@ -109,7 +111,9 @@ export function PodMonitoring({
             onValueChange={(value) => setRefreshInterval(Number(value))}
           >
             <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Select refresh interval" />
+              <SelectValue
+                placeholder={t('monitoringControls.selectRefreshInterval')}
+              />
             </SelectTrigger>
             <SelectContent>
               {refreshIntervalOptions.map((option) => (

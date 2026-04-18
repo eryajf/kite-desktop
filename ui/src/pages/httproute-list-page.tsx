@@ -15,7 +15,7 @@ export function HTTPRouteListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -27,11 +27,12 @@ export function HTTPRouteListPage() {
         ),
       }),
       columnHelper.accessor('spec.hostnames', {
-        header: 'Hostnames',
-        cell: ({ row }) => row.original.spec?.hostnames?.join(', ') || 'N/A',
+        header: t('httproutes.hostnames'),
+        cell: ({ row }) =>
+          row.original.spec?.hostnames?.join(', ') || t('common.na'),
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -41,7 +42,7 @@ export function HTTPRouteListPage() {
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   const filter = useCallback((ns: HTTPRoute, query: string) => {

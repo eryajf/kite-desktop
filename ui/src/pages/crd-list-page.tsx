@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { CustomResourceDefinition } from 'kubernetes-types/apiextensions/v1'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { getAge } from '@/lib/utils'
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 
 export function CRDListPage() {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<CustomResourceDefinition>()
 
@@ -15,7 +17,7 @@ export function CRDListPage() {
   const columns = useMemo(
     () => [
       columnHelper.accessor('metadata.name', {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link to={`/crds/${row.original.metadata!.name}`}>
@@ -25,12 +27,12 @@ export function CRDListPage() {
         ),
       }),
       columnHelper.accessor('spec.group', {
-        header: 'Group',
+        header: t('crds.group'),
         enableColumnFilter: true,
         cell: ({ getValue }) => <span className=" text-sm">{getValue()}</span>,
       }),
       columnHelper.accessor('spec.versions', {
-        header: 'Versions',
+        header: t('crds.versions'),
         cell: ({ getValue }) => {
           const versions = getValue() || []
           return (
@@ -58,7 +60,7 @@ export function CRDListPage() {
         },
       }),
       columnHelper.accessor('spec.scope', {
-        header: 'Scope',
+        header: t('crds.scope'),
         cell: ({ getValue }) => (
           <Badge
             variant={getValue() === 'Namespaced' ? 'default' : 'outline'}
@@ -69,7 +71,7 @@ export function CRDListPage() {
         ),
       }),
       columnHelper.accessor('status.conditions', {
-        header: 'Status',
+        header: t('common.status'),
         cell: ({ getValue }) => {
           const conditions = getValue() || []
           const establishedCondition = conditions.find(
@@ -82,19 +84,19 @@ export function CRDListPage() {
               variant={isEstablished ? 'default' : 'destructive'}
               className="text-xs"
             >
-              {isEstablished ? 'Established' : 'Not Ready'}
+              {isEstablished ? t('crds.established') : t('crds.notReady')}
             </Badge>
           )
         },
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
-        header: 'Age',
+        header: t('crds.age'),
         cell: ({ getValue }) => {
           return getAge(getValue() as string)
         },
       }),
     ],
-    [columnHelper]
+    [columnHelper, t]
   )
 
   // Custom search filter for CRDs

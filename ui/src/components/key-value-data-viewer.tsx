@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconCopy, IconEye, IconEyeOff } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { copyTextToClipboard } from '@/lib/desktop'
@@ -27,8 +28,9 @@ export function KeyValueDataViewer({
   entries,
   sensitive = false,
   base64Encoded = false,
-  emptyMessage = 'No entries',
+  emptyMessage,
 }: Props) {
+  const { t } = useTranslation()
   const keys = Object.keys(entries)
   const [revealedKeys, setRevealedKeys] = useState<Set<string>>(new Set())
 
@@ -51,11 +53,15 @@ export function KeyValueDataViewer({
 
   const copyToClipboard = async (value: string) => {
     await copyTextToClipboard(value)
-    toast.success('Copied to clipboard')
+    toast.success(t('keyValueDataViewer.copiedToClipboard'))
   }
 
   if (keys.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        {emptyMessage || t('keyValueDataViewer.noEntries')}
+      </p>
+    )
   }
 
   const allRevealed = keys.every((k) => revealedKeys.has(k))
@@ -64,19 +70,24 @@ export function KeyValueDataViewer({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-muted-foreground">
-          {keys.length} {keys.length === 1 ? 'entry' : 'entries'}
+          {t(
+            keys.length === 1
+              ? 'keyValueDataViewer.entryCount_one'
+              : 'keyValueDataViewer.entryCount_other',
+            { count: keys.length }
+          )}
         </span>
         {sensitive && (
           <Button variant="outline" size="sm" onClick={toggleAll}>
             {allRevealed ? (
               <>
                 <IconEyeOff className="h-4 w-4 mr-1" />
-                Hide All
+                {t('keyValueDataViewer.hideAll')}
               </>
             ) : (
               <>
                 <IconEye className="h-4 w-4 mr-1" />
-                Reveal All
+                {t('keyValueDataViewer.revealAll')}
               </>
             )}
           </Button>
@@ -99,7 +110,11 @@ export function KeyValueDataViewer({
                       size="sm"
                       className="h-7 w-7 p-0"
                       onClick={() => toggleKey(key)}
-                      title={revealed ? 'Hide' : 'Reveal'}
+                      title={t(
+                        revealed
+                          ? 'keyValueDataViewer.hide'
+                          : 'keyValueDataViewer.reveal'
+                      )}
                     >
                       {revealed ? (
                         <IconEyeOff className="h-4 w-4" />
@@ -113,7 +128,7 @@ export function KeyValueDataViewer({
                     size="sm"
                     className="h-7 w-7 p-0"
                     onClick={() => copyToClipboard(displayValue)}
-                    title="Copy value"
+                    title={t('keyValueDataViewer.copyValue')}
                   >
                     <IconCopy className="h-4 w-4" />
                   </Button>

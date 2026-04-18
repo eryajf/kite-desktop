@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CustomResourceDefinition } from 'kubernetes-types/apiextensions/v1'
 import { Check, ChevronsUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 import { useResources } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -30,11 +31,13 @@ type CRDOption = {
 export function CRDSelector({
   selectedCRD,
   onCRDChange,
-  placeholder = 'Select CRD...',
+  placeholder,
   disabled = false,
 }: CRDSelectorProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const resolvedPlaceholder = placeholder || t('selector.selectCrd')
 
   const {
     data: crdsData,
@@ -128,7 +131,7 @@ export function CRDSelector({
               selectedCRD ? 'text-foreground' : 'text-muted-foreground'
             }`}
           >
-            {selectedCRDData ? selectedCRDData.name : placeholder}
+            {selectedCRDData ? selectedCRDData.name : resolvedPlaceholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -136,7 +139,7 @@ export function CRDSelector({
       <PopoverContent className="w-[calc(100vw-1rem)] max-w-[400px] p-0 md:w-[400px]">
         <div className="p-2 border-b">
           <Input
-            placeholder="Search CRDs..."
+            placeholder={t('selector.searchCrds')}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             autoFocus
@@ -149,7 +152,7 @@ export function CRDSelector({
         >
           {Object.keys(filteredCRDGroups).length === 0 ? (
             <div className="p-4 text-sm text-muted-foreground">
-              No CRDs found.
+              {t('selector.noCrdsFound')}
             </div>
           ) : (
             Object.entries(filteredCRDGroups).map(([groupName, crds]) => (

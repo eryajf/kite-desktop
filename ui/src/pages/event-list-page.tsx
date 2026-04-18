@@ -19,7 +19,7 @@ export function EventListPage() {
           `${row.involvedObject?.kind || ''} ${row.involvedObject?.name || ''}`,
         {
           id: 'involvedObject',
-          header: t('events.involvedObject', 'Involved Object'),
+          header: t('events.involvedObject'),
           enableColumnFilter: true,
           cell: ({ row }) => {
             const obj = row.original.involvedObject

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { useResourceUsageHistory } from '@/lib/api'
 import {
@@ -17,6 +18,7 @@ interface NodeMonitoringProps {
 }
 
 export function NodeMonitoring({ name }: NodeMonitoringProps) {
+  const { t } = useTranslation()
   const [timeRange, setTimeRange] = useState('1h')
 
   const {
@@ -28,9 +30,9 @@ export function NodeMonitoring({ name }: NodeMonitoringProps) {
   })
 
   const timeRangeOptions = [
-    { value: '30m', label: 'Last 30 min' },
-    { value: '1h', label: 'Last 1 hour' },
-    { value: '24h', label: 'Last 24 hours' },
+    { value: '30m', label: t('monitoringControls.last30Min') },
+    { value: '1h', label: t('monitoringControls.last1Hour') },
+    { value: '24h', label: t('monitoringControls.last24Hours') },
   ]
 
   return (
@@ -40,7 +42,7 @@ export function NodeMonitoring({ name }: NodeMonitoringProps) {
         <div className="w-full space-y-2 md:w-auto">
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-full md:w-[200px]">
-              <SelectValue placeholder="Select time range" />
+              <SelectValue placeholder={t('monitoringControls.selectTimeRange')} />
             </SelectTrigger>
             <SelectContent>
               {timeRangeOptions.map((option) => (

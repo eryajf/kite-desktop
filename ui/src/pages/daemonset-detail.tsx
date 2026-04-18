@@ -473,7 +473,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                 <YamlEditor
                   key={refreshKey}
                   value={yamlContent}
-                  title="DaemonSet Configuration"
+                  title={t('yamlEditor.daemonSetTitle')}
                   onSave={handleSaveYaml}
                   onChange={handleYamlChange}
                   isSaving={isSavingYaml}

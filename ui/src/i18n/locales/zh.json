@@ -24,6 +24,7 @@
     "language": "语言",
     "close": "关闭",
     "clear": "清空",
+    "add": "添加",
     "enable": "启用",
     "disable": "禁用",
     "enabled": "已启用",
@@ -53,8 +54,17 @@
     "forward": "前进",
     "yes": "是",
     "no": "否",
+    "type": "类型",
+    "breadcrumb": "面包屑导航",
     "default": "默认",
-    "system": "系统"
+    "system": "系统",
+    "light": "浅色",
+    "dark": "深色",
+    "more": "更多",
+    "na": "无"
+  },
+  "modeToggle": {
+    "toggleTheme": "切换主题"
   },
   "globalSearch": {
     "title": "全局搜索",
@@ -157,7 +167,27 @@
     "unsetGlobalError": "取消全局侧边栏失败",
     "expand": "展开",
     "collapse": "折叠",
-    "newVersionAvailable": "发现新版本"
+    "newVersionAvailable": "发现新版本",
+    "mobileTitle": "侧边栏",
+    "mobileDescription": "显示移动端侧边栏。",
+    "toggle": "切换侧边栏",
+    "customGroup": "自定义",
+    "hide": "隐藏",
+    "show": "显示",
+    "hideGroup": "隐藏分组",
+    "showGroup": "显示分组",
+    "deleteCustomGroup": "删除自定义分组",
+    "unpin": "取消置顶",
+    "pinToTop": "置顶到顶部",
+    "removeFromGroup": "从分组中移除",
+    "selectCrdToAdd": "选择要添加的 CRD...",
+    "addCrdToGroup": "将 CRD 添加到分组",
+    "groupNamePlaceholder": "分组名称（例如：CRDs）",
+    "createCrdGroup": "创建 CRD 分组",
+    "showItem": "显示项目",
+    "hideItem": "隐藏项目",
+    "moveUp": "上移",
+    "moveDown": "下移"
   },
   "advancedNetworking": {
     "description": "在一个页面中统一查看网络策略、网关和 HTTP 路由"
@@ -220,14 +250,57 @@
   "services": {
     "title": "服务",
     "type": "类型",
+    "serviceName": "服务名称",
     "clusterIP": "集群IP",
     "externalIP": "外部IP",
     "ports": "端口",
     "age": "运行时间"
   },
+  "jobs": {
+    "completions": "完成数",
+    "started": "开始时间",
+    "completed": "完成时间",
+    "running": "运行中",
+    "complete": "已完成"
+  },
+  "cronjobs": {
+    "schedule": "调度计划",
+    "state": "状态",
+    "activeJobs": "活跃任务",
+    "lastSchedule": "最近调度",
+    "lastSuccess": "最近成功",
+    "suspended": "已暂停",
+    "active": "活跃"
+  },
+  "ingresses": {
+    "ingressClass": "Ingress 类",
+    "hosts": "主机",
+    "loadBalancer": "负载均衡"
+  },
+  "gateways": {
+    "gatewayClass": "网关类"
+  },
+  "httproutes": {
+    "hostnames": "主机名"
+  },
+  "configMaps": {
+    "dataKeys": "数据键"
+  },
+  "secrets": {
+    "dataKeys": "数据键"
+  },
+  "crds": {
+    "group": "分组",
+    "versions": "版本",
+    "scope": "范围",
+    "age": "运行时间",
+    "established": "已建立",
+    "notReady": "未就绪"
+  },
   "nodes": {
     "title": "节点",
     "roles": "角色",
+    "ipAddress": "IP 地址",
     "version": "版本",
     "internalIP": "内部IP",
     "externalIP": "外部IP",
@@ -237,6 +310,7 @@
   },
   "events": {
     "title": "事件",
+    "involvedObject": "关联对象",
     "type": "类型",
     "reason": "原因",
     "object": "对象",
@@ -1278,7 +1352,9 @@
       "createTitle": "创建模板",
       "editTitle": "编辑模板",
       "createDescription": "添加一个新的资源模板",
-      "updateDescription": "更新现有模板"
+      "updateDescription": "更新现有模板",
+      "namePlaceholder": "例如：Pod",
+      "descriptionPlaceholder": "例如：带有单个容器的基础 Pod"
     },
     "hints": {
       "nameImmutable": "创建后名称不可更改"
@@ -1531,6 +1607,8 @@
   },
   "yamlEditor": {
     "title": "YAML 配置",
+    "daemonSetTitle": "DaemonSet 配置",
+    "statefulSetTitle": "StatefulSet 配置",
     "save": "保存",
     "cancel": "取消",
     "edit": "编辑",
@@ -1552,7 +1630,11 @@
     "modified": "修改时间",
     "actions": "操作",
     "loadingFiles": "正在加载文件...",
-    "noFilesFound": "未找到文件"
+    "noFilesFound": "未找到文件",
+    "enterDirectory": "进入目录 {{name}}",
+    "previewFile": "预览文件",
+    "downloadDirectoryArchive": "将目录下载为 .tar 压缩包",
+    "downloadFile": "下载文件"
   },
   "siteHeader": {
     "createNewResource": "创建新资源",
@@ -1675,13 +1757,20 @@
     "showingRows": "显示 {{filtered}} / {{total}} 条记录",
     "filteredBy": "按“{{query}}”筛选",
     "rowsTotal": "共 {{total}} 条记录",
-    "rowsPerPage": "每页行数："
+    "rowsPerPage": "每页行数：",
+    "all": "全部",
+    "pageOf": "第 {{current}} 页，共 {{total}} 页",
+    "previousPage": "转到上一页",
+    "nextPage": "转到下一页"
   },
   "selector": {
     "search": "搜索...",
     "noResults": "没有结果。",
     "allNamespaces": "所有命名空间",
     "selectNamespace": "选择命名空间...",
+    "selectCrd": "选择 CRD...",
+    "searchCrds": "搜索 CRD...",
+    "noCrdsFound": "未找到 CRD。",
     "searchPods": "搜索容器组...",
     "noPodsFound": "未找到容器组。",
     "allPods": "所有容器组",
@@ -1764,6 +1853,30 @@
     "exitFullscreen": "退出全屏（ESC）",
     "loadingEditor": "正在加载编辑器..."
   },
+  "monitoringControls": {
+    "selectTimeRange": "选择时间范围",
+    "selectRefreshInterval": "选择刷新间隔",
+    "last30Min": "最近 30 分钟",
+    "last1Hour": "最近 1 小时",
+    "last24Hours": "最近 24 小时",
+    "off": "关闭",
+    "seconds": "{{count}} 秒"
+  },
+  "terminalContent": {
+    "currentThemeShortcut": "当前主题：{{name}}（Ctrl+T 可循环切换）",
+    "terminalTheme": "终端主题",
+    "cursorStyle": "光标样式",
+    "block": "块状",
+    "underline": "下划线",
+    "bar": "竖线"
+  },
+  "floatingTerminal": {
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏",
+    "restore": "恢复",
+    "minimize": "最小化",
+    "closeSession": "关闭（结束会话）"
+  },
   "containerInfo": {
     "running": "运行中",
     "since": "自 {{time}} 起",
@@ -1803,6 +1916,81 @@
     "period": "周期",
     "imageId": "镜像 ID",
     "containerId": "容器 ID"
+  },
+  "environmentEditor": {
+    "variables": "环境变量",
+    "addVariable": "添加变量",
+    "variableNamePlaceholder": "变量名",
+    "directValue": "直接值",
+    "valueFrom": "从来源读取",
+    "source": "来源",
+    "selectSourceType": "选择来源类型",
+    "fieldReference": "字段引用",
+    "resourceField": "资源字段",
+    "secretName": "Secret 名称",
+    "selectSecret": "选择 Secret",
+    "key": "键",
+    "keyPlaceholder": "键",
+    "configMapName": "ConfigMap 名称",
+    "selectConfigMap": "选择 ConfigMap",
+    "fieldPath": "字段路径",
+    "resource": "资源",
+    "containerName": "容器名称",
+    "value": "值",
+    "variableValuePlaceholder": "变量值",
+    "fullValue": "完整值：",
+    "emptyVariables": "当前未配置环境变量",
+    "environmentFrom": "批量注入环境变量",
+    "addSource": "添加来源",
+    "prefixOptional": "前缀（可选）",
+    "emptySources": "当前未配置批量注入来源"
+  },
+  "deploymentCreateDialog": {
+    "title": "创建 Deployment",
+    "stepProgress": "第 {{step}} / {{totalSteps}} 步：{{title}}",
+    "deploymentNameRequired": "Deployment 名称 *",
+    "namespaceRequired": "命名空间 *",
+    "labelsRequired": "标签 *",
+    "addLabel": "添加标签",
+    "replicasRequired": "副本数 *",
+    "volume": "卷",
+    "addVolume": "添加卷",
+    "selectVolumeType": "选择卷类型",
+    "containers": "容器",
+    "addContainer": "添加容器",
+    "containerCard": "容器 {{index}}",
+    "removeContainer": "移除容器 {{index}}",
+    "containerNameRequired": "容器名称 *",
+    "resourcesOptional": "资源（可选）",
+    "containerPortOptional": "容器端口（可选）",
+    "volumeMounts": "卷挂载",
+    "addVolumeMount": "添加卷挂载",
+    "volumeName": "卷名称",
+    "readOnly": "只读",
+    "writable": "可写",
+    "removeVolumeMount": "移除卷挂载 {{index}}",
+    "reviewAndEdit": "检查并编辑配置",
+    "reviewDescription": "在创建 Deployment 之前，先检查并编辑生成的 YAML 配置。你可以直接在下方编辑器中修改配置的任意部分。",
+    "step": {
+      "basicConfiguration": "基础配置",
+      "podConfiguration": "Pod 配置",
+      "containersAndResources": "容器与资源",
+      "editYamlAndCreate": "编辑 YAML 并创建"
+    }
+  },
+  "keyValueDataViewer": {
+    "noEntries": "没有条目",
+    "copiedToClipboard": "已复制到剪贴板",
+    "entryCount_one": "{{count}} 个条目",
+    "entryCount_other": "{{count}} 个条目",
+    "hideAll": "全部隐藏",
+    "revealAll": "全部显示",
+    "hide": "隐藏",
+    "reveal": "显示",
+    "copyValue": "复制值"
+  },
+  "versionInfo": {
+    "viewCommit": "在 GitHub 上查看提交 {{commitId}}"
   },
   "namespaceCreateDialog": {
     "title": "创建命名空间",

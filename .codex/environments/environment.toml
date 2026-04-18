@@ -8,4 +8,4 @@ script = ""
 [[actions]]
 name = "运行"
 icon = "run"
-script = "make dev"
+command = "make dev"

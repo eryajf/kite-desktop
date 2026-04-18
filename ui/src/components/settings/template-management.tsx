@@ -277,7 +277,10 @@ export function TemplateManagement() {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 disabled={!!editingTemplate}
-                placeholder="e.g., Pod"
+                placeholder={t(
+                  'templateManagement.dialog.namePlaceholder',
+                  'e.g., Pod'
+                )}
               />
               {editingTemplate && (
                 <p className="text-xs text-muted-foreground">
@@ -298,7 +301,10 @@ export function TemplateManagement() {
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                placeholder="e.g., A basic Pod with a single container"
+                placeholder={t(
+                  'templateManagement.dialog.descriptionPlaceholder',
+                  'e.g., A basic Pod with a single container'
+                )}
               />
             </div>
             <div className="space-y-2">

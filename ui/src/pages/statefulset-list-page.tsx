@@ -78,7 +78,7 @@ export function StatefulSetListPage() {
         },
       }),
       columnHelper.accessor('spec.serviceName', {
-        header: t('services.serviceName'),
+        header: t('detail.fields.serviceName'),
         cell: ({ getValue }) => getValue() || '-',
       }),
       columnHelper.accessor('metadata.creationTimestamp', {

@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import {
@@ -17,6 +18,7 @@ export interface ResourceTableProps {
 export function SimpleListPage<T extends keyof ResourceTypeMap>({
   resourceType,
 }: ResourceTableProps) {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<ResourceTypeMap[T]>()
   const isClusterScope =
@@ -26,7 +28,7 @@ export function SimpleListPage<T extends keyof ResourceTypeMap>({
   const columns = useMemo(
     () => [
       columnHelper.accessor((row) => row.metadata?.name, {
-        header: 'Name',
+        header: t('common.name'),
         cell: ({ row }) => (
           <div className="font-medium app-link">
             <Link
@@ -38,7 +40,7 @@ export function SimpleListPage<T extends keyof ResourceTypeMap>({
         ),
       }),
       columnHelper.accessor((row) => row.metadata?.creationTimestamp, {
-        header: 'Created',
+        header: t('common.created'),
         cell: ({ getValue }) => {
           const dateStr = formatDate(getValue() || '')
 
@@ -48,7 +50,7 @@ export function SimpleListPage<T extends keyof ResourceTypeMap>({
         },
       }),
     ],
-    [columnHelper, isClusterScope, resourceType]
+    [columnHelper, isClusterScope, resourceType, t]
   )
 
   const filter = useCallback((resource: ResourceTypeMap[T], query: string) => {

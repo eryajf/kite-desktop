@@ -257,7 +257,9 @@ export function PodFileBrowser({
                           variant="link"
                           className="text-foreground font-medium hover:underline text-left p-0 h-auto"
                           onClick={() => handleEnterDirectory(file.name)}
-                          aria-label={`Enter directory ${file.name}`}
+                          aria-label={t('podFiles.enterDirectory', {
+                            name: file.name,
+                          })}
                         >
                           {file.name}
                         </Button>
@@ -286,8 +288,8 @@ export function PodFileBrowser({
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Preview file"
-                            aria-label="Preview file"
+                            title={t('podFiles.previewFile')}
+                            aria-label={t('podFiles.previewFile')}
                             onClick={() => handlePreview(file.name)}
                           >
                             <IconEye className="w-4 h-4" />
@@ -298,13 +300,13 @@ export function PodFileBrowser({
                           size="sm"
                           title={
                             file.isDir
-                              ? 'Download directory as .tar archive'
-                              : 'Download file'
+                              ? t('podFiles.downloadDirectoryArchive')
+                              : t('podFiles.downloadFile')
                           }
                           aria-label={
                             file.isDir
-                              ? 'Download directory as .tar archive'
-                              : 'Download file'
+                              ? t('podFiles.downloadDirectoryArchive')
+                              : t('podFiles.downloadFile')
                           }
                           onClick={() => handleDownload(file.name)}
                         >

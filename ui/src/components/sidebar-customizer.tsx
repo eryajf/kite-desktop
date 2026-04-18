@@ -176,7 +176,7 @@ export function SidebarCustomizer({
                             size="sm"
                             onClick={() => toggleItemPin(item.id)}
                             className="h-8 w-8 p-0"
-                            aria-label="Unpin"
+                            aria-label={t('sidebar.unpin')}
                           >
                             <PinOff className="h-3.5 w-3.5" />
                           </Button>
@@ -205,7 +205,7 @@ export function SidebarCustomizer({
                       </h4>
                       {group.isCustom && (
                         <Badge variant="outline" className="text-xs">
-                          Custom
+                          {t('sidebar.customGroup')}
                         </Badge>
                       )}
                       <Badge variant="outline" className="text-xs">
@@ -233,8 +233,14 @@ export function SidebarCustomizer({
                         size="sm"
                         onClick={() => toggleGroupVisibility(group.id)}
                         className="h-8 w-8 p-0"
-                        title={group.visible ? 'Hide' : 'Show'}
-                        aria-label={group.visible ? 'Hide group' : 'Show group'}
+                        title={
+                          group.visible ? t('sidebar.hide') : t('sidebar.show')
+                        }
+                        aria-label={
+                          group.visible
+                            ? t('sidebar.hideGroup')
+                            : t('sidebar.showGroup')
+                        }
                       >
                         {!group.visible ? (
                           <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
@@ -270,8 +276,8 @@ export function SidebarCustomizer({
                           size="sm"
                           onClick={() => setPendingGroupDelete(group)}
                           className="h-8 w-8 p-0"
-                          title="Delete custom group"
-                          aria-label="Delete custom group"
+                          title={t('sidebar.deleteCustomGroup')}
+                          aria-label={t('sidebar.deleteCustomGroup')}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -316,8 +322,16 @@ export function SidebarCustomizer({
                               size="sm"
                               onClick={() => toggleItemPin(item.id)}
                               className={`h-8 w-8 p-0 ${isPinned ? 'text-primary' : 'text-muted-foreground'}`}
-                              title={isPinned ? 'Unpin' : 'Pin to top'}
-                              aria-label={isPinned ? 'Unpin' : 'Pin to top'}
+                              title={
+                                isPinned
+                                  ? t('sidebar.unpin')
+                                  : t('sidebar.pinToTop')
+                              }
+                              aria-label={
+                                isPinned
+                                  ? t('sidebar.unpin')
+                                  : t('sidebar.pinToTop')
+                              }
                             >
                               {isPinned ? (
                                 <PinOff className="h-3.5 w-3.5" />
@@ -333,8 +347,8 @@ export function SidebarCustomizer({
                                   setPendingItemDelete({ group, item })
                                 }
                                 className="h-8 w-8 p-0"
-                                title="Remove from group"
-                                aria-label="Remove from group"
+                                title={t('sidebar.removeFromGroup')}
+                                aria-label={t('sidebar.removeFromGroup')}
                               >
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
@@ -344,9 +358,13 @@ export function SidebarCustomizer({
                                 size="sm"
                                 onClick={() => toggleItemVisibility(item.id)}
                                 className="h-8 w-8 p-0"
-                                title={isHidden ? 'Show' : 'Hide'}
+                                title={
+                                  isHidden ? t('sidebar.show') : t('sidebar.hide')
+                                }
                                 aria-label={
-                                  isHidden ? 'Show item' : 'Hide item'
+                                  isHidden
+                                    ? t('sidebar.showItem')
+                                    : t('sidebar.hideItem')
                                 }
                               >
                                 {isHidden ? (
@@ -371,17 +389,17 @@ export function SidebarCustomizer({
                               kind: kind,
                             })
                           }
-                          placeholder="Select CRD to add..."
+                          placeholder={t('sidebar.selectCrdToAdd')}
                         />
                         <Button
                           onClick={() => handleAddCRDToGroup(group.id)}
                           disabled={!selectedCRD}
                           size="sm"
                           className="gap-2"
-                          title="Add CRD to group"
+                          title={t('sidebar.addCrdToGroup')}
                         >
                           <Plus className="h-4 w-4" />
-                          Add
+                          {t('common.add', 'Add')}
                         </Button>
                       </div>
                     )}
@@ -401,7 +419,7 @@ export function SidebarCustomizer({
                 </Label>
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
-                    placeholder="Group name (e.g., CRDs)"
+                    placeholder={t('sidebar.groupNamePlaceholder')}
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
                     onKeyDown={(e) => {
@@ -413,7 +431,7 @@ export function SidebarCustomizer({
                   <Button
                     onClick={handleCreateGroup}
                     disabled={!newGroupName.trim()}
-                    aria-label="Create CRD group"
+                    aria-label={t('sidebar.createCrdGroup')}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>

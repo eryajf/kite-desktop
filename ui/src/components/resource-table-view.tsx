@@ -270,14 +270,17 @@ export function ResourceTableView<T>({
                   ))}
                   {resolvedAllPageSize > 0 && (
                     <SelectItem value={`${resolvedAllPageSize}`}>
-                      All
+                      {t('resourceTableView.all')}
                     </SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center justify-center text-sm font-medium">
-              Page {pagination.pageIndex + 1} of {table.getPageCount() || 1}
+              {t('resourceTableView.pageOf', {
+                current: pagination.pageIndex + 1,
+                total: table.getPageCount() || 1,
+              })}
             </div>
             <div className="flex items-center justify-end gap-2 sm:justify-start lg:ml-0">
               <Button
@@ -287,7 +290,10 @@ export function ResourceTableView<T>({
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
               >
-                <span className="sr-only">Go to previous page</span>←
+                <span className="sr-only">
+                  {t('resourceTableView.previousPage')}
+                </span>
+                ←
               </Button>
               <Button
                 variant="outline"
@@ -296,7 +302,10 @@ export function ResourceTableView<T>({
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
               >
-                <span className="sr-only">Go to next page</span>→
+                <span className="sr-only">
+                  {t('resourceTableView.nextPage')}
+                </span>
+                →
               </Button>
             </div>
           </div>
