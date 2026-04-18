@@ -111,6 +111,9 @@ export function ServiceListPage() {
       columns={columns}
       clusterScope={false} // Services are namespace-scoped
       searchQueryFilter={serviceSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

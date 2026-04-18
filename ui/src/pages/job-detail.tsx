@@ -490,6 +490,7 @@ export function JobDetail(props: { namespace: string; name: string }) {
         resourceName={name}
         resourceType="jobs"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

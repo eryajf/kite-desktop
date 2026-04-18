@@ -291,6 +291,7 @@ export function ServiceDetail(props: { name: string; namespace?: string }) {
         resourceName={name}
         resourceType="services"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

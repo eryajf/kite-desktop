@@ -299,6 +299,7 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
         resourceName={configmap.metadata!.name!}
         resourceType="configmaps"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

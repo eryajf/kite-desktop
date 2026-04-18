@@ -73,6 +73,7 @@ export interface ResourceTableProps<T> {
   onCreateClick?: () => void // Callback for create button click
   extraToolbars?: React.ReactNode[] // Additional toolbar components
   defaultHiddenColumns?: string[] // Columns to hide by default
+  batchDeleteConfirmationValue?: string
 }
 
 export function ResourceTable<T>({
@@ -85,6 +86,7 @@ export function ResourceTable<T>({
   onCreateClick,
   extraToolbars = [],
   defaultHiddenColumns = [],
+  batchDeleteConfirmationValue,
 }: ResourceTableProps<T>) {
   const { t } = useTranslation()
   const [sorting, setSorting] = useState<SortingState>([])
@@ -97,6 +99,7 @@ export function ResourceTable<T>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('')
   const [searchQuery, setSearchQuery] = useState<string>(() => {
     const currentCluster = localStorage.getItem('current-cluster')
     const storageKey = `${currentCluster}-${resourceName}-searchQuery`
@@ -244,6 +247,13 @@ export function ResourceTable<T>({
     },
     [setSelectedNamespace, pagination.pageSize]
   )
+
+  const handleDeleteDialogChange = useCallback((open: boolean) => {
+    if (!open) {
+      setDeleteConfirmationInput('')
+    }
+    setDeleteDialogOpen(open)
+  }, [])
 
   // Add namespace column when showing all namespaces
   const enhancedColumns = useMemo(() => {
@@ -431,7 +441,7 @@ export function ResourceTable<T>({
       await Promise.allSettled(deletePromises)
       // Reset selection and close dialog
       setRowSelection({})
-      setDeleteDialogOpen(false)
+      handleDeleteDialogChange(false)
       // Refetch data
       if (!useSSE) {
         refetch()
@@ -439,7 +449,16 @@ export function ResourceTable<T>({
     } finally {
       setIsDeleting(false)
     }
-  }, [table, clusterScope, resourceType, resourceName, t, useSSE, refetch])
+  }, [
+    table,
+    clusterScope,
+    resourceType,
+    resourceName,
+    t,
+    useSSE,
+    refetch,
+    handleDeleteDialogChange,
+  ])
   // Calculate total and filtered row counts
   const totalRowCount = useMemo(
     () => (data as T[] | undefined)?.length || 0,
@@ -543,6 +562,11 @@ export function ResourceTable<T>({
   }
 
   const emptyState = renderEmptyState()
+  const batchDeleteConfirmationTarget =
+    batchDeleteConfirmationValue ??
+    t('deleteConfirmation.confirmDeleteKeyword')
+  const batchDeleteConfirmDisabled =
+    isDeleting || deleteConfirmationInput !== batchDeleteConfirmationTarget
 
   return (
     <div className="flex flex-col gap-3">
@@ -689,7 +713,7 @@ export function ResourceTable<T>({
               {table.getSelectedRowModel().rows.length > 0 && (
                 <Button
                   variant="destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
+                  onClick={() => handleDeleteDialogChange(true)}
                   className="gap-2"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -766,7 +790,7 @@ export function ResourceTable<T>({
       />
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t('resourceTable.confirmDeletion')}</DialogTitle>
@@ -777,10 +801,26 @@ export function ResourceTable<T>({
               })}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2">
+            <label htmlFor="batch-delete-confirmation" className="text-sm">
+              {t('deleteConfirmation.typeToConfirm')}{' '}
+              <span className="font-semibold">
+                {batchDeleteConfirmationTarget}
+              </span>{' '}
+              {t('deleteConfirmation.toConfirm')}
+            </label>
+            <Input
+              id="batch-delete-confirmation"
+              value={deleteConfirmationInput}
+              onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+              placeholder={batchDeleteConfirmationTarget}
+              autoComplete="off"
+            />
+          </div>
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
+              onClick={() => handleDeleteDialogChange(false)}
               disabled={isDeleting}
             >
               {t('common.cancel')}
@@ -788,7 +828,7 @@ export function ResourceTable<T>({
             <Button
               variant="destructive"
               onClick={handleBatchDelete}
-              disabled={isDeleting}
+              disabled={batchDeleteConfirmDisabled}
             >
               {isDeleting ? t('resourceTable.deleting') : t('common.delete')}
             </Button>

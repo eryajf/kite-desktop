@@ -109,6 +109,9 @@ export function DaemonSetListPage() {
       resourceName={'DaemonSets'}
       columns={columns}
       searchQueryFilter={daemonSetSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

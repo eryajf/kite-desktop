@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { HorizontalPodAutoscaler } from 'kubernetes-types/autoscaling/v2'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { formatDate } from '@/lib/utils'
@@ -47,6 +48,7 @@ function getMetricUtilization(hpa: HorizontalPodAutoscaler): string {
 }
 
 export function HorizontalPodAutoscalerListPage() {
+  const { t } = useTranslation()
   const columnHelper = createColumnHelper<HorizontalPodAutoscaler>()
 
   const columns = useMemo(
@@ -122,6 +124,9 @@ export function HorizontalPodAutoscalerListPage() {
       resourceName="HorizontalPodAutoscalers"
       columns={columns}
       searchQueryFilter={horizontalPodAutoscalerSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

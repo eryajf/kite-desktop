@@ -124,6 +124,9 @@ export function EventListPage() {
       columns={columns}
       clusterScope={false}
       searchQueryFilter={eventSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   IconCircleCheckFilled,
   IconExclamationCircle,
@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
+import { filterPodsOwnedByController } from '@/lib/k8s'
 import { formatDate, translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -96,13 +97,18 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
         .join(',')
     : undefined
 
-  const { data: relatedPods, isLoading: isLoadingPods } = useResourcesWatch(
+  const { data: watchedPods, isLoading: isLoadingPods } = useResourcesWatch(
     'pods',
     namespace,
     {
       labelSelector,
+      reduce: false,
       enabled: !!daemonset?.spec?.selector.matchLabels,
     }
+  )
+  const relatedPods = useMemo(
+    () => filterPodsOwnedByController(watchedPods, 'DaemonSet', daemonset),
+    [daemonset, watchedPods]
   )
 
   const handleSaveYaml = async () => {
@@ -612,6 +618,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
         resourceName={metadata?.name || ''}
         resourceType="daemonsets"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

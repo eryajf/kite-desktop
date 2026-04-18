@@ -104,6 +104,9 @@ export function DeploymentListPage() {
         searchQueryFilter={deploymentSearchFilter}
         showCreateButton={true}
         onCreateClick={handleCreateClick}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
       />
 
       <DeploymentCreateDialog

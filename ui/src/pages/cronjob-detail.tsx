@@ -689,6 +689,7 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
         resourceName={name}
         resourceType="cronjobs"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

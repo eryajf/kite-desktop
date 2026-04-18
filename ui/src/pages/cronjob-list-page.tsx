@@ -109,6 +109,9 @@ export function CronJobListPage() {
       resourceType="cronjobs"
       columns={columns}
       searchQueryFilter={cronJobSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

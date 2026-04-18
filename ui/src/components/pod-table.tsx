@@ -1,4 +1,4 @@
-import { type ReactNode, useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { IconLoader, IconTrash } from '@tabler/icons-react'
 import { Pod } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
@@ -135,7 +135,10 @@ export function PodTable(props: {
               <TooltipContent side="top" className="max-w-md">
                 <div className="space-y-2">
                   {images.map((entry) => (
-                    <div key={`${entry.name}-${entry.image}`} className="min-w-0">
+                    <div
+                      key={`${entry.name}-${entry.image}`}
+                      className="min-w-0"
+                    >
                       <div className="text-xs text-muted-foreground">
                         {entry.name}
                       </div>
@@ -298,7 +301,7 @@ export function PodTable(props: {
         namespace={podPendingDelete?.namespace}
         onConfirm={handleDelete}
         showAdditionalOptions={true}
-        requireNameConfirmation={false}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </Card>
   )

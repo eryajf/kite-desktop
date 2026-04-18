@@ -133,6 +133,9 @@ export function PVListPage() {
       columns={columns}
       clusterScope={true}
       searchQueryFilter={pvSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

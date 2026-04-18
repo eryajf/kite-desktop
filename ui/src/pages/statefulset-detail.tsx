@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   IconCircleCheckFilled,
   IconExclamationCircle,
@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
+import { filterPodsOwnedByController } from '@/lib/k8s'
 import { formatDate, translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -71,13 +72,18 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
         .map(([key, value]) => `${key}=${value}`)
         .join(',')
     : undefined
-  const { data: relatedPods, isLoading: isLoadingPods } = useResourcesWatch(
+  const { data: watchedPods, isLoading: isLoadingPods } = useResourcesWatch(
     'pods',
     namespace,
     {
       labelSelector,
+      reduce: false,
       enabled: !!statefulset?.spec?.selector.matchLabels,
     }
+  )
+  const relatedPods = useMemo(
+    () => filterPodsOwnedByController(watchedPods, 'StatefulSet', statefulset),
+    [statefulset, watchedPods]
   )
 
   useEffect(() => {
@@ -716,6 +722,7 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
         resourceName={metadata?.name || ''}
         resourceType="statefulsets"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

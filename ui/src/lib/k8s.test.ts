@@ -1,4 +1,5 @@
-import { Deployment } from 'kubernetes-types/apps/v1'
+import { DaemonSet, Deployment, ReplicaSet } from 'kubernetes-types/apps/v1'
+import { Pod } from 'kubernetes-types/core/v1'
 import { describe, expect, it } from 'vitest'
 
 import type { CustomResource } from '@/types/api'
@@ -6,6 +7,9 @@ import type { CustomResource } from '@/types/api'
 import {
   aggregateContainerResources,
   buildDeploymentOverviewViewModel,
+  filterPodsOwnedByController,
+  filterPodsOwnedByDeployment,
+  filterReplicaSetsOwnedByDeployment,
   getPrinterColumnValue,
 } from './k8s'
 
@@ -174,5 +178,169 @@ describe('deployment overview helpers', () => {
     expect(overview.serviceLinksEnabled).toBe(false)
     expect(overview.resourceRequests.memory).toBe('384Mi')
     expect(overview.resourceLimits.cpu).toBe('1500m')
+  })
+})
+
+describe('workload pod ownership helpers', () => {
+  const deployment = {
+    apiVersion: 'apps/v1',
+    kind: 'Deployment',
+    metadata: {
+      name: 'web',
+      namespace: 'default',
+      uid: 'deploy-1',
+    },
+  } as Deployment
+
+  const replicaSets = [
+    {
+      apiVersion: 'apps/v1',
+      kind: 'ReplicaSet',
+      metadata: {
+        name: 'web-abc123',
+        namespace: 'default',
+        uid: 'rs-1',
+        ownerReferences: [
+          {
+            apiVersion: 'apps/v1',
+            kind: 'Deployment',
+            name: 'web',
+            uid: 'deploy-1',
+            controller: true,
+          },
+        ],
+      },
+    },
+    {
+      apiVersion: 'apps/v1',
+      kind: 'ReplicaSet',
+      metadata: {
+        name: 'other-def456',
+        namespace: 'default',
+        uid: 'rs-2',
+        ownerReferences: [
+          {
+            apiVersion: 'apps/v1',
+            kind: 'Deployment',
+            name: 'other',
+            uid: 'deploy-2',
+            controller: true,
+          },
+        ],
+      },
+    },
+  ] as ReplicaSet[]
+
+  const pods = [
+    {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'web-abc123-1',
+        namespace: 'default',
+        ownerReferences: [
+          {
+            apiVersion: 'apps/v1',
+            kind: 'ReplicaSet',
+            name: 'web-abc123',
+            uid: 'rs-1',
+            controller: true,
+          },
+        ],
+      },
+    },
+    {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'other-def456-1',
+        namespace: 'default',
+        ownerReferences: [
+          {
+            apiVersion: 'apps/v1',
+            kind: 'ReplicaSet',
+            name: 'other-def456',
+            uid: 'rs-2',
+            controller: true,
+          },
+        ],
+      },
+    },
+  ] as Pod[]
+
+  it('keeps only replica sets controlled by the current deployment', () => {
+    expect(
+      filterReplicaSetsOwnedByDeployment(replicaSets, deployment)?.map(
+        (replicaSet) => replicaSet.metadata?.name
+      )
+    ).toEqual(['web-abc123'])
+  })
+
+  it('keeps only pods that belong to replica sets owned by the deployment', () => {
+    const ownedReplicaSets = filterReplicaSetsOwnedByDeployment(
+      replicaSets,
+      deployment
+    )
+
+    expect(
+      filterPodsOwnedByDeployment(pods, deployment, ownedReplicaSets)?.map(
+        (pod) => pod.metadata?.name
+      )
+    ).toEqual(['web-abc123-1'])
+  })
+
+  it('keeps only pods directly controlled by the matching workload', () => {
+    const daemonSet = {
+      apiVersion: 'apps/v1',
+      kind: 'DaemonSet',
+      metadata: {
+        name: 'agent',
+        namespace: 'kube-system',
+        uid: 'daemonset-1',
+      },
+    } as DaemonSet
+
+    const daemonSetPods = [
+      {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+          name: 'agent-node-a',
+          namespace: 'kube-system',
+          ownerReferences: [
+            {
+              apiVersion: 'apps/v1',
+              kind: 'DaemonSet',
+              name: 'agent',
+              uid: 'daemonset-1',
+              controller: true,
+            },
+          ],
+        },
+      },
+      {
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+          name: 'agent-node-b',
+          namespace: 'kube-system',
+          ownerReferences: [
+            {
+              apiVersion: 'apps/v1',
+              kind: 'DaemonSet',
+              name: 'other-agent',
+              uid: 'daemonset-2',
+              controller: true,
+            },
+          ],
+        },
+      },
+    ] as Pod[]
+
+    expect(
+      filterPodsOwnedByController(daemonSetPods, 'DaemonSet', daemonSet)?.map(
+        (pod) => pod.metadata?.name
+      )
+    ).toEqual(['agent-node-a'])
   })
 })

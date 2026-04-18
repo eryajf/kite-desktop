@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   IconLoader,
   IconRefresh,
@@ -16,10 +16,13 @@ import {
   patchResource,
   updateResource,
   useResource,
+  useResources,
   useResourcesWatch,
 } from '@/lib/api'
 import {
   buildDeploymentOverviewViewModel,
+  filterPodsOwnedByDeployment,
+  filterReplicaSetsOwnedByDeployment,
   getDeploymentStatus,
   toSimpleContainer,
 } from '@/lib/k8s'
@@ -81,14 +84,31 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
         .map(([key, value]) => `${key}=${value}`)
         .join(',')
     : undefined
-  const { data: relatedPods, isLoading: isLoadingPods } = useResourcesWatch(
+  const { data: watchedPods, isLoading: isLoadingPods } = useResourcesWatch(
     'pods',
     namespace,
     {
       labelSelector,
+      reduce: false,
       enabled: !!deployment?.spec?.selector.matchLabels,
     }
   )
+  const { data: watchedReplicaSets, isLoading: isLoadingReplicaSets } =
+    useResources('replicasets', namespace, {
+      labelSelector,
+      disable: !deployment?.metadata?.uid || !labelSelector,
+      refreshInterval,
+    })
+  const relatedReplicaSets = useMemo(
+    () => filterReplicaSetsOwnedByDeployment(watchedReplicaSets, deployment),
+    [deployment, watchedReplicaSets]
+  )
+  const relatedPods = useMemo(
+    () =>
+      filterPodsOwnedByDeployment(watchedPods, deployment, relatedReplicaSets),
+    [deployment, relatedReplicaSets, watchedPods]
+  )
+  const isLoadingRelatedPods = isLoadingPods || isLoadingReplicaSets
 
   useEffect(() => {
     if (deployment) {
@@ -508,7 +528,7 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
                 {relatedPods ? (
                   <PodTable
                     pods={relatedPods}
-                    isLoading={isLoadingPods}
+                    isLoading={isLoadingRelatedPods}
                     labelSelector={labelSelector}
                     title={
                       <>
@@ -695,6 +715,7 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
         resourceName={name}
         resourceType="deployments"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
       {isContainerEditorOpen ? (
         <ContainerEditDialog

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strings"
 
@@ -17,6 +18,11 @@ import (
 
 type ResourceApplyHandler struct {
 }
+
+const (
+	defaultApplyNamespace         = "default"
+	emptyNamespaceLookupErrorText = "an empty namespace may not be set when a resource name is provided"
+)
 
 func NewResourceApplyHandler() *ResourceApplyHandler {
 	return &ResourceApplyHandler{}
@@ -56,10 +62,7 @@ func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 	existingObj.SetName(obj.GetName())
 	existingObj.SetNamespace(obj.GetNamespace())
 
-	err = cs.K8sClient.Get(ctx, client.ObjectKey{
-		Name:      obj.GetName(),
-		Namespace: obj.GetNamespace(),
-	}, existingObj)
+	err = getExistingResourceForApply(ctx, cs.K8sClient, obj, existingObj)
 
 	defer func() {
 		operatorID := uint(0)
@@ -116,4 +119,33 @@ func (h *ResourceApplyHandler) ApplyResource(c *gin.Context) {
 		"name":      obj.GetName(),
 		"namespace": obj.GetNamespace(),
 	})
+}
+
+func getExistingResourceForApply(ctx context.Context, kubeClient client.Client, obj, existingObj *unstructured.Unstructured) error {
+	key := client.ObjectKey{
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
+	}
+
+	err := kubeClient.Get(ctx, key, existingObj)
+	if shouldRetryApplyInDefaultNamespace(err, obj) {
+		obj.SetNamespace(defaultApplyNamespace)
+		existingObj.SetNamespace(defaultApplyNamespace)
+		key.Namespace = defaultApplyNamespace
+		err = kubeClient.Get(ctx, key, existingObj)
+	}
+
+	return err
+}
+
+func shouldRetryApplyInDefaultNamespace(err error, obj *unstructured.Unstructured) bool {
+	if err == nil || obj == nil {
+		return false
+	}
+
+	if strings.TrimSpace(obj.GetNamespace()) != "" {
+		return false
+	}
+
+	return strings.Contains(err.Error(), emptyNamespaceLookupErrorText)
 }
