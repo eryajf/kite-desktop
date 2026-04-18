@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Secret } from 'kubernetes-types/core/v1'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { formatDate } from '@/lib/utils'
@@ -8,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 
 export function SecretListPage() {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<Secret>()
 
@@ -86,6 +88,9 @@ export function SecretListPage() {
       columns={columns}
       clusterScope={false} // Secrets are namespace-scoped
       searchQueryFilter={secretSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

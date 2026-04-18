@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/tooltip'
 import { AIChatTrigger } from '@/components/ai-chat/ai-chat-trigger'
 import { getAIChatShortcutLabel } from '@/components/ai-chat/constants'
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
 
 const MIN_HEIGHT = 200
 const DESKTOP_DEFAULT_HEIGHT_RATIO = 0.62
@@ -626,7 +627,7 @@ function HistoryPanel({
   history: ChatSession[]
   currentSessionId: string | null
   onLoadSession: (id: string) => void | Promise<void>
-  onDeleteSession: (id: string) => void
+  onDeleteSession: (session: ChatSession) => void
   onNewSession: () => void
   onClose: () => void
 }) {
@@ -750,7 +751,7 @@ function HistoryPanel({
                   className="absolute right-1 top-1 h-6 w-6 opacity-0 group-hover:opacity-100 hover:bg-destructive hover:text-destructive-foreground"
                   onClick={(e) => {
                     e.stopPropagation()
-                    onDeleteSession(session.id)
+                    onDeleteSession(session)
                   }}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -975,6 +976,8 @@ export function AIChatbox({
 
   const [input, setInput] = useState('')
   const [showHistory, setShowHistory] = useState(false)
+  const [pendingSessionDelete, setPendingSessionDelete] =
+    useState<ChatSession | null>(null)
   const [height, setHeight] = useState(() =>
     Math.round(
       (window.visualViewport?.height ?? window.innerHeight) *
@@ -1346,7 +1349,7 @@ export function AIChatbox({
             history={history}
             currentSessionId={currentSessionId}
             onLoadSession={loadSession}
-            onDeleteSession={deleteSession}
+            onDeleteSession={setPendingSessionDelete}
             onNewSession={newSession}
             onClose={() => setShowHistory(false)}
           />
@@ -1431,6 +1434,25 @@ export function AIChatbox({
             {t('aiChat.disclaimer')}
           </p>
         </div>
+        <DeleteConfirmationDialog
+          open={pendingSessionDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingSessionDelete(null)
+            }
+          }}
+          resourceName={
+            pendingSessionDelete?.title || pendingSessionDelete?.id || ''
+          }
+          resourceType={t('aiChat.history')}
+          onConfirm={() => {
+            if (!pendingSessionDelete) {
+              return
+            }
+            deleteSession(pendingSessionDelete.id)
+            setPendingSessionDelete(null)
+          }}
+        />
       </>
     </div>
   )

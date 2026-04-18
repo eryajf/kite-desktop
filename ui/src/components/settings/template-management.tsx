@@ -328,6 +328,7 @@ export function TemplateManagement() {
         onConfirm={handleDelete}
         resourceName={deletingTemplate?.name || ''}
         resourceType={t('templateManagement.resourceType', 'template')}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

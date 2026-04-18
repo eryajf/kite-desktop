@@ -130,6 +130,9 @@ export function PVCListPage() {
       resourceName={'PersistentVolumeClaims'}
       columns={columns}
       searchQueryFilter={pvcSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

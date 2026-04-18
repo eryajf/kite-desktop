@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { HTTPRoute } from '@/types/gateway'
@@ -7,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { ResourceTable } from '@/components/resource-table'
 
 export function HTTPRouteListPage() {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<HTTPRoute>()
 
@@ -51,6 +53,9 @@ export function HTTPRouteListPage() {
       resourceName="HTTPRoutes"
       columns={columns}
       searchQueryFilter={filter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

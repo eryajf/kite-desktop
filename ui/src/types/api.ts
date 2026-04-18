@@ -57,6 +57,8 @@ import {
 } from 'kubernetes-types/rbac/v1'
 import { StorageClass, StorageClassList } from 'kubernetes-types/storage/v1'
 
+import { Gateway, HTTPRoute } from './gateway'
+
 export interface CustomResource {
   apiVersion: string
   kind: string
@@ -102,6 +104,8 @@ export type ResourceType =
   | 'secrets'
   | 'ingresses'
   | 'networkpolicies'
+  | 'gateways'
+  | 'httproutes'
   | 'namespaces'
   | 'crds'
   | 'crs'
@@ -151,6 +155,14 @@ export interface ResourcesTypeMap {
   persistentvolumeclaims: PersistentVolumeClaimList
   ingresses: IngressList
   networkpolicies: NetworkPolicyList
+  gateways: {
+    items: Gateway[]
+    metadata?: listMetadataType
+  }
+  httproutes: {
+    items: HTTPRoute[]
+    metadata?: listMetadataType
+  }
   namespaces: NamespaceList
   crds: CustomResourceDefinitionList
   crs: {
@@ -228,6 +240,8 @@ export interface ResourceTypeMap {
   persistentvolumeclaims: PersistentVolumeClaim
   ingresses: Ingress
   networkpolicies: NetworkPolicy
+  gateways: Gateway
+  httproutes: HTTPRoute
   namespaces: Namespace
   crds: CustomResourceDefinition
   crs: CustomResource
@@ -433,12 +447,10 @@ export interface ResourceHistory {
   success: boolean
   errorMessage: string
   operatorId: number
-  operator:
-    | {
-        username: string
-        provider: string
-      }
-    | null
+  operator: {
+    username: string
+    provider: string
+  } | null
   createdAt: string
   updatedAt: string
 }

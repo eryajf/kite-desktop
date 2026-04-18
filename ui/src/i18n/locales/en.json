@@ -1261,6 +1261,7 @@
     "type": "Type",
     "typeToConfirm": "Type",
     "toConfirm": "to confirm:",
+    "confirmDeleteKeyword": "CONFIRM DELETE",
     "wait": "Wait",
     "forceDelete": "Force delete (set grace period to 0)",
     "finalizerNote": "If finalizers exist and resource is not deleted after 3 seconds, finalizers will be removed automatically",

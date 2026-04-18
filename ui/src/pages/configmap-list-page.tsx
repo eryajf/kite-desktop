@@ -1,12 +1,14 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { ConfigMap } from 'kubernetes-types/core/v1'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { formatDate } from '@/lib/utils'
 import { ResourceTable } from '@/components/resource-table'
 
 export function ConfigMapListPage() {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<ConfigMap>()
 
@@ -80,6 +82,9 @@ export function ConfigMapListPage() {
       resourceName="ConfigMaps"
       columns={columns}
       searchQueryFilter={configMapSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

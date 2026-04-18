@@ -115,6 +115,9 @@ export function StatefulSetListPage() {
       resourceType="statefulsets"
       columns={columns}
       searchQueryFilter={statefulSetSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

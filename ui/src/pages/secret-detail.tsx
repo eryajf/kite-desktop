@@ -336,6 +336,7 @@ export function SecretDetail(props: { namespace: string; name: string }) {
         resourceName={secret.metadata!.name!}
         resourceType="secrets"
         namespace={namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </div>
   )

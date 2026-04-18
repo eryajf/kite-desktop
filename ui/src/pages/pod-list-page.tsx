@@ -155,6 +155,9 @@ export function PodListPage() {
       columns={columns}
       clusterScope={false}
       searchQueryFilter={podSearchFilter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

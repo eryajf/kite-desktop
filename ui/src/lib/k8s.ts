@@ -1,5 +1,10 @@
 import * as jsonpath from 'jsonpath'
-import { Deployment } from 'kubernetes-types/apps/v1'
+import {
+  DaemonSet,
+  Deployment,
+  ReplicaSet,
+  StatefulSet,
+} from 'kubernetes-types/apps/v1'
 import { Container, Pod, Service } from 'kubernetes-types/core/v1'
 import { ObjectMeta } from 'kubernetes-types/meta/v1'
 
@@ -18,6 +23,115 @@ import {
 } from '@/types/k8s'
 
 import { getAge } from './utils'
+
+function getControllerOwnerReference(metadata?: ObjectMeta) {
+  if (!metadata?.ownerReferences?.length) {
+    return undefined
+  }
+
+  return (
+    metadata.ownerReferences.find((ownerRef) => ownerRef.controller) ||
+    metadata.ownerReferences[0]
+  )
+}
+
+function ownerReferenceMatchesController(
+  metadata: ObjectMeta | undefined,
+  kind: string,
+  controller?: { metadata?: ObjectMeta }
+) {
+  const ownerRef = getControllerOwnerReference(metadata)
+  if (!ownerRef || ownerRef.kind !== kind) {
+    return false
+  }
+
+  const controllerUID = controller?.metadata?.uid
+  if (controllerUID && ownerRef.uid) {
+    return ownerRef.uid === controllerUID
+  }
+
+  return ownerRef.name === controller?.metadata?.name
+}
+
+export function filterPodsOwnedByController<T extends Pod>(
+  pods: T[] | undefined,
+  controllerKind: string,
+  controller?: Deployment | DaemonSet | StatefulSet
+) {
+  if (!pods) {
+    return undefined
+  }
+
+  if (!controller) {
+    return pods
+  }
+
+  return pods.filter((pod) =>
+    ownerReferenceMatchesController(pod.metadata, controllerKind, controller)
+  )
+}
+
+export function filterReplicaSetsOwnedByDeployment<T extends ReplicaSet>(
+  replicaSets: T[] | undefined,
+  deployment?: Deployment
+) {
+  if (!replicaSets) {
+    return undefined
+  }
+
+  if (!deployment) {
+    return replicaSets
+  }
+
+  return replicaSets.filter((replicaSet) =>
+    ownerReferenceMatchesController(
+      replicaSet.metadata,
+      'Deployment',
+      deployment
+    )
+  )
+}
+
+export function filterPodsOwnedByDeployment<
+  T extends Pod,
+  R extends ReplicaSet,
+>(pods: T[] | undefined, deployment?: Deployment, replicaSets?: R[]) {
+  if (!pods) {
+    return undefined
+  }
+
+  if (!deployment) {
+    return pods
+  }
+
+  if (!replicaSets) {
+    return undefined
+  }
+
+  const ownedReplicaSetUIDs = new Set(
+    replicaSets
+      .map((replicaSet) => replicaSet.metadata?.uid)
+      .filter((uid): uid is string => Boolean(uid))
+  )
+  const ownedReplicaSetNames = new Set(
+    replicaSets
+      .map((replicaSet) => replicaSet.metadata?.name)
+      .filter((name): name is string => Boolean(name))
+  )
+
+  return pods.filter((pod) => {
+    const ownerRef = getControllerOwnerReference(pod.metadata)
+    if (!ownerRef || ownerRef.kind !== 'ReplicaSet') {
+      return false
+    }
+
+    if (ownerRef.uid) {
+      return ownedReplicaSetUIDs.has(ownerRef.uid)
+    }
+
+    return ownedReplicaSetNames.has(ownerRef.name)
+  })
+}
 
 // This function retrieves the status of a Pod in Kubernetes.
 // @see https://github.com/kubernetes/kubernetes/blob/master/pkg/printers/internalversion/printers.go#L881

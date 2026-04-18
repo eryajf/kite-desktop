@@ -48,6 +48,9 @@ export function NamespaceListPage() {
       columns={columns}
       clusterScope={true}
       searchQueryFilter={filter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

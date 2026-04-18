@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 
 import { Gateway } from '@/types/gateway'
@@ -7,6 +8,7 @@ import { formatDate } from '@/lib/utils'
 import { ResourceTable } from '@/components/resource-table'
 
 export function GatewayListPage() {
+  const { t } = useTranslation()
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<Gateway>()
 
@@ -51,6 +53,9 @@ export function GatewayListPage() {
       resourceName="Gateways"
       columns={columns}
       searchQueryFilter={filter}
+      batchDeleteConfirmationValue={t(
+        'deleteConfirmation.confirmDeleteKeyword'
+      )}
     />
   )
 }

@@ -29,6 +29,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { CRDSelector } from '@/components/selector/crd-selector'
+import { DeleteConfirmationDialog } from '@/components/delete-confirmation-dialog'
+import type { SidebarGroup, SidebarItem } from '@/types/sidebar'
 
 export function SidebarCustomizer({
   onOpenChange,
@@ -45,6 +47,12 @@ export function SidebarCustomizer({
       }
     | undefined
   >()
+  const [pendingGroupDelete, setPendingGroupDelete] =
+    useState<SidebarGroup | null>(null)
+  const [pendingItemDelete, setPendingItemDelete] = useState<{
+    group: SidebarGroup
+    item: SidebarItem
+  } | null>(null)
   const {
     config,
     isLoading,
@@ -74,6 +82,18 @@ export function SidebarCustomizer({
       addCRDToGroup(groupId, selectedCRD.name, selectedCRD.kind)
       setSelectedCRD(undefined)
     }
+  }
+
+  const getGroupDisplayName = (group: SidebarGroup) => {
+    return group.nameKey
+      ? t(group.nameKey, { defaultValue: group.nameKey })
+      : group.id
+  }
+
+  const getItemDisplayName = (item: SidebarItem) => {
+    return item.titleKey
+      ? t(item.titleKey, { defaultValue: item.titleKey })
+      : item.id
   }
 
   const pinnedItems = useMemo(() => {
@@ -248,7 +268,7 @@ export function SidebarCustomizer({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeCustomGroup(group.id)}
+                          onClick={() => setPendingGroupDelete(group)}
                           className="h-8 w-8 p-0"
                           title="Delete custom group"
                           aria-label="Delete custom group"
@@ -310,7 +330,7 @@ export function SidebarCustomizer({
                                 variant="ghost"
                                 size="sm"
                                 onClick={() =>
-                                  removeCRDToGroup(group.id, item.id)
+                                  setPendingItemDelete({ group, item })
                                 }
                                 className="h-8 w-8 p-0"
                                 title="Remove from group"
@@ -418,6 +438,66 @@ export function SidebarCustomizer({
             </Button>
           </div>
         </div>
+
+        <DeleteConfirmationDialog
+          open={pendingGroupDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingGroupDelete(null)
+            }
+          }}
+          resourceName={
+            pendingGroupDelete
+              ? getGroupDisplayName(pendingGroupDelete)
+              : ''
+          }
+          resourceType={t('sidebar.customGroup', 'custom group')}
+          additionalNote={t(
+            'sidebar.deleteGroupNote',
+            'This will remove the custom group and its sidebar entries only. No cluster resources will be deleted.'
+          )}
+          onConfirm={() => {
+            if (!pendingGroupDelete) {
+              return
+            }
+            removeCustomGroup(pendingGroupDelete.id)
+            setPendingGroupDelete(null)
+          }}
+        />
+
+        <DeleteConfirmationDialog
+          open={pendingItemDelete !== null}
+          onOpenChange={(open) => {
+            if (!open) {
+              setPendingItemDelete(null)
+            }
+          }}
+          resourceName={
+            pendingItemDelete ? getItemDisplayName(pendingItemDelete.item) : ''
+          }
+          resourceType={t('sidebar.customGroupItem', 'custom group item')}
+          additionalNote={
+            pendingItemDelete
+              ? t(
+                  'sidebar.deleteGroupItemNote',
+                  'This will remove the item from custom group "{{groupName}}" only.',
+                  {
+                    groupName: getGroupDisplayName(pendingItemDelete.group),
+                  }
+                )
+              : undefined
+          }
+          onConfirm={() => {
+            if (!pendingItemDelete) {
+              return
+            }
+            removeCRDToGroup(
+              pendingItemDelete.group.id,
+              pendingItemDelete.item.id
+            )
+            setPendingItemDelete(null)
+          }}
+        />
       </DialogContent>
     </Dialog>
   )

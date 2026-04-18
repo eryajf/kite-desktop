@@ -26,6 +26,7 @@ interface DeleteConfirmationDialogProps {
   additionalNote?: string
   showAdditionalOptions?: boolean
   requireNameConfirmation?: boolean
+  confirmationValue?: string
 }
 
 export function DeleteConfirmationDialog({
@@ -39,11 +40,14 @@ export function DeleteConfirmationDialog({
   additionalNote,
   showAdditionalOptions = false,
   requireNameConfirmation = true,
+  confirmationValue,
 }: DeleteConfirmationDialogProps) {
   const { t } = useTranslation()
   const [confirmationInput, setConfirmationInput] = useState('')
   const [forceDelete, setForceDelete] = useState(false)
   const [wait, setWait] = useState(true)
+  const confirmationTarget =
+    confirmationValue ?? t('deleteConfirmation.confirmDeleteKeyword')
 
   const handleDialogChange = (open: boolean) => {
     if (!open) {
@@ -55,7 +59,7 @@ export function DeleteConfirmationDialog({
   }
 
   const handleConfirm = () => {
-    if (requireNameConfirmation && confirmationInput !== resourceName) {
+    if (requireNameConfirmation && confirmationInput !== confirmationTarget) {
       return
     }
 
@@ -63,7 +67,8 @@ export function DeleteConfirmationDialog({
   }
 
   const isConfirmDisabled =
-    isDeleting || (requireNameConfirmation && confirmationInput !== resourceName)
+    isDeleting ||
+    (requireNameConfirmation && confirmationInput !== confirmationTarget)
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
@@ -120,14 +125,14 @@ export function DeleteConfirmationDialog({
             <div className="space-y-2">
               <Label htmlFor="confirmation">
                 {t('deleteConfirmation.typeToConfirm')}{' '}
-                <span className=" font-semibold">{resourceName}</span>{' '}
+                <span className=" font-semibold">{confirmationTarget}</span>{' '}
                 {t('deleteConfirmation.toConfirm')}
               </Label>
               <Input
                 id="confirmation"
                 value={confirmationInput}
                 onChange={(e) => setConfirmationInput(e.target.value)}
-                placeholder={resourceName}
+                placeholder={confirmationTarget}
                 autoComplete="off"
               />
             </div>

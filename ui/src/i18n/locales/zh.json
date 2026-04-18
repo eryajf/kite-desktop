@@ -1074,6 +1074,7 @@
     "type": "类型",
     "typeToConfirm": "输入",
     "toConfirm": "以确认：",
+    "confirmDeleteKeyword": "确认删除",
     "wait": "等待",
     "forceDelete": "强制删除（将宽限期设置为 0）",
     "finalizerNote": "如果存在 finalizer，3 秒后如果还未被删除，将会自动清理 finalizer",

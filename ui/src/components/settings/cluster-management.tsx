@@ -6,10 +6,9 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { Cluster } from '@/types/api'
-import { invalidateClusterQueries } from '@/lib/cluster-query'
 import {
-  ClusterCreateRequest,
   ClusterConnectionTestResponse,
+  ClusterCreateRequest,
   ClusterUpdateRequest,
   createCluster,
   deleteCluster,
@@ -17,6 +16,7 @@ import {
   updateCluster,
   useClusterList,
 } from '@/lib/api'
+import { invalidateClusterQueries } from '@/lib/cluster-query'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -113,7 +113,9 @@ export function ClusterManagement() {
             return (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Badge variant="destructive">{t('common.error', 'Error')}</Badge>
+                  <Badge variant="destructive">
+                    {t('common.error', 'Error')}
+                  </Badge>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs break-all">{cluster.error}</p>
@@ -354,6 +356,7 @@ export function ClusterManagement() {
         onConfirm={handleDeleteCluster}
         resourceName={deletingCluster?.name || ''}
         resourceType={t('clusterManagement.resourceType', 'cluster')}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
         additionalNote={t(
           'clusterManagement.deleteConfirmation',
           "This action will only remove the current cluster's configuration in kite and will not delete any cluster resources."
