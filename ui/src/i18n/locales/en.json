@@ -32,6 +32,8 @@
     "current": "Current",
     "available": "Available",
     "history": "History",
+    "back": "Back",
+    "forward": "Forward",
     "yes": "Yes",
     "no": "No",
     "default": "Default",

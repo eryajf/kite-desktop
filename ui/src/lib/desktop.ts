@@ -3,6 +3,15 @@ import { trackEvent } from './analytics'
 import { getCurrentAnalyticsPageKey } from './analytics-route'
 
 export const DESKTOP_LOCAL_RUNTIME = 'desktop-local'
+export const DESKTOP_NAVIGATE_BACK_EVENT = 'kite:navigate-back'
+export const DESKTOP_NAVIGATE_FORWARD_EVENT = 'kite:navigate-forward'
+export const DESKTOP_WINDOW_NAME_CHANGE_EVENT = 'kite:window-name-change'
+
+declare global {
+  interface Window {
+    __KITE_WINDOW_NAME__?: string
+  }
+}
 
 export interface DesktopCapabilities {
   nativeFileDialog: boolean
@@ -149,6 +158,12 @@ export interface DesktopUpdateState {
     path: string
     downloadedAt?: string
   }
+}
+
+export interface DesktopNavigationState {
+  windowName: string
+  canGoBack: boolean
+  canGoForward: boolean
 }
 
 const DEFAULT_CAPABILITIES: DesktopCapabilities = {
@@ -426,6 +441,23 @@ export async function cancelDesktopUpdateDownload(): Promise<DesktopUpdateState 
 
 export async function applyDesktopUpdate(): Promise<boolean> {
   return invokeDesktopAction('/api/desktop/update/apply')
+}
+
+export function getDesktopWindowName(): string {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+  return window.__KITE_WINDOW_NAME__ || ''
+}
+
+export async function syncDesktopNavigationState(
+  state: DesktopNavigationState
+): Promise<void> {
+  if (!(await isDesktopMode())) {
+    return
+  }
+
+  await postDesktop<DesktopActionResponse>('/api/desktop/navigation/state', state)
 }
 
 export function installDesktopTargetBlankInterceptor(): () => void {

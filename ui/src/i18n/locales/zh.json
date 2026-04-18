@@ -49,6 +49,8 @@
     "description": "描述",
     "yaml": "YAML",
     "history": "历史",
+    "back": "后退",
+    "forward": "前进",
     "yes": "是",
     "no": "否",
     "default": "默认",

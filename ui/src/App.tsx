@@ -18,6 +18,7 @@ import { Toaster } from './components/ui/sonner'
 import { UpdateDownloadToast } from './components/update-download-toast'
 import { AIChatProvider } from './contexts/ai-chat-context'
 import { ClusterProvider } from './contexts/cluster-context'
+import { NavigationProvider } from './contexts/navigation-context'
 import { TerminalProvider, useTerminal } from './contexts/terminal-context'
 import { useCluster } from './hooks/use-cluster'
 import { apiClient } from './lib/api-client'
@@ -120,11 +121,13 @@ function AppProviders({ children }: { children: ReactNode }) {
   return (
     <TerminalProvider>
       <ClusterProvider>
-        <GlobalSearchProvider>
-          <PageFindProvider>
-            <AIChatProvider>{children}</AIChatProvider>
-          </PageFindProvider>
-        </GlobalSearchProvider>
+        <NavigationProvider>
+          <GlobalSearchProvider>
+            <PageFindProvider>
+              <AIChatProvider>{children}</AIChatProvider>
+            </PageFindProvider>
+          </GlobalSearchProvider>
+        </NavigationProvider>
       </ClusterProvider>
     </TerminalProvider>
   )

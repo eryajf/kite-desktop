@@ -37,6 +37,10 @@ const (
 	pageFindOpenEvent     = "kite:page-find-open"
 	pageFindNextEvent     = "kite:page-find-next"
 	pageFindPreviousEvent = "kite:page-find-previous"
+	navigateBackEvent     = "kite:navigate-back"
+	navigateForwardEvent  = "kite:navigate-forward"
+	windowNameChangeEvent = "kite:window-name-change"
+	mainWindowName        = "main"
 	aiSidecarWindowName   = "ai-sidecar"
 	aiSidecarWindowTitle  = "Kite AI Chat"
 	aiSidecarGap          = 0
@@ -84,10 +88,12 @@ type desktopHost struct {
 	updateStore     *desktopUpdateStateStore
 	downloadManager *desktopUpdateDownloadManager
 
-	mainWindow *application.WebviewWindow
-	aiSidecar  *application.WebviewWindow
-	aiSide     string
-	systemTray *application.SystemTray
+	mainWindow  *application.WebviewWindow
+	aiSidecar   *application.WebviewWindow
+	aiSide      string
+	systemTray  *application.SystemTray
+	backItem    *application.MenuItem
+	forwardItem *application.MenuItem
 
 	aiSidecarClosing atomic.Bool
 	quitting         atomic.Bool
@@ -206,7 +212,7 @@ func (h *desktopHost) capabilities() desktopCapabilities {
 
 func (h *desktopHost) mainWindowOptions() application.WebviewWindowOptions {
 	opts := desktopWindowOptions(application.WebviewWindowOptions{
-		Name:           "main",
+		Name:           mainWindowName,
 		Title:          "Kite",
 		Width:          1480,
 		Height:         960,
@@ -231,6 +237,7 @@ func (h *desktopHost) mainWindowOptions() application.WebviewWindowOptions {
 
 func (h *desktopHost) registerMainWindow(window *application.WebviewWindow) {
 	h.mainWindow = window
+	h.bindWindowName(window, mainWindowName)
 
 	window.RegisterHook(events.Common.WindowClosing, func(event *application.WindowEvent) {
 		h.closeAISidecar()
@@ -314,6 +321,10 @@ func (h *desktopHost) emitPageFindEvent(eventName string) {
 	h.emitWindowEvent(eventName)
 }
 
+func (h *desktopHost) emitNavigationEvent(eventName string) {
+	h.emitWindowEvent(eventName)
+}
+
 func (h *desktopHost) persistStateOnShutdown() {
 	if h.mainWindow == nil {
 		return
@@ -336,6 +347,66 @@ func (h *desktopHost) hideMainWindow() {
 	}
 	h.closeAISidecar()
 	h.mainWindow.Hide()
+}
+
+func (h *desktopHost) setWindowName(window *application.WebviewWindow, name string) {
+	if window == nil {
+		return
+	}
+	window.ExecJS(
+		fmt.Sprintf(
+			"(function(){window.__KITE_WINDOW_NAME__=%[1]s;window.dispatchEvent(new CustomEvent(%[2]s,{detail:{windowName:%[1]s}}));})();",
+			strconv.Quote(name),
+			strconv.Quote(windowNameChangeEvent),
+		),
+	)
+}
+
+func (h *desktopHost) bindWindowName(window *application.WebviewWindow, name string) {
+	if window == nil {
+		return
+	}
+
+	h.setWindowName(window, name)
+
+	window.RegisterHook(events.Common.WindowShow, func(event *application.WindowEvent) {
+		h.setWindowName(window, name)
+	})
+	window.RegisterHook(events.Common.WindowFocus, func(event *application.WindowEvent) {
+		h.setWindowName(window, name)
+	})
+
+	switch runtime.GOOS {
+	case "darwin":
+		window.RegisterHook(events.Mac.WebViewDidFinishNavigation, func(event *application.WindowEvent) {
+			h.setWindowName(window, name)
+		})
+	case "windows":
+		window.RegisterHook(events.Windows.WebViewNavigationCompleted, func(event *application.WindowEvent) {
+			h.setWindowName(window, name)
+		})
+	default:
+		window.RegisterHook(events.Linux.WindowLoadFinished, func(event *application.WindowEvent) {
+			h.setWindowName(window, name)
+		})
+	}
+}
+
+func (h *desktopHost) setNavigationMenuItems(backItem, forwardItem *application.MenuItem) {
+	h.backItem = backItem
+	h.forwardItem = forwardItem
+}
+
+func (h *desktopHost) setNavigationMenuState(canGoBack, canGoForward bool) {
+	if h == nil {
+		return
+	}
+	if h.backItem != nil {
+		h.backItem.SetEnabled(canGoBack)
+	}
+	if h.forwardItem != nil {
+		h.forwardItem.SetEnabled(canGoForward)
+	}
 }
 
 func layoutAISidecarBounds(
@@ -576,6 +647,7 @@ func (h *desktopHost) getAISidecar() (*application.WebviewWindow, bool) {
 		return nil, false
 	}
 	h.aiSidecar = sidecar
+	h.setWindowName(sidecar, aiSidecarWindowName)
 	return sidecar, true
 }
 
@@ -583,6 +655,7 @@ func (h *desktopHost) registerAISidecarWindow(sidecar *application.WebviewWindow
 	if sidecar == nil {
 		return
 	}
+	h.bindWindowName(sidecar, aiSidecarWindowName)
 
 	sidecar.RegisterHook(events.Common.WindowFocus, func(event *application.WindowEvent) {
 		h.raiseAISidecar()
@@ -977,6 +1050,21 @@ func buildApplicationMenu(h *desktopHost, devMode bool) *application.Menu {
 	editMenu := menu.AddSubmenu("Edit")
 	editMenu.AddRole(application.Undo)
 	editMenu.AddRole(application.Redo)
+	backItem := editMenu.Add("Back").SetEnabled(false).OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
+		h.emitNavigationEvent(navigateBackEvent)
+	})
+	forwardItem := editMenu.Add("Forward").SetEnabled(false).OnClick(func(ctx *application.Context) {
+		if h == nil {
+			return
+		}
+		h.emitNavigationEvent(navigateForwardEvent)
+	})
+	if h != nil {
+		h.setNavigationMenuItems(backItem, forwardItem)
+	}
 	editMenu.AddSeparator()
 	editMenu.AddRole(application.Cut)
 	editMenu.AddRole(application.Copy)

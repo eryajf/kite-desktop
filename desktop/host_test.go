@@ -167,6 +167,20 @@ func TestBuildApplicationMenuIncludesEditMenu(t *testing.T) {
 	if menu.FindByLabel("Edit") == nil {
 		t.Fatal("expected application menu to include an Edit submenu")
 	}
+	backItem := menu.FindByLabel("Back")
+	if backItem == nil {
+		t.Fatal("expected application menu to include Back shortcut")
+	}
+	if backItem.Enabled() {
+		t.Fatal("expected Back shortcut to be disabled by default")
+	}
+	forwardItem := menu.FindByLabel("Forward")
+	if forwardItem == nil {
+		t.Fatal("expected application menu to include Forward shortcut")
+	}
+	if forwardItem.Enabled() {
+		t.Fatal("expected Forward shortcut to be disabled by default")
+	}
 	if menu.FindByLabel("Find in Page") == nil {
 		t.Fatal("expected application menu to include Find in Page shortcut")
 	}
@@ -175,6 +189,29 @@ func TestBuildApplicationMenuIncludesEditMenu(t *testing.T) {
 	}
 	if menu.FindByRole(application.Copy) == nil {
 		t.Fatal("expected application menu to include standard clipboard shortcuts")
+	}
+}
+
+func TestDesktopHostSetNavigationMenuState(t *testing.T) {
+	host := &desktopHost{}
+	backItem := application.NewMenuItem("Back").SetEnabled(false)
+	forwardItem := application.NewMenuItem("Forward").SetEnabled(false)
+	host.setNavigationMenuItems(backItem, forwardItem)
+
+	host.setNavigationMenuState(true, false)
+	if !backItem.Enabled() {
+		t.Fatal("expected Back menu item to be enabled")
+	}
+	if forwardItem.Enabled() {
+		t.Fatal("expected Forward menu item to remain disabled")
+	}
+
+	host.setNavigationMenuState(false, true)
+	if backItem.Enabled() {
+		t.Fatal("expected Back menu item to be disabled")
+	}
+	if !forwardItem.Enabled() {
+		t.Fatal("expected Forward menu item to be enabled")
 	}
 }
 

@@ -178,6 +178,12 @@ type desktopImportKubeconfigRequest struct {
 	Content string `json:"content"`
 }
 
+type desktopNavigationStateRequest struct {
+	WindowName   string `json:"windowName"`
+	CanGoBack    bool   `json:"canGoBack"`
+	CanGoForward bool   `json:"canGoForward"`
+}
+
 func newDesktopBridge(app *application.App, baseURL string, host *desktopHost) (*desktopBridge, error) {
 	parsed, err := url.Parse(baseURL)
 	if err != nil {
@@ -210,6 +216,7 @@ func (d *desktopBridge) registerRoutes(engine *gin.Engine) {
 	api.POST("/window/focus", d.handleFocusWindow)
 	api.POST("/window/hide", d.handleHideWindow)
 	api.POST("/window/quit", d.handleQuitWindow)
+	api.POST("/navigation/state", d.handleNavigationState)
 	api.POST("/copy-to-clipboard", d.handleCopyToClipboard)
 	api.POST("/import-kubeconfig", d.handleImportKubeconfig)
 	api.GET("/update/state", d.handleUpdateState)
@@ -713,6 +720,27 @@ func (d *desktopBridge) handleQuitWindow(c *gin.Context) {
 	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
 }
 
+func (d *desktopBridge) handleNavigationState(c *gin.Context) {
+	if d.host == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
+		return
+	}
+
+	var req desktopNavigationStateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid navigation-state payload"})
+		return
+	}
+
+	if strings.TrimSpace(req.WindowName) != mainWindowName {
+		c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+		return
+	}
+
+	d.host.setNavigationMenuState(req.CanGoBack, req.CanGoForward)
+	c.JSON(http.StatusOK, desktopActionResponse{OK: true})
+}
+
 func (d *desktopBridge) handleCopyToClipboard(c *gin.Context) {
 	if d.host == nil {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "desktop host unavailable"})
@@ -829,8 +857,9 @@ func (d *desktopBridge) openInternalWindow(targetURL string, req openURLRequest)
 		minHeight = 680
 	}
 
-	d.app.Window.NewWithOptions(desktopWindowOptions(application.WebviewWindowOptions{
-		Name:      fmt.Sprintf("desktop-%d", index),
+	windowName := fmt.Sprintf("desktop-%d", index)
+	window := d.app.Window.NewWithOptions(desktopWindowOptions(application.WebviewWindowOptions{
+		Name:      windowName,
 		Title:     title,
 		URL:       targetURL,
 		Width:     width,
@@ -838,6 +867,9 @@ func (d *desktopBridge) openInternalWindow(targetURL string, req openURLRequest)
 		MinWidth:  minWidth,
 		MinHeight: minHeight,
 	}))
+	if d.host != nil {
+		d.host.bindWindowName(window, windowName)
+	}
 }
 
 func (d *desktopBridge) downloadToPath(rawURL, path string) (int64, error) {

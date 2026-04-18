@@ -31,6 +31,10 @@ vi.mock('./cluster-selector', () => ({
   ClusterSelector: () => <div>cluster-selector</div>,
 }))
 
+vi.mock('./navigation-controls', () => ({
+  NavigationControls: () => <div>navigation-controls</div>,
+}))
+
 function LocationDisplay() {
   const location = useLocation()
   return <div data-testid="location">{location.pathname + location.search}</div>

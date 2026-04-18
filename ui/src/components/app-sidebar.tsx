@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/sidebar'
 
 import { ClusterSelector } from './cluster-selector'
+import { NavigationControls } from './navigation-controls'
 import { Collapsible, CollapsibleTrigger } from './ui/collapsible'
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -76,21 +77,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   }
 
+  const branding = (
+    <SidebarHeader className="gap-2 border-b border-sidebar-border/60 px-2 py-2">
+      <div className="flex items-center gap-2">
+        <Link
+          to="/"
+          onClick={handleMenuItemClick}
+          className="flex min-w-0 items-center gap-2 overflow-hidden"
+        >
+          <img src={Icon} alt="Kite Logo" className="h-8 w-8 shrink-0" />
+          <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-base font-semibold text-transparent">
+            Kite
+          </span>
+        </Link>
+        <NavigationControls />
+        {showUpdateBadge ? (
+          <Link
+            to="/settings?tab=about"
+            onClick={handleMenuItemClick}
+            aria-label={t('sidebar.newVersionAvailable', 'New version available')}
+            title={t('sidebar.newVersionAvailable', 'New version available')}
+            className="italic text-[10px] font-semibold text-red-500 transition-colors hover:text-red-600"
+          >
+            new
+          </Link>
+        ) : null}
+      </div>
+    </SidebarHeader>
+  )
+
   if (isLoading || !config) {
     return (
       <Sidebar collapsible="offcanvas" {...props}>
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="/" onClick={handleMenuItemClick}>
-                  <img src={Icon} alt="Kite Logo" className="ml-1 h-8 w-8" />
-                  <span className="text-base font-semibold">Kite</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
+        {branding}
         <SidebarContent>
           <div className="p-4 text-center text-muted-foreground">
             {t('common.loading', 'Loading...')}
@@ -102,49 +121,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5 hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/"
-                  onClick={handleMenuItemClick}
-                  className="flex min-w-0 items-center gap-2"
-                >
-                  <img src={Icon} alt="Kite Logo" className="h-8 w-8" />
-                  <span className="relative overflow-visible text-base font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                    Kite
-                    {showUpdateBadge ? (
-                      <Link
-                        to="/settings?tab=about"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleMenuItemClick()
-                        }}
-                        aria-label={t(
-                          'sidebar.newVersionAvailable',
-                          'New version available'
-                        )}
-                        title={t(
-                          'sidebar.newVersionAvailable',
-                          'New version available'
-                        )}
-                        className="absolute -top-1.5 -right-7 italic text-[10px] font-semibold text-red-500 transition-colors hover:text-red-600 group-data-[collapsible=icon]:hidden"
-                      >
-                        new
-                      </Link>
-                    ) : null}
-                  </span>
-                </Link>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      {branding}
 
       <SidebarContent>
         <SidebarGroup>
