@@ -1801,5 +1801,12 @@
     "period": "周期",
     "imageId": "镜像 ID",
     "containerId": "容器 ID"
+  },
+  "namespaceCreateDialog": {
+    "title": "创建命名空间",
+    "description": "输入命名空间名称后即可快速创建。",
+    "namePlaceholder": "例如：dev、staging、production",
+    "nameHint": "命名空间名称需要符合 Kubernetes 命名规则。",
+    "success": "命名空间 {{name}} 创建成功"
   }
 }

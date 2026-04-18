@@ -9,6 +9,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
+    "creating": "Creating...",
     "search": "Search",
     "filter": "Filter",
     "name": "Name",
@@ -1510,5 +1511,12 @@
     "period": "period",
     "imageId": "Image ID",
     "containerId": "Container ID"
+  },
+  "namespaceCreateDialog": {
+    "title": "Create Namespace",
+    "description": "Quickly create a namespace by entering its name.",
+    "namePlaceholder": "For example: dev, staging, production",
+    "nameHint": "Namespace names must follow Kubernetes naming rules.",
+    "success": "Namespace {{name}} created successfully"
   }
 }

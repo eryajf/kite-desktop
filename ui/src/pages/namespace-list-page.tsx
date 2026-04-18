@@ -1,14 +1,17 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
-import { Namespace } from 'kubernetes-types/core/v1'
+import type { Namespace } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 import { getAge } from '@/lib/utils'
+import { NamespaceCreateDialog } from '@/components/editors/namespace-create-dialog'
 import { ResourceTable } from '@/components/resource-table'
 
 export function NamespaceListPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   // Definecolumn helper outside of any hooks
   const columnHelper = createColumnHelper<Namespace>()
 
@@ -42,15 +45,30 @@ export function NamespaceListPage() {
     return ns.metadata!.name!.toLowerCase().includes(query)
   }, [])
 
+  const handleCreateSuccess = (namespace: Namespace) => {
+    const namespaceName = namespace.metadata?.name
+    if (!namespaceName) {
+      return
+    }
+    navigate(`/namespaces/${namespaceName}`)
+  }
+
   return (
-    <ResourceTable
-      resourceName="Namespaces"
-      columns={columns}
-      clusterScope={true}
-      searchQueryFilter={filter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-    />
+    <>
+      <ResourceTable
+        resourceName="Namespaces"
+        columns={columns}
+        clusterScope={true}
+        searchQueryFilter={filter}
+        showCreateButton={true}
+        onCreateClick={() => setIsCreateDialogOpen(true)}
+      />
+
+      <NamespaceCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+    </>
   )
 }
