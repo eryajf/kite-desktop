@@ -984,14 +984,6 @@ func (h *desktopHost) importKubeconfigContent(content string) error {
 	return nil
 }
 
-func (h *desktopHost) showInfoDialog(title, message string) {
-	dialog := h.app.Dialog.Info().SetTitle(title).SetMessage(message)
-	if h.mainWindow != nil {
-		dialog.AttachToWindow(h.mainWindow)
-	}
-	dialog.Show()
-}
-
 func (h *desktopHost) showErrorDialog(title, message string) {
 	dialog := h.app.Dialog.Error().SetTitle(title).SetMessage(message)
 	if h.mainWindow != nil {
