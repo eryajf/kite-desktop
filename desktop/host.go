@@ -90,6 +90,7 @@ type desktopHost struct {
 	stateStore      *desktopWindowStateStore
 	updateStore     *desktopUpdateStateStore
 	downloadManager *desktopUpdateDownloadManager
+	updateClient    *http.Client
 
 	mainWindow  *application.WebviewWindow
 	aiSidecar   *application.WebviewWindow
@@ -183,6 +184,7 @@ func newDesktopHost(app *application.App, baseURL string, paths desktopPaths) *d
 		stateStore:      newDesktopWindowStateStore(paths.WindowStatePath),
 		updateStore:     updateStore,
 		downloadManager: newDesktopUpdateDownloadManager(),
+		updateClient:    http.DefaultClient,
 	}
 }
 

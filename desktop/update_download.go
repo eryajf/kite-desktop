@@ -220,7 +220,12 @@ func (h *desktopHost) downloadUpdateAsset(ctx context.Context, state *desktopUpd
 	}
 	request.Header.Set("User-Agent", "kite-desktop-updater/"+kiteversion.Version)
 
-	response, err := http.DefaultClient.Do(request)
+	var response *http.Response
+	if h.updateClient != nil {
+		response, err = h.updateClient.Do(request)
+	} else {
+		response, err = http.DefaultClient.Do(request)
+	}
 	if err != nil {
 		return err
 	}
