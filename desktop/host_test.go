@@ -170,8 +170,14 @@ func TestBuildApplicationMenuIncludesEditMenu(t *testing.T) {
 	if menu.FindByLabel("Preferences") == nil {
 		t.Fatal("expected application menu to include Preferences entry")
 	}
-	if preferences := menu.FindByLabel("Preferences"); preferences.GetAccelerator() != "Cmd+," {
-		t.Fatalf("expected Preferences accelerator to be Cmd+,, got %q", preferences.GetAccelerator())
+	if preferences := menu.FindByLabel("Preferences"); preferences != nil {
+		expectedAccelerator := "Cmd+,"
+		if runtime.GOOS != "darwin" {
+			expectedAccelerator = "Ctrl+,"
+		}
+		if preferences.GetAccelerator() != expectedAccelerator {
+			t.Fatalf("expected Preferences accelerator to be %q, got %q", expectedAccelerator, preferences.GetAccelerator())
+		}
 	}
 	if menu.FindByLabel("Edit") == nil {
 		t.Fatal("expected application menu to include an Edit submenu")
