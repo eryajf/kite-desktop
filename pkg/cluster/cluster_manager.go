@@ -36,6 +36,18 @@ type ClusterManager struct {
 	defaultContext string
 }
 
+var (
+	createClientSetInClusterFunc  = createClientSetInCluster
+	createClientSetFromConfigFunc = createClientSetFromConfig
+	getClientSetServerVersion     = func(k8sClient *kube.K8sClient) (string, error) {
+		version, err := k8sClient.ClientSet.Discovery().ServerVersion()
+		if err != nil {
+			return "", err
+		}
+		return version.String(), nil
+	}
+)
+
 func createClientSetInCluster(name, prometheusURL string) (*ClientSet, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -94,11 +106,11 @@ func newClientSet(name string, k8sConfig *rest.Config, prometheusURL string) (*C
 			klog.Warningf("Failed to create Prometheus client for cluster %s, some features may not work as expected, err: %v", name, err)
 		}
 	}
-	v, err := cs.K8sClient.ClientSet.Discovery().ServerVersion()
+	v, err := getClientSetServerVersion(cs.K8sClient)
 	if err != nil {
 		klog.Warningf("Failed to get server version for cluster %s: %v", name, err)
 	} else {
-		cs.Version = v.String()
+		cs.Version = v
 	}
 	klog.Infof("Loaded K8s client for cluster: %s, version: %s", name, cs.Version)
 	return cs, nil
@@ -349,11 +361,11 @@ func shouldUpdateCluster(cs *ClientSet, cluster *model.Cluster) bool {
 	// k8s version change
 	// TODO: Replace direct ClientSet.Discovery() call with a small DiscoveryInterface.
 	// current code depends on *kubernetes.Clientset, which is hard to mock in tests.
-	version, err := cs.K8sClient.ClientSet.Discovery().ServerVersion()
+	version, err := getClientSetServerVersion(cs.K8sClient)
 	if err != nil {
 		klog.Warningf("Failed to get server version for cluster %s: %v", cluster.Name, err)
-	} else if version.String() != cs.Version {
-		klog.Infof("Server version changed for cluster %s, updating, old: %s, new: %s", cluster.Name, cs.Version, version.String())
+	} else if version != cs.Version {
+		klog.Infof("Server version changed for cluster %s, updating, old: %s, new: %s", cluster.Name, cs.Version, version)
 		return true
 	}
 
@@ -362,9 +374,9 @@ func shouldUpdateCluster(cs *ClientSet, cluster *model.Cluster) bool {
 
 func buildClientSet(cluster *model.Cluster) (*ClientSet, error) {
 	if cluster.InCluster {
-		return createClientSetInCluster(cluster.Name, cluster.PrometheusURL)
+		return createClientSetInClusterFunc(cluster.Name, cluster.PrometheusURL)
 	}
-	return createClientSetFromConfig(cluster.Name, string(cluster.Config), cluster.PrometheusURL)
+	return createClientSetFromConfigFunc(cluster.Name, string(cluster.Config), cluster.PrometheusURL)
 }
 
 func NewClusterManager() (*ClusterManager, error) {

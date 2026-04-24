@@ -3,12 +3,9 @@ package cluster
 import (
 	"testing"
 
-	"github.com/bytedance/mockey"
 	"github.com/eryajf/kite-desktop/pkg/kube"
 	"github.com/eryajf/kite-desktop/pkg/model"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/apimachinery/pkg/version"
-	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -114,44 +111,46 @@ func Test_shouldUpdateCluster(t *testing.T) {
 	}
 
 	t.Run("k8s version change, need update", func(t *testing.T) {
-		mockey.PatchConvey("mock ServerVersion change", t, func() {
-			mockey.Mock((*discovery.DiscoveryClient).ServerVersion).
-				Return(&version.Info{GitVersion: "v1.34.0"}, nil).Build()
-			cs := &ClientSet{
-				Name:    "test",
-				Version: "v1.33.0",
-				K8sClient: &kube.K8sClient{
-					ClientSet: &kubernetes.Clientset{DiscoveryClient: &discovery.DiscoveryClient{}},
-				},
-			}
-			cluster := &model.Cluster{Name: "test", Enable: true}
-
-			got := shouldUpdateCluster(cs, cluster)
-			assert.True(t, got, "expected update when k8s version changed")
+		restore := stubServerVersionFetcher(func(_ *kube.K8sClient) (string, error) {
+			return "v1.34.0", nil
 		})
+		defer restore()
+
+		cs := &ClientSet{
+			Name:    "test",
+			Version: "v1.33.0",
+			K8sClient: &kube.K8sClient{
+				ClientSet: &kubernetes.Clientset{},
+			},
+		}
+		cluster := &model.Cluster{Name: "test", Enable: true}
+
+		got := shouldUpdateCluster(cs, cluster)
+		assert.True(t, got, "expected update when k8s version changed")
 	})
 
 	t.Run("same, skip update", func(t *testing.T) {
-		mockey.PatchConvey("mock ServerVersion change", t, func() {
-			mockey.Mock((*discovery.DiscoveryClient).ServerVersion).
-				Return(&version.Info{GitVersion: "v1.34.0"}, nil).Build()
-			cs := &ClientSet{
-				Name:    "test",
-				Version: "v1.34.0",
-				K8sClient: &kube.K8sClient{
-					ClientSet: &kubernetes.Clientset{DiscoveryClient: &discovery.DiscoveryClient{}},
-				},
-				config:        "test-config",
-				prometheusURL: "test-prometheus-url",
-			}
-			cluster := &model.Cluster{
-				Name:          "test",
-				Enable:        true,
-				Config:        model.SecretString("test-config"),
-				PrometheusURL: "test-prometheus-url",
-			}
-			got := shouldUpdateCluster(cs, cluster)
-			assert.False(t, got, "expected no update when all the same")
+		restore := stubServerVersionFetcher(func(_ *kube.K8sClient) (string, error) {
+			return "v1.34.0", nil
 		})
+		defer restore()
+
+		cs := &ClientSet{
+			Name:    "test",
+			Version: "v1.34.0",
+			K8sClient: &kube.K8sClient{
+				ClientSet: &kubernetes.Clientset{},
+			},
+			config:        "test-config",
+			prometheusURL: "test-prometheus-url",
+		}
+		cluster := &model.Cluster{
+			Name:          "test",
+			Enable:        true,
+			Config:        model.SecretString("test-config"),
+			PrometheusURL: "test-prometheus-url",
+		}
+		got := shouldUpdateCluster(cs, cluster)
+		assert.False(t, got, "expected no update when all the same")
 	})
 }

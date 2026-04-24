@@ -4,11 +4,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 
-	"github.com/bytedance/mockey"
 	"github.com/eryajf/kite-desktop/pkg/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,12 +15,6 @@ import (
 
 	"github.com/eryajf/kite-desktop/pkg/kube"
 )
-
-func init() {
-	if err := os.Setenv("MOCKEY_CHECK_GCFLAGS", "false"); err != nil {
-		panic(err)
-	}
-}
 
 func TestIsClusterLocalURL(t *testing.T) {
 	tests := []struct {
@@ -257,8 +249,14 @@ func TestGetClientSet(t *testing.T) {
 
 func TestBuildClientSet(t *testing.T) {
 	t.Run("uses in-cluster constructor", func(t *testing.T) {
+		restoreFromConfig := stubCreateClientSetFromConfig(func(name, content, prometheusURL string) (*ClientSet, error) {
+			t.Fatalf("createClientSetFromConfig() unexpectedly called with name=%q content=%q prometheusURL=%q", name, content, prometheusURL)
+			return nil, nil
+		})
+		defer restoreFromConfig()
+
 		inClusterCalled := false
-		inClusterMock := mockey.Mock(createClientSetInCluster).To(func(name, prometheusURL string) (*ClientSet, error) {
+		restoreInClusterCalled := stubCreateClientSetInCluster(func(name, prometheusURL string) (*ClientSet, error) {
 			inClusterCalled = true
 			if name != "cluster-a" {
 				t.Fatalf("name = %q, want %q", name, "cluster-a")
@@ -267,14 +265,8 @@ func TestBuildClientSet(t *testing.T) {
 				t.Fatalf("prometheusURL = %q, want %q", prometheusURL, "http://prometheus")
 			}
 			return &ClientSet{Name: name}, nil
-		}).Build()
-		defer inClusterMock.UnPatch()
-
-		fromConfigMock := mockey.Mock(createClientSetFromConfig).To(func(name, content, prometheusURL string) (*ClientSet, error) {
-			t.Fatalf("createClientSetFromConfig() unexpectedly called with name=%q content=%q prometheusURL=%q", name, content, prometheusURL)
-			return nil, nil
-		}).Build()
-		defer fromConfigMock.UnPatch()
+		})
+		defer restoreInClusterCalled()
 
 		got, err := buildClientSet(&model.Cluster{
 			Name:          "cluster-a",
@@ -293,14 +285,14 @@ func TestBuildClientSet(t *testing.T) {
 	})
 
 	t.Run("uses kubeconfig constructor", func(t *testing.T) {
-		fromConfigCalled := false
-		inClusterMock := mockey.Mock(createClientSetInCluster).To(func(name, prometheusURL string) (*ClientSet, error) {
+		restoreInCluster := stubCreateClientSetInCluster(func(name, prometheusURL string) (*ClientSet, error) {
 			t.Fatalf("createClientSetInCluster() unexpectedly called with name=%q prometheusURL=%q", name, prometheusURL)
 			return nil, nil
-		}).Build()
-		defer inClusterMock.UnPatch()
+		})
+		defer restoreInCluster()
 
-		fromConfigMock := mockey.Mock(createClientSetFromConfig).To(func(name, content, prometheusURL string) (*ClientSet, error) {
+		fromConfigCalled := false
+		restoreFromConfigCalled := stubCreateClientSetFromConfig(func(name, content, prometheusURL string) (*ClientSet, error) {
 			fromConfigCalled = true
 			if name != "cluster-b" {
 				t.Fatalf("name = %q, want %q", name, "cluster-b")
@@ -312,8 +304,8 @@ func TestBuildClientSet(t *testing.T) {
 				t.Fatalf("prometheusURL = %q, want %q", prometheusURL, "http://prometheus")
 			}
 			return &ClientSet{Name: name}, nil
-		}).Build()
-		defer fromConfigMock.UnPatch()
+		})
+		defer restoreFromConfigCalled()
 
 		got, err := buildClientSet(&model.Cluster{
 			Name:          "cluster-b",
@@ -336,4 +328,28 @@ type roundTripperFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req)
+}
+
+func stubCreateClientSetInCluster(fn func(name, prometheusURL string) (*ClientSet, error)) func() {
+	previous := createClientSetInClusterFunc
+	createClientSetInClusterFunc = fn
+	return func() {
+		createClientSetInClusterFunc = previous
+	}
+}
+
+func stubCreateClientSetFromConfig(fn func(name, content, prometheusURL string) (*ClientSet, error)) func() {
+	previous := createClientSetFromConfigFunc
+	createClientSetFromConfigFunc = fn
+	return func() {
+		createClientSetFromConfigFunc = previous
+	}
+}
+
+func stubServerVersionFetcher(fn func(k8sClient *kube.K8sClient) (string, error)) func() {
+	previous := getClientSetServerVersion
+	getClientSetServerVersion = fn
+	return func() {
+		getClientSetServerVersion = previous
+	}
 }
