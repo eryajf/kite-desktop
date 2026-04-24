@@ -75,6 +75,8 @@
     "clusterPlaceholder": "搜索集群名称...",
     "searching": "搜索中...",
     "emptyHint": "搜索资源，或直接选择下面的快捷操作...",
+    "history": "最近搜索",
+    "historyQuery": "搜索词: {{query}}",
     "favorites": "收藏",
     "resources": "资源",
     "noResults": "未找到结果",

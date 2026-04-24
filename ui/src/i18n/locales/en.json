@@ -58,6 +58,8 @@
     "clusterPlaceholder": "Search clusters...",
     "searching": "Searching...",
     "emptyHint": "Search resources or pick a quick action below...",
+    "history": "Recent Searches",
+    "historyQuery": "Query: {{query}}",
     "favorites": "Favorites",
     "resources": "Resources",
     "noResults": "No results found",

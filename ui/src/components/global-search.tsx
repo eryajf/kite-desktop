@@ -2,10 +2,10 @@ import { ComponentType, useCallback, useEffect, useMemo, useState } from 'react'
 import { useRuntime } from '@/contexts/runtime-context'
 import { useSidebarConfig } from '@/contexts/sidebar-config-context'
 import {
-  IconCheck,
   IconArrowsHorizontal,
   IconBox,
   IconBoxMultiple,
+  IconCheck,
   IconLayoutDashboard,
   IconLoadBalancer,
   IconLoader,
@@ -17,6 +17,7 @@ import {
   IconRocket,
   IconRoute,
   IconRouter,
+  IconSearch,
   IconServer,
   IconServer2,
   IconSettings,
@@ -29,11 +30,17 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 
-import { globalSearch, SearchResult } from '@/lib/api'
+import { Cluster } from '@/types/api'
 import { trackDesktopEvent } from '@/lib/analytics'
+import { globalSearch, SearchResult } from '@/lib/api'
+import {
+  readGlobalSearchHistory,
+  saveGlobalSearchHistoryEntry,
+  SearchHistoryEntry,
+  SearchHistoryEntryInput,
+} from '@/lib/global-search-history'
 import { useCluster } from '@/hooks/use-cluster'
 import { useFavorites } from '@/hooks/use-favorites'
-import { Cluster } from '@/types/api'
 import { Badge } from '@/components/ui/badge'
 import {
   Command,
@@ -52,6 +59,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useAppearance } from '@/components/appearance-provider'
+
 import { GlobalSearchMode, useGlobalSearch } from './global-search-provider'
 
 const recentClustersStorageKey = 'recent-clusters'
@@ -148,6 +156,7 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
   const [results, setResults] = useState<SearchResult[] | null>([])
   const [isLoading, setIsLoading] = useState(false)
   const [recentClusters, setRecentClusters] = useState<string[]>([])
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryEntry[]>([])
   const navigate = useNavigate()
   const { isDesktop } = useRuntime()
   const { config, getIconComponent } = useSidebarConfig()
@@ -327,13 +336,7 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
         onSelect: toggleTheme,
       },
     ]
-  }, [
-    actualTheme,
-    clusters,
-    t,
-    toggleTheme,
-    openSearch,
-  ])
+  }, [actualTheme, clusters, t, toggleTheme, openSearch])
 
   const actionResults = useMemo(() => {
     if (mode === 'cluster') {
@@ -347,6 +350,14 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
 
     return actionItems.filter((item) => item.searchText.includes(trimmedQuery))
   }, [actionItems, mode, query])
+
+  const historyResults = useMemo(() => {
+    if (mode === 'cluster' || query.trim().length > 0) {
+      return []
+    }
+
+    return searchHistory
+  }, [mode, query, searchHistory])
 
   const clusterResults = useMemo<ClusterSearchItem[]>(() => {
     if (clusters.length === 0) {
@@ -463,29 +474,40 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
   )
 
   // Debounced search function
-  const performSearch = useCallback(async (searchQuery: string) => {
-    try {
-      setIsLoading(true)
-      const response = await globalSearch(searchQuery, { limit: 10 })
-      setResults(response.results)
-      trackDesktopEvent('global_search_query', {
-        mode,
-        query_length: searchQuery.trim().length,
-        result_count: response.results.length,
-      })
-    } catch (error) {
-      console.error('Search failed:', error)
-      setResults([])
-      trackDesktopEvent('global_search_query', {
-        mode,
-        query_length: searchQuery.trim().length,
-        result_count: 0,
-        result: 'error',
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }, [mode])
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      try {
+        setIsLoading(true)
+        const response = await globalSearch(searchQuery, { limit: 10 })
+        setResults(response.results)
+        trackDesktopEvent('global_search_query', {
+          mode,
+          query_length: searchQuery.trim().length,
+          result_count: response.results.length,
+        })
+      } catch (error) {
+        console.error('Search failed:', error)
+        setResults([])
+        trackDesktopEvent('global_search_query', {
+          mode,
+          query_length: searchQuery.trim().length,
+          result_count: 0,
+          result: 'error',
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [mode]
+  )
+
+  const saveHistoryEntry = useCallback(
+    (entry: SearchHistoryEntryInput) => {
+      const nextHistory = saveGlobalSearchHistoryEntry(currentCluster, entry)
+      setSearchHistory(nextHistory)
+    },
+    [currentCluster]
+  )
 
   // Debounce search calls
   useEffect(() => {
@@ -517,8 +539,12 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
     (
       path: string,
       itemType: 'navigation' | 'resource' | 'action' | 'cluster',
-      data: Record<string, string | number | boolean> = {}
+      data: Record<string, string | number | boolean> = {},
+      historyEntry?: SearchHistoryEntryInput
     ) => {
+      if (historyEntry) {
+        saveHistoryEntry(historyEntry)
+      }
       trackDesktopEvent('global_search_select', {
         mode,
         item_type: itemType,
@@ -528,7 +554,7 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
       onOpenChange(false)
       setQuery('')
     },
-    [mode, navigate, onOpenChange]
+    [mode, navigate, onOpenChange, saveHistoryEntry]
   )
 
   // Clear state when dialog closes
@@ -543,8 +569,9 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
   useEffect(() => {
     if (open) {
       setRecentClusters(readRecentClusters())
+      setSearchHistory(readGlobalSearchHistory(currentCluster))
     }
-  }, [open, mode])
+  }, [currentCluster, open, mode])
 
   useEffect(() => {
     if (open && query === '' && mode === 'all') {
@@ -569,11 +596,7 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
 
   const handleClusterSelect = useCallback(
     (clusterName: string) => {
-      if (
-        isSwitching ||
-        isClusterLoading ||
-        clusterName === currentCluster
-      ) {
+      if (isSwitching || isClusterLoading || clusterName === currentCluster) {
         return
       }
       trackDesktopEvent('global_search_select', {
@@ -632,9 +655,21 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
                       key={`nav-${item.id}`}
                       value={`${item.title} ${item.groupLabel || ''} ${item.url}`}
                       onSelect={() =>
-                        handleSelect(item.url, 'navigation', {
-                          entry_id: item.id,
-                        })
+                        handleSelect(
+                          item.url,
+                          'navigation',
+                          {
+                            entry_id: item.id,
+                          },
+                          {
+                            id: `navigation:${item.id}`,
+                            type: 'navigation',
+                            label: item.title,
+                            path: item.url,
+                            query,
+                            groupLabel: item.groupLabel,
+                          }
+                        )
                       }
                       className="flex items-center gap-3 py-3"
                     >
@@ -657,6 +692,75 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
                           {t('sidebar.pinned', 'Pinned')}
                         </Badge>
                       ) : null}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            )}
+
+            {historyResults.length > 0 && (
+              <CommandGroup heading={t('globalSearch.history')}>
+                {historyResults.map((entry) => {
+                  const resourceConfig =
+                    entry.type === 'resource'
+                      ? RESOURCE_CONFIG[entry.resourceType || ''] || {
+                          label: entry.resourceType || 'resource',
+                          icon: IconBox,
+                        }
+                      : null
+                  const Icon = resourceConfig?.icon || IconSearch
+                  const subtitle = [
+                    entry.query
+                      ? t('globalSearch.historyQuery', {
+                          query: entry.query,
+                        })
+                      : '',
+                    entry.type === 'resource' && entry.namespace
+                      ? `${t('detail.fields.namespace')}: ${entry.namespace}`
+                      : entry.type === 'navigation'
+                        ? entry.path
+                        : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+
+                  return (
+                    <CommandItem
+                      key={entry.id}
+                      value={`${entry.label} ${entry.query} ${entry.path} ${entry.resourceType || ''}`}
+                      onSelect={() =>
+                        handleSelect(
+                          entry.path,
+                          entry.type,
+                          {
+                            selection_source: 'history',
+                            ...(entry.type === 'resource' && entry.resourceType
+                              ? { resource_type: entry.resourceType }
+                              : {}),
+                          },
+                          {
+                            ...entry,
+                          }
+                        )
+                      }
+                      className="flex items-center gap-3 py-3"
+                    >
+                      <Icon className="h-4 w-4 text-sidebar-primary" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{entry.label}</span>
+                          <Badge className="text-xs" variant="outline">
+                            {entry.type === 'resource' && resourceConfig
+                              ? t(resourceConfig.label)
+                              : t('globalSearch.navigation')}
+                          </Badge>
+                        </div>
+                        {subtitle ? (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {subtitle}
+                          </div>
+                        ) : null}
+                      </div>
                     </CommandItem>
                   )
                 })}
@@ -774,9 +878,22 @@ export function GlobalSearch({ open, mode, onOpenChange }: GlobalSearchProps) {
                         result.resourceType
                       }`}
                       onSelect={() =>
-                        handleSelect(path, 'resource', {
-                          resource_type: result.resourceType,
-                        })
+                        handleSelect(
+                          path,
+                          'resource',
+                          {
+                            resource_type: result.resourceType,
+                          },
+                          {
+                            id: `resource:${path}`,
+                            type: 'resource',
+                            label: result.name,
+                            path,
+                            query,
+                            resourceType: result.resourceType,
+                            namespace: result.namespace,
+                          }
+                        )
                       }
                       className="flex items-center gap-3 py-3"
                     >

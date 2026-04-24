@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { GlobalSearch } from './global-search'
+
 const { openSearchMock, globalSearchMock } = vi.hoisted(() => ({
   openSearchMock: vi.fn(),
   globalSearchMock: vi.fn().mockResolvedValue({ results: [] }),
@@ -47,22 +49,30 @@ Object.defineProperty(window.HTMLElement.prototype, 'scrollIntoView', {
 })
 
 vi.mock('@/components/ui/dialog', () => ({
-  Dialog: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Dialog: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   DialogContent: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
   DialogHeader: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
-  DialogTitle: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  DialogTitle: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   DialogDescription: ({ children }: { children: React.ReactNode }) => (
     <div>{children}</div>
   ),
 }))
 
 vi.mock('@/components/ui/command', () => ({
-  Command: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CommandEmpty: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Command: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  CommandEmpty: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
   CommandGroup: ({
     children,
     heading,
@@ -103,8 +113,12 @@ vi.mock('@/components/ui/command', () => ({
       {children}
     </button>
   ),
-  CommandList: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  CommandShortcut: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
+  CommandList: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+  CommandShortcut: ({ children }: { children: React.ReactNode }) => (
+    <span>{children}</span>
+  ),
 }))
 
 vi.mock('@/lib/api', () => ({
@@ -175,8 +189,6 @@ vi.mock('react-i18next', async (importOriginal) => {
   }
 })
 
-import { GlobalSearch } from './global-search'
-
 describe('GlobalSearch', () => {
   beforeEach(() => {
     openSearchMock.mockClear()
@@ -209,7 +221,9 @@ describe('GlobalSearch', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByPlaceholderText('globalSearch.clusterPlaceholder')).toBeInTheDocument()
+    expect(
+      screen.getByPlaceholderText('globalSearch.clusterPlaceholder')
+    ).toBeInTheDocument()
     expect(screen.getByText('prod')).toBeInTheDocument()
     expect(screen.getByText('dev')).toBeInTheDocument()
 
@@ -241,7 +255,9 @@ describe('GlobalSearch', () => {
     expect(screen.getByText('prod')).toBeInTheDocument()
     expect(screen.queryByText('dev')).not.toBeInTheDocument()
     expect(screen.queryByText('导航')).not.toBeInTheDocument()
-    expect(screen.queryByText('globalSearch.navigation')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('globalSearch.navigation')
+    ).not.toBeInTheDocument()
   })
 
   it('tracks resource query and selection without sending raw query text', async () => {
@@ -252,6 +268,7 @@ describe('GlobalSearch', () => {
           name: 'nginx',
           namespace: 'default',
           resourceType: 'pods',
+          createdAt: '',
         },
       ],
     })
@@ -285,6 +302,19 @@ describe('GlobalSearch', () => {
       item_type: 'resource',
       resource_type: 'pods',
     })
+
+    expect(
+      JSON.parse(localStorage.getItem('global-search-history-v1-prod') || '[]')
+    ).toEqual([
+      expect.objectContaining({
+        id: 'resource:/pods/default/nginx',
+        label: 'nginx',
+        path: '/pods/default/nginx',
+        query: 'ng',
+        resourceType: 'pods',
+        namespace: 'default',
+      }),
+    ])
   })
 
   it('tracks cluster selection in cluster mode', async () => {
@@ -304,5 +334,53 @@ describe('GlobalSearch', () => {
       mode: 'cluster',
       item_type: 'cluster',
     })
+  })
+
+  it('shows the current cluster search history in reverse chronological order', () => {
+    localStorage.setItem(
+      'global-search-history-v1-prod',
+      JSON.stringify([
+        {
+          id: 'resource:/pods/default/older',
+          type: 'resource',
+          label: 'older',
+          path: '/pods/default/older',
+          query: 'old',
+          resourceType: 'pods',
+          namespace: 'default',
+          lastAccessedAt: '2026-04-24T10:00:00.000Z',
+        },
+        {
+          id: 'resource:/pods/default/newer',
+          type: 'resource',
+          label: 'newer',
+          path: '/pods/default/newer',
+          query: 'new',
+          resourceType: 'pods',
+          namespace: 'default',
+          lastAccessedAt: '2026-04-24T11:00:00.000Z',
+        },
+      ])
+    )
+
+    render(
+      <MemoryRouter>
+        <GlobalSearch open mode="all" onOpenChange={vi.fn()} />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('globalSearch.history')).toBeInTheDocument()
+
+    const historyButtons = screen
+      .getAllByRole('button')
+      .filter(
+        (button) =>
+          button.textContent?.includes('older') ||
+          button.textContent?.includes('newer')
+      )
+
+    expect(historyButtons).toHaveLength(2)
+    expect(historyButtons[0]).toHaveTextContent('newer')
+    expect(historyButtons[1]).toHaveTextContent('older')
   })
 })
