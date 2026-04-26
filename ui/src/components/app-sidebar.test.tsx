@@ -14,7 +14,13 @@ vi.mock('react-i18next', async (importOriginal) => {
   return {
     ...actual,
     useTranslation: () => ({
-      t: (_key: string, fallback?: string) => fallback ?? _key,
+      t: (
+        key: string,
+        fallback?: string | { defaultValue?: string }
+      ) =>
+        typeof fallback === 'string'
+          ? fallback
+          : fallback?.defaultValue ?? key,
     }),
   }
 })
@@ -46,6 +52,16 @@ function renderSidebar() {
       <SidebarProvider>
         <AppSidebar variant="inset" />
         <LocationDisplay />
+      </SidebarProvider>
+    </MemoryRouter>
+  )
+}
+
+function renderCollapsedSidebar() {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <SidebarProvider defaultOpen={false}>
+        <AppSidebar variant="inset" />
       </SidebarProvider>
     </MemoryRouter>
   )
@@ -106,5 +122,65 @@ describe('AppSidebar', () => {
     expect(
       screen.queryByRole('link', { name: 'New version available' })
     ).not.toBeInTheDocument()
+  })
+
+  it('keeps an icon sidebar when collapsed', () => {
+    useSidebarConfigMock.mockReturnValue({
+      isLoading: false,
+      config: {
+        groups: [
+          {
+            id: 'sidebar-groups-cluster',
+            order: 0,
+            visible: true,
+            collapsed: false,
+            nameKey: 'sidebar.groups.cluster',
+            items: [
+              {
+                id: 'sidebar-groups-cluster--favorites',
+                titleKey: 'nav.favorites',
+                url: '/favorites',
+                icon: 'IconStar',
+                order: 0,
+              },
+            ],
+          },
+          {
+            id: 'sidebar-groups-security',
+            order: 1,
+            visible: true,
+            collapsed: true,
+            nameKey: 'sidebar.groups.security',
+            items: [
+              {
+                id: 'sidebar-groups-security--serviceaccounts',
+                titleKey: 'nav.serviceaccounts',
+                url: '/serviceaccounts',
+                icon: 'IconUser',
+                order: 0,
+              },
+            ],
+          },
+        ],
+        pinnedItems: [],
+        hiddenItems: [],
+      },
+      getIconComponent: () => 'div',
+    })
+    useDesktopUpdateMock.mockReturnValue({
+      result: {
+        comparison: 'up_to_date',
+        ignored: false,
+      },
+    })
+
+    const { container } = renderCollapsedSidebar()
+
+    expect(container.querySelector('[data-collapsible="icon"]')).toBeTruthy()
+    expect(screen.getByRole('link', { name: /kite logo/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'nav.favorites' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: 'nav.serviceaccounts' })
+    ).toBeInTheDocument()
   })
 })

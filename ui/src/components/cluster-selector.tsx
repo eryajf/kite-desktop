@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ShortcutTooltipContent } from '@/components/shortcut-tooltip-content'
+import { useSidebar } from '@/components/ui/sidebar'
 
 function getClusterSwitchShortcutLabel() {
   if (typeof navigator !== 'undefined' && /mac/i.test(navigator.platform)) {
@@ -28,6 +29,7 @@ function getClusterSwitchShortcutLabel() {
 
 export function ClusterSelector() {
   const { t } = useTranslation()
+  const { state, isMobile } = useSidebar()
   const {
     clusters,
     currentCluster,
@@ -50,6 +52,7 @@ export function ClusterSelector() {
   }
 
   const currentClusterData = clusters.find((c) => c.name === currentCluster)
+  const isSidebarCollapsed = state === 'collapsed' && !isMobile
 
   return (
     <DropdownMenu>
@@ -59,11 +62,27 @@ export function ClusterSelector() {
             <Button
               variant="ghost"
               size="sm"
-              className="flex items-center gap-2 h-8 px-3 max-w-full focus-visible:ring-0 focus-visible:border-transparent"
+              className={cn(
+                'flex h-8 max-w-full items-center gap-2 px-3 focus-visible:border-transparent focus-visible:ring-0',
+                isSidebarCollapsed && 'w-8 justify-center px-0'
+              )}
+              title={
+                isSidebarCollapsed
+                  ? currentClusterData?.name ||
+                    (clusters.length === 0
+                      ? t('clusterSelector.noneAvailable', 'No clusters configured')
+                      : t('clusterSelector.select'))
+                  : undefined
+              }
               disabled={isSwitching}
             >
               <IconServer className="h-4 w-4" />
-              <span className="text-sm font-medium truncate">
+              <span
+                className={cn(
+                  'truncate text-sm font-medium',
+                  isSidebarCollapsed && 'hidden'
+                )}
+              >
                 {isSwitching
                   ? t('clusterSelector.switching')
                   : currentClusterData?.name ||
@@ -74,7 +93,9 @@ export function ClusterSelector() {
                         )
                       : t('clusterSelector.select'))}
               </span>
-              <IconChevronDown className="h-3 w-3 opacity-50" />
+              <IconChevronDown
+                className={cn('h-3 w-3 opacity-50', isSidebarCollapsed && 'hidden')}
+              />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

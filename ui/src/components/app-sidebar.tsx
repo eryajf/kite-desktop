@@ -30,9 +30,10 @@ import { Collapsible, CollapsibleTrigger } from './ui/collapsible'
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation()
   const location = useLocation()
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile, state } = useSidebar()
   const { config, isLoading, getIconComponent } = useSidebarConfig()
   const { result: updateResult } = useDesktopUpdate()
+  const isIconCollapsed = !isMobile && state === 'collapsed'
 
   const showUpdateBadge =
     updateResult?.comparison === 'update_available' && !updateResult.ignored
@@ -79,18 +80,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const branding = (
     <SidebarHeader className="gap-2 border-b border-sidebar-border/60 px-2 py-2">
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 group-data-[collapsible=icon]:justify-center">
         <Link
           to="/"
           onClick={handleMenuItemClick}
           className="flex shrink-0 items-center gap-2"
         >
           <img src={Icon} alt="Kite Logo" className="h-8 w-8 shrink-0" />
-          <span className="shrink-0 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-base font-semibold text-transparent">
+          <span className="shrink-0 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-base font-semibold text-transparent group-data-[collapsible=icon]:hidden">
             Kite
           </span>
         </Link>
-        <div className="shrink-0">
+        <div className="shrink-0 group-data-[collapsible=icon]:hidden">
           <NavigationControls />
         </div>
         {showUpdateBadge ? (
@@ -99,7 +100,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             onClick={handleMenuItemClick}
             aria-label={t('sidebar.newVersionAvailable', 'New version available')}
             title={t('sidebar.newVersionAvailable', 'New version available')}
-            className="shrink-0 italic text-[10px] font-semibold text-red-500 transition-colors hover:text-red-600"
+            className="shrink-0 italic text-[10px] font-semibold text-red-500 transition-colors hover:text-red-600 group-data-[collapsible=icon]:hidden"
           >
             new
           </Link>
@@ -110,7 +111,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   if (isLoading || !config) {
     return (
-      <Sidebar collapsible="offcanvas" {...props}>
+      <Sidebar collapsible="icon" {...props}>
         {branding}
         <SidebarContent>
           <div className="p-4 text-center text-muted-foreground">
@@ -121,8 +122,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     )
   }
 
+  const renderGroupItems = (items: typeof visibleGroups[number]['items']) => (
+    <SidebarMenu>
+      {items.map((item) => {
+        const IconComponent = getIconComponent(item.icon)
+        const title = item.titleKey
+          ? t(item.titleKey, { defaultValue: item.titleKey })
+          : ''
+        return (
+          <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton
+              tooltip={title}
+              asChild
+              isActive={isActive(item.url)}
+            >
+              <Link to={item.url} onClick={handleMenuItemClick}>
+                <IconComponent className="text-sidebar-primary" />
+                <span>{title}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        )
+      })}
+    </SidebarMenu>
+  )
+
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
+    <Sidebar collapsible="icon" {...props}>
       {branding}
 
       <SidebarContent>
@@ -177,55 +203,44 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
 
         {visibleGroups.map((group) => (
-          <Collapsible
-            key={group.id}
-            defaultOpen={!group.collapsed}
-            className="group/collapsible"
-          >
-            <SidebarGroup>
-              <SidebarGroupLabel asChild>
-                <CollapsibleTrigger className="flex items-center justify-between w-full text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group-data-[state=open]:text-foreground">
-                  <span className="uppercase tracking-wide text-xs font-bold">
-                    {group.nameKey
-                      ? t(group.nameKey, { defaultValue: group.nameKey })
-                      : ''}
-                  </span>
-                  <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                </CollapsibleTrigger>
-              </SidebarGroupLabel>
-              <CollapsibleContent>
-                <SidebarGroupContent className="flex flex-col gap-2">
-                  <SidebarMenu>
-                    {group.items.map((item) => {
-                      const IconComponent = getIconComponent(item.icon)
-                      const title = item.titleKey
-                        ? t(item.titleKey, { defaultValue: item.titleKey })
-                        : ''
-                      return (
-                        <SidebarMenuItem key={item.id}>
-                          <SidebarMenuButton
-                            tooltip={title}
-                            asChild
-                            isActive={isActive(item.url)}
-                          >
-                            <Link to={item.url} onClick={handleMenuItemClick}>
-                              <IconComponent className="text-sidebar-primary" />
-                              <span>{title}</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )
-                    })}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </CollapsibleContent>
-            </SidebarGroup>
-          </Collapsible>
+          <SidebarGroup key={group.id}>
+            {isIconCollapsed ? (
+              <SidebarGroupContent className="flex flex-col gap-2">
+                {renderGroupItems(group.items)}
+              </SidebarGroupContent>
+            ) : (
+              <Collapsible
+                defaultOpen={!group.collapsed}
+                className="group/collapsible"
+              >
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="flex w-full items-center justify-between text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground group-data-[state=open]:text-foreground">
+                    <span className="text-xs font-bold uppercase tracking-wide">
+                      {group.nameKey
+                        ? t(group.nameKey, { defaultValue: group.nameKey })
+                        : ''}
+                    </span>
+                    <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <CollapsibleContent>
+                  <SidebarGroupContent className="flex flex-col gap-2">
+                    {renderGroupItems(group.items)}
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </SidebarGroup>
         ))}
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 bg-gradient-to-r from-muted/40 to-muted/20 border border-border/60 backdrop-blur-sm">
+        <div
+          className={`
+            flex items-center gap-2 rounded-md border border-border/60 bg-gradient-to-r from-muted/40 to-muted/20 px-2 py-1.5 backdrop-blur-sm
+            group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-1.5
+          `}
+        >
           <ClusterSelector />
         </div>
       </SidebarFooter>
