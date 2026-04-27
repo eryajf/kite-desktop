@@ -687,11 +687,21 @@
       "description": "启用 AI 助手并配置模型与接口地址。",
       "form": {
         "model": "模型",
+        "modelHint": "模型既支持手动输入，也可以先拉取服务端模型列表再选择。",
         "provider": "服务提供方",
         "apiKey": "API Key",
         "apiKeyPlaceholder": "留空将保持当前 API Key",
         "baseUrl": "Base URL",
+        "fetchModels": "获取模型",
+        "fetchingModels": "获取中...",
+        "searchModels": "搜索模型...",
+        "noModels": "没有找到模型。",
+        "connectionTest": "连接测试",
+        "connectionTestHint": "使用当前 Base URL、API Key 和模型发送一条简短的“hi”请求，确认模型服务是否可用。",
+        "testConnection": "测试配置",
+        "testingConnection": "测试中...",
         "maxTokens": "最大 Token 数",
+        "maxTokensHelp": "控制模型单次回复最多可生成多少 Token。数值更大可以获得更长的回答，但也可能增加响应耗时和 Token 消耗。",
         "chatHistorySessionLimit": "聊天历史会话上限",
         "chatHistorySessionLimitHint": "每个集群最多保留多少条 AI 对话会话。",
         "openMode": "AI 对话打开方式",
@@ -742,7 +752,9 @@
       "nodeTerminalImageRequired": "Node Terminal 镜像不能为空"
     },
     "messages": {
-      "updated": "通用设置已更新"
+      "updated": "通用设置已更新",
+      "modelsLoaded": "已加载 {{count}} 个模型。",
+      "connectionTestSuccess": "连接测试成功。"
     }
   },
   "authenticationManagement": {

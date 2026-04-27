@@ -53,14 +53,16 @@ func TestDesktopPreferenceAndSettingRoutesExist(t *testing.T) {
 	for _, tc := range []struct {
 		method string
 		path   string
-		}{
-			{http.MethodGet, "/api/v1/preferences/favorites"},
-			{http.MethodPost, "/api/v1/preferences/favorites"},
-			{http.MethodPost, "/api/v1/preferences/favorites/remove"},
-			{http.MethodGet, "/api/v1/preferences/sidebar"},
-			{http.MethodPut, "/api/v1/preferences/sidebar"},
+	}{
+		{http.MethodGet, "/api/v1/preferences/favorites"},
+		{http.MethodPost, "/api/v1/preferences/favorites"},
+		{http.MethodPost, "/api/v1/preferences/favorites/remove"},
+		{http.MethodGet, "/api/v1/preferences/sidebar"},
+		{http.MethodPut, "/api/v1/preferences/sidebar"},
 		{http.MethodGet, "/api/v1/settings/general"},
 		{http.MethodPut, "/api/v1/settings/general"},
+		{http.MethodPost, "/api/v1/settings/general/models"},
+		{http.MethodPost, "/api/v1/settings/general/test"},
 		{http.MethodPost, "/api/v1/admin/clusters/test"},
 		{http.MethodGet, "/api/v1/ai/sessions"},
 		{http.MethodGet, "/api/v1/ai/sessions/test-session"},

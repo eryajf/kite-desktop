@@ -120,7 +120,7 @@ func NewAgent(cs *cluster.ClientSet, cfg *RuntimeConfig) (*Agent, error) {
 		modelName = cfg.Model
 	}
 
-	maxTokens := 4096
+	maxTokens := model.DefaultGeneralAIMaxTokens
 	if cfg != nil && cfg.MaxTokens > 0 {
 		maxTokens = cfg.MaxTokens
 	}

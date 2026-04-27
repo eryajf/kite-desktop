@@ -593,11 +593,21 @@
       "description": "Enable AI assistant and configure model endpoint.",
       "form": {
         "model": "Model",
+        "modelHint": "You can type a model name manually, or fetch the provider model list and choose one.",
         "provider": "Provider",
         "apiKey": "API Key",
         "apiKeyPlaceholder": "Leave empty to keep current API Key",
         "baseUrl": "Base URL",
+        "fetchModels": "Fetch Models",
+        "fetchingModels": "Fetching...",
+        "searchModels": "Search models...",
+        "noModels": "No models found.",
+        "connectionTest": "Connection Test",
+        "connectionTestHint": "Send a short \"hi\" request with the current Base URL, API Key, and model to verify the service is working.",
+        "testConnection": "Test Configuration",
+        "testingConnection": "Testing...",
         "maxTokens": "Max Tokens",
+        "maxTokensHelp": "Controls the maximum tokens the model may generate in a single reply. Larger values allow longer answers, but may increase latency and token usage.",
         "chatHistorySessionLimit": "Chat History Session Limit",
         "chatHistorySessionLimitHint": "Maximum number of AI chat sessions to keep per cluster.",
         "openMode": "AI Chat Open Mode",
@@ -648,7 +658,9 @@
       "nodeTerminalImageRequired": "Node terminal image is required"
     },
     "messages": {
-      "updated": "General settings updated"
+      "updated": "General settings updated",
+      "modelsLoaded": "Loaded {{count}} models.",
+      "connectionTestSuccess": "Connection test succeeded."
     }
   },
   "authenticationManagement": {

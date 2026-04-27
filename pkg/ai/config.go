@@ -59,7 +59,7 @@ func LoadRuntimeConfig() (*RuntimeConfig, error) {
 		cfg.Model = defaultModelForProvider(cfg.Provider)
 	}
 	if cfg.MaxTokens <= 0 {
-		cfg.MaxTokens = 4096
+		cfg.MaxTokens = model.DefaultGeneralAIMaxTokens
 	}
 	if !cfg.Enabled {
 		return cfg, nil
@@ -70,15 +70,15 @@ func LoadRuntimeConfig() (*RuntimeConfig, error) {
 	return cfg, nil
 }
 
-func NewOpenAIClient(cfg *RuntimeConfig) (openai.Client, error) {
+func buildOpenAIClientOptions(cfg *RuntimeConfig, extraOpts ...openaioption.RequestOption) ([]openaioption.RequestOption, error) {
 	if cfg == nil || !cfg.Enabled {
-		return openai.Client{}, fmt.Errorf("AI is not enabled")
+		return nil, fmt.Errorf("AI is not enabled")
 	}
 	if normalizeProvider(cfg.Provider) != model.GeneralAIProviderOpenAI {
-		return openai.Client{}, fmt.Errorf("AI provider %s is not supported by OpenAI client", providerLabel(cfg.Provider))
+		return nil, fmt.Errorf("AI provider %s is not supported by OpenAI client", providerLabel(cfg.Provider))
 	}
 
-	opts := make([]openaioption.RequestOption, 0, 2)
+	opts := make([]openaioption.RequestOption, 0, 2+len(extraOpts))
 	if cfg.APIKey != "" {
 		opts = append(opts, openaioption.WithAPIKey(cfg.APIKey))
 	}
@@ -88,19 +88,38 @@ func NewOpenAIClient(cfg *RuntimeConfig) (openai.Client, error) {
 			opts = append(opts, openaioption.WithHeader("X-OpenRouter-Title", "OpenClaw"))
 		}
 	}
+	opts = append(opts, extraOpts...)
+
+	return opts, nil
+}
+
+func NewOpenAIClient(cfg *RuntimeConfig) (openai.Client, error) {
+	opts, err := buildOpenAIClientOptions(cfg)
+	if err != nil {
+		return openai.Client{}, err
+	}
 
 	return openai.NewClient(opts...), nil
 }
 
-func NewAnthropicClient(cfg *RuntimeConfig) (anthropic.Client, error) {
-	if cfg == nil || !cfg.Enabled {
-		return anthropic.Client{}, fmt.Errorf("AI is not enabled")
-	}
-	if normalizeProvider(cfg.Provider) != model.GeneralAIProviderAnthropic {
-		return anthropic.Client{}, fmt.Errorf("AI provider %s is not supported by Anthropic client", providerLabel(cfg.Provider))
+func NewOpenAIClientWithOptions(cfg *RuntimeConfig, extraOpts ...openaioption.RequestOption) (openai.Client, error) {
+	opts, err := buildOpenAIClientOptions(cfg, extraOpts...)
+	if err != nil {
+		return openai.Client{}, err
 	}
 
-	opts := make([]anthropicoption.RequestOption, 0, 2)
+	return openai.NewClient(opts...), nil
+}
+
+func buildAnthropicClientOptions(cfg *RuntimeConfig, extraOpts ...anthropicoption.RequestOption) ([]anthropicoption.RequestOption, error) {
+	if cfg == nil || !cfg.Enabled {
+		return nil, fmt.Errorf("AI is not enabled")
+	}
+	if normalizeProvider(cfg.Provider) != model.GeneralAIProviderAnthropic {
+		return nil, fmt.Errorf("AI provider %s is not supported by Anthropic client", providerLabel(cfg.Provider))
+	}
+
+	opts := make([]anthropicoption.RequestOption, 0, 2+len(extraOpts))
 	if cfg.APIKey != "" {
 		opts = append(opts, anthropicoption.WithAuthToken(cfg.APIKey))
 		opts = append(opts, anthropicoption.WithAPIKey(cfg.APIKey))
@@ -110,6 +129,25 @@ func NewAnthropicClient(cfg *RuntimeConfig) (anthropic.Client, error) {
 		if isOpenRouterBaseURL(cfg.BaseURL) {
 			opts = append(opts, anthropicoption.WithHeader("X-OpenRouter-Title", "OpenClaw"))
 		}
+	}
+	opts = append(opts, extraOpts...)
+
+	return opts, nil
+}
+
+func NewAnthropicClient(cfg *RuntimeConfig) (anthropic.Client, error) {
+	opts, err := buildAnthropicClientOptions(cfg)
+	if err != nil {
+		return anthropic.Client{}, err
+	}
+
+	return anthropic.NewClient(opts...), nil
+}
+
+func NewAnthropicClientWithOptions(cfg *RuntimeConfig, extraOpts ...anthropicoption.RequestOption) (anthropic.Client, error) {
+	opts, err := buildAnthropicClientOptions(cfg, extraOpts...)
+	if err != nil {
+		return anthropic.Client{}, err
 	}
 
 	return anthropic.NewClient(opts...), nil

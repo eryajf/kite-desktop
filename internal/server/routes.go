@@ -48,6 +48,8 @@ func registerDesktopSettingRoutes(r *gin.RouterGroup) {
 	settingAPI := r.Group("/api/v1/settings")
 	settingAPI.GET("/general", ai.HandleGetGeneralSetting)
 	settingAPI.PUT("/general", ai.HandleUpdateGeneralSetting)
+	settingAPI.POST("/general/models", ai.HandleListGeneralAIModels)
+	settingAPI.POST("/general/test", ai.HandleTestGeneralAIConnection)
 }
 
 func registerAdminRoutes(r *gin.RouterGroup, cm *cluster.ClusterManager) {

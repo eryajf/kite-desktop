@@ -290,7 +290,7 @@ func HandleUpdateGeneralSetting(c *gin.Context) {
 
 	aiMaxTokens := req.AIMaxTokens
 	if aiMaxTokens <= 0 {
-		aiMaxTokens = 4096
+		aiMaxTokens = model.DefaultGeneralAIMaxTokens
 	}
 	aiChatHistorySessionLimit := model.NormalizeAIChatHistorySessionLimit(req.AIChatHistorySessionLimit)
 	aiChatOpenMode := model.NormalizeAIChatOpenMode(req.AIChatOpenMode)

@@ -418,6 +418,22 @@ export interface GeneralSettingUpdateRequest {
   updateSource?: 'auto' | 'github' | 'cnb'
 }
 
+export interface GeneralAIValidationRequest {
+  aiProvider: 'openai' | 'anthropic'
+  aiModel?: string
+  aiApiKey?: string
+  aiBaseUrl: string
+}
+
+export interface GeneralAIModelListResponse {
+  models: string[]
+}
+
+export interface GeneralAIConnectionTestResponse {
+  message: string
+  reply?: string
+}
+
 export type CredentialProvider = 'password' | 'ldap'
 
 export interface AuthProviderCatalog {
@@ -494,6 +510,24 @@ export const updateGeneralSetting = async (
   data: GeneralSettingUpdateRequest
 ): Promise<GeneralSetting> => {
   return await apiClient.put<GeneralSetting>('/settings/general', data)
+}
+
+export const fetchGeneralAIModels = async (
+  data: GeneralAIValidationRequest
+): Promise<GeneralAIModelListResponse> => {
+  return await apiClient.post<GeneralAIModelListResponse>(
+    '/settings/general/models',
+    data
+  )
+}
+
+export const testGeneralAIConnection = async (
+  data: GeneralAIValidationRequest
+): Promise<GeneralAIConnectionTestResponse> => {
+  return await apiClient.post<GeneralAIConnectionTestResponse>(
+    '/settings/general/test',
+    data
+  )
 }
 
 export const setGlobalSidebarPreference = async (sidebarPreference: string) => {

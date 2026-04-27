@@ -14,6 +14,7 @@ import (
 
 const DefaultGeneralAIModel = "gpt-4o-mini"
 const DefaultGeneralAnthropicModel = "claude-sonnet-4-5"
+const DefaultGeneralAIMaxTokens = 8192
 const DefaultGeneralKubectlImage = "docker.cnb.cool/znb/images/kubectl:latest"
 const DefaultGeneralNodeTerminalImage = "docker.cnb.cool/znb/images/busybox:latest"
 const DefaultAIChatHistorySessionLimit = 200
@@ -42,7 +43,7 @@ type GeneralSetting struct {
 	AIModel                   string       `json:"aiModel" gorm:"column:ai_model;type:varchar(255);not null;default:'gpt-4o-mini'"`
 	AIAPIKey                  SecretString `json:"aiApiKey" gorm:"column:ai_api_key;type:text"`
 	AIBaseURL                 string       `json:"aiBaseUrl" gorm:"column:ai_base_url;type:varchar(500)"`
-	AIMaxTokens               int          `json:"aiMaxTokens" gorm:"column:ai_max_tokens;type:integer;default:4096"`
+	AIMaxTokens               int          `json:"aiMaxTokens" gorm:"column:ai_max_tokens;type:integer;default:8192"`
 	AIChatHistorySessionLimit int          `json:"aiChatHistorySessionLimit" gorm:"column:ai_chat_history_session_limit;type:integer;not null;default:200"`
 	AIChatOpenMode            string       `json:"aiChatOpenMode" gorm:"column:ai_chat_open_mode;type:varchar(50);not null;default:'sidecar'"`
 	KubectlEnabled            bool         `json:"kubectlEnabled" gorm:"column:kubectl_enabled;type:boolean;not null;default:true"`
@@ -159,7 +160,7 @@ func GetGeneralSetting() (*GeneralSetting, error) {
 		AIAgentEnabled:            false,
 		AIProvider:                DefaultGeneralAIProvider,
 		AIModel:                   DefaultGeneralAIModel,
-		AIMaxTokens:               4096,
+		AIMaxTokens:               DefaultGeneralAIMaxTokens,
 		AIChatHistorySessionLimit: DefaultAIChatHistorySessionLimit,
 		AIChatOpenMode:            DefaultAIChatOpenMode,
 		KubectlEnabled:            true,
