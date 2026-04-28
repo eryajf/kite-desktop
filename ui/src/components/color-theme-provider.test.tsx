@@ -70,4 +70,31 @@ describe('ColorThemeProvider', () => {
     expect(document.documentElement).toHaveClass('color-claude')
     expect(document.documentElement).not.toHaveClass('color-eye-care')
   })
+
+  it('syncs color theme changes from another window via storage events', async () => {
+    localStorage.clear()
+    document.documentElement.className = 'color-default'
+
+    render(
+      <ColorThemeProvider
+        defaultColorTheme="default"
+        storageKey="color-theme-key"
+      >
+        <ColorThemeConsumer />
+      </ColorThemeProvider>
+    )
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'color-theme-key',
+        newValue: 'claude',
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('claude')
+    })
+    expect(document.documentElement).toHaveClass('color-claude')
+    expect(document.documentElement).not.toHaveClass('color-default')
+  })
 })

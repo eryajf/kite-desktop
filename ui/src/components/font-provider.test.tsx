@@ -81,4 +81,28 @@ describe('FontProvider', () => {
     ).toBe("'JetBrains Mono', var(--font-sans)")
     expect(localStorage.getItem('font-theme-key')).toBe('jetbrains')
   })
+
+  it('syncs font changes from another window via storage events', async () => {
+    localStorage.clear()
+
+    render(
+      <FontProvider defaultFont="maple" storageKey="font-theme-key">
+        <FontConsumer />
+      </FontProvider>
+    )
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'font-theme-key',
+        newValue: 'system',
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('system')
+    })
+    expect(
+      document.documentElement.style.getPropertyValue('--app-font-sans')
+    ).toBe('var(--font-sans)')
+  })
 })

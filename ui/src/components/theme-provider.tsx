@@ -63,6 +63,25 @@ export function ThemeProvider({
     root.classList.add(theme)
   }, [theme])
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== storageKey || event.newValue === null) {
+        return
+      }
+
+      if (
+        event.newValue === 'light' ||
+        event.newValue === 'dark' ||
+        event.newValue === 'system'
+      ) {
+        setTheme(event.newValue)
+      }
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [storageKey])
+
   const value = {
     theme,
     setTheme: (theme: Theme) => {

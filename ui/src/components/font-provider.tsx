@@ -44,6 +44,25 @@ export function FontProvider({
     localStorage.setItem(storageKey, font)
   }, [font, storageKey])
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== storageKey || event.newValue === null) {
+        return
+      }
+
+      if (
+        event.newValue === 'system' ||
+        event.newValue === 'maple' ||
+        event.newValue === 'jetbrains'
+      ) {
+        setFont(event.newValue)
+      }
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [storageKey])
+
   const value = useMemo(
     () => ({
       font,

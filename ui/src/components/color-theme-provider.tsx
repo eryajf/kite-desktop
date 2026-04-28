@@ -53,6 +53,21 @@ export function ColorThemeProvider({
     root.classList.add(`color-${colorTheme}`)
   }, [colorTheme])
 
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== storageKey || event.newValue === null) {
+        return
+      }
+
+      if (event.newValue in colorThemes) {
+        setColorTheme(event.newValue as ColorTheme)
+      }
+    }
+
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [storageKey])
+
   const value = {
     colorTheme,
     setColorTheme: (colorTheme: ColorTheme) => {

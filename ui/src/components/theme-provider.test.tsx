@@ -129,4 +129,27 @@ describe('ThemeProvider', () => {
       expect(document.documentElement).not.toHaveClass('light')
     })
   })
+
+  it('syncs theme changes from another window via storage events', async () => {
+    createMatchMedia(false)
+
+    render(
+      <ThemeProvider defaultTheme="light" storageKey="theme-key">
+        <ThemeConsumer />
+      </ThemeProvider>
+    )
+
+    window.dispatchEvent(
+      new StorageEvent('storage', {
+        key: 'theme-key',
+        newValue: 'dark',
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('dark/dark')
+      expect(document.documentElement).toHaveClass('dark')
+      expect(document.documentElement).not.toHaveClass('light')
+    })
+  })
 })
