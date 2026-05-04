@@ -50,6 +50,42 @@ interface ResourceTableViewProps<T> {
   getRowContextMenuItems?: (item: T) => RowContextMenuItem<T>[]
 }
 
+type ColumnAlignment = 'left' | 'center' | 'right'
+
+function getColumnAlignmentClassName(
+  alignment: ColumnAlignment | undefined,
+  index: number
+) {
+  const resolvedAlignment = alignment ?? (index <= 1 ? 'left' : 'center')
+
+  switch (resolvedAlignment) {
+    case 'right':
+      return 'text-right'
+    case 'center':
+      return 'text-center'
+    case 'left':
+    default:
+      return 'text-left'
+  }
+}
+
+function getHeaderContentAlignmentClassName(
+  alignment: ColumnAlignment | undefined,
+  index: number
+) {
+  const resolvedAlignment = alignment ?? (index <= 1 ? 'left' : 'center')
+
+  switch (resolvedAlignment) {
+    case 'right':
+      return 'justify-end'
+    case 'center':
+      return 'justify-center'
+    case 'left':
+    default:
+      return 'justify-start'
+  }
+}
+
 export function ResourceTableView<T>({
   table,
   columnCount,
@@ -72,10 +108,11 @@ export function ResourceTableView<T>({
   const getStickyColumnClassName = (
     index: number,
     columnId: string,
+    alignment: ColumnAlignment | undefined,
     isHeader = false
   ) =>
     cn(
-      index <= 1 ? 'text-left' : 'text-center',
+      getColumnAlignmentClassName(alignment, index),
       columnId === 'actions' &&
         'sticky right-0 z-20 bg-background shadow-[-10px_0_12px_-12px_color-mix(in_oklab,var(--color-foreground)_16%,transparent)]',
       isHeader && columnId === 'actions' && 'z-30'
@@ -104,7 +141,15 @@ export function ResourceTableView<T>({
               key={cell.id}
               className={cn(
                 'align-middle',
-                getStickyColumnClassName(index, cell.column.id)
+                getStickyColumnClassName(
+                  index,
+                  cell.column.id,
+                  (
+                    cell.column.columnDef.meta as
+                      | { align?: ColumnAlignment }
+                      | undefined
+                  )?.align
+                )
               )}
             >
               {cell.column.columnDef.cell
@@ -221,6 +266,11 @@ export function ResourceTableView<T>({
                             getStickyColumnClassName(
                               index,
                               header.column.id,
+                              (
+                                header.column.columnDef.meta as
+                                  | { align?: ColumnAlignment }
+                                  | undefined
+                              )?.align,
                               true
                             )
                           )}
@@ -229,7 +279,14 @@ export function ResourceTableView<T>({
                             <div
                               className={cn(
                                 'flex items-center gap-0.5',
-                                index > 1 && 'justify-center'
+                                getHeaderContentAlignmentClassName(
+                                  (
+                                    header.column.columnDef.meta as
+                                      | { align?: ColumnAlignment }
+                                      | undefined
+                                  )?.align,
+                                  index
+                                )
                               )}
                             >
                               {header.column.getCanSort() ? (
