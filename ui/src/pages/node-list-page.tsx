@@ -244,6 +244,9 @@ export function NodeListPage() {
       columnHelper.accessor((row) => getNodeStatus(row), {
         id: 'status',
         header: t('common.status'),
+        meta: {
+          align: 'left',
+        },
         cell: ({ getValue }) => {
           const status = getValue()
           return (
@@ -256,7 +259,10 @@ export function NodeListPage() {
       }),
       columnHelper.accessor((row) => getNodeRoles(row), {
         id: 'roles',
-        header: 'Roles',
+        header: t('nodes.roles'),
+        meta: {
+          align: 'left',
+        },
         cell: ({ getValue }) => {
           const roles = getValue()
           return (
@@ -277,11 +283,17 @@ export function NodeListPage() {
       columnHelper.accessor((row) => row.metrics, {
         id: 'pods',
         header: 'Pods',
+        meta: {
+          align: 'center',
+        },
         cell: ({ row }) => <NodePodsUsageCell node={row.original} />,
       }),
       columnHelper.accessor((row) => row.metrics?.cpuUsage || 0, {
         id: 'cpu',
         header: 'CPU',
+        meta: {
+          align: 'center',
+        },
         cell: ({ row }) => (
           <MetricCell
             metrics={row.original.metrics}
@@ -294,6 +306,9 @@ export function NodeListPage() {
       columnHelper.accessor((row) => row.metrics?.memoryUsage || 0, {
         id: 'memory',
         header: 'Memory',
+        meta: {
+          align: 'center',
+        },
         cell: ({ row }) => (
           <MetricCell
             metrics={row.original.metrics}
