@@ -19,6 +19,7 @@
     "namespace": "命名空间",
     "status": "状态",
     "created": "创建时间",
+    "updated": "更新时间",
     "actions": "操作",
     "refresh": "刷新",
     "language": "语言",
@@ -1727,6 +1728,10 @@
     "rolloutPendingDescription": "控制器当前观察到的 generation 为 {{observed}}，期望 generation 为 {{generation}}。",
     "resourceRequests": "资源请求总计",
     "resourceLimits": "资源限制总计",
+    "tolerations": "容忍度",
+    "affinity": "亲和性",
+    "containers": "容器",
+    "containersAndImages": "容器与镜像",
     "notSet": "未指定",
     "age": "运行时长",
     "hostNetwork": "主机网络",
@@ -1821,6 +1826,18 @@
   "namespaceList": {
     "manageLabels": "管理标签",
     "manageAnnotations": "管理注解"
+  },
+  "deploymentList": {
+    "manageLabels": "管理标签",
+    "manageAnnotations": "管理注解"
+  },
+  "resourceMetadataDialog": {
+    "success": "资源元数据更新成功",
+    "labelsTitle": "管理标签",
+    "annotationsTitle": "管理注解",
+    "labelsDescription": "新增或删除资源标签。",
+    "annotationsDescription": "新增或删除资源注解。",
+    "empty": "当前还没有任何条目"
   },
   "namespaceMetadataDialog": {
     "success": "命名空间元数据更新成功",

@@ -24,6 +24,10 @@ import { deleteResource } from '@/lib/api'
 import { getPodStatus } from '@/lib/k8s'
 import { formatDate, translateError, translatePodStatus } from '@/lib/utils'
 
+import {
+  ContainerImagesSummary,
+  toCompactImageName,
+} from './container-images-summary'
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog'
 import { DescribeDialog } from './describe-dialog'
 import { MetricCell } from './metrics-cell'
@@ -32,25 +36,6 @@ import { ResourceTableView } from './resource-table-view'
 import { Badge } from './ui/badge'
 import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
-
-type PodImageEntry = {
-  name: string
-  image: string
-}
-
-function toCompactImageName(image: string) {
-  if (!image || image === '-') return '-'
-
-  const digestIndex = image.lastIndexOf('@')
-  if (digestIndex >= 0) {
-    return image.slice(image.lastIndexOf('/') + 1)
-  }
-
-  const lastSlashIndex = image.lastIndexOf('/')
-  return lastSlashIndex >= 0 ? image.slice(lastSlashIndex + 1) : image
-}
-
 const arrIncludesSome: FilterFn<PodWithMetrics> = (row, columnId, filterValue) => {
   if (!Array.isArray(filterValue) || filterValue.length === 0) return true
   const value = String(row.getValue(columnId) ?? '')
@@ -158,53 +143,9 @@ export function PodTable(props: {
         {
           id: 'imageSummary',
           header: t('containerEditor.tabs.image'),
-          cell: ({ row }) => {
-            const images: PodImageEntry[] =
-              row.original.spec?.containers?.map((container) => ({
-                name: container.name,
-                image: container.image || '-',
-              })) || []
-
-            if (images.length === 0) {
-              return <span className="text-sm text-muted-foreground">-</span>
-            }
-
-            const summary = images
-              .map(
-                (entry) => `${entry.name}: ${toCompactImageName(entry.image)}`
-              )
-              .join(' | ')
-
-            return (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
-                    className="max-w-[320px] truncate text-xs text-muted-foreground"
-                    title={summary}
-                  >
-                    <span className="font-mono">{summary}</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-md">
-                  <div className="space-y-2">
-                    {images.map((entry) => (
-                      <div
-                        key={`${entry.name}-${entry.image}`}
-                        className="min-w-0"
-                      >
-                        <div className="text-xs text-muted-foreground">
-                          {entry.name}
-                        </div>
-                        <div className="font-mono text-xs break-all">
-                          {entry.image}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            )
-          },
+          cell: ({ row }) => (
+            <ContainerImagesSummary containers={row.original.spec?.containers} />
+          ),
         }
       ),
       columnHelper.accessor((pod) => pod.metrics, {

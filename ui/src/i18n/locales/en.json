@@ -16,6 +16,7 @@
     "namespace": "Namespace",
     "status": "Status",
     "created": "Created",
+    "updated": "Updated",
     "actions": "Actions",
     "refresh": "Refresh",
     "language": "Language",
@@ -1435,6 +1436,10 @@
     "rolloutPendingDescription": "The controller has observed generation {{observed}}, but the latest generation is {{generation}}.",
     "resourceRequests": "Aggregated Requests",
     "resourceLimits": "Aggregated Limits",
+    "tolerations": "Tolerations",
+    "affinity": "Affinity",
+    "containers": "Containers",
+    "containersAndImages": "Containers & Images",
     "notSet": "Not set",
     "age": "Age",
     "hostNetwork": "Host Network",
@@ -1529,6 +1534,18 @@
   "namespaceList": {
     "manageLabels": "Manage labels",
     "manageAnnotations": "Manage annotations"
+  },
+  "deploymentList": {
+    "manageLabels": "Manage labels",
+    "manageAnnotations": "Manage annotations"
+  },
+  "resourceMetadataDialog": {
+    "success": "Resource metadata updated successfully",
+    "labelsTitle": "Manage labels",
+    "annotationsTitle": "Manage annotations",
+    "labelsDescription": "Add or remove resource labels.",
+    "annotationsDescription": "Add or remove resource annotations.",
+    "empty": "No entries yet"
   },
   "namespaceMetadataDialog": {
     "success": "Namespace metadata updated successfully",

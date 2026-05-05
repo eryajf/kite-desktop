@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import type { Namespace, ResourceQuota } from 'kubernetes-types/core/v1'
-import { Edit3, FileText, Tags } from 'lucide-react'
+import { Edit3 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
@@ -14,32 +14,11 @@ import {
 import { getAge } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { MetadataActionButton } from '@/components/metadata-action-button'
 import { NamespaceCreateDialog } from '@/components/editors/namespace-create-dialog'
 import { NamespaceEditDialog } from '@/components/editors/namespace-edit-dialog'
 import { NamespaceMetadataDialog } from '@/components/editors/namespace-metadata-dialog'
 import { ResourceTable } from '@/components/resource-table'
-
-function MetadataAction(props: {
-  icon: 'labels' | 'annotations'
-  onClick: () => void
-  ariaLabel: string
-}) {
-  const { ariaLabel, icon, onClick } = props
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      aria-label={ariaLabel}
-      onClick={onClick}
-    >
-      {icon === 'labels' ? (
-        <Tags className="h-4 w-4" />
-      ) : (
-        <FileText className="h-4 w-4" />
-      )}
-    </Button>
-  )
-}
 
 export function NamespaceListPage() {
   const { t } = useTranslation()
@@ -101,7 +80,7 @@ export function NamespaceListPage() {
         header: t('detail.fields.labels'),
         meta: { align: 'left' },
         cell: ({ row }) => (
-          <MetadataAction
+          <MetadataActionButton
             icon="labels"
             ariaLabel={t('namespaceList.manageLabels')}
             onClick={() => setLabelsNamespace(row.original)}
@@ -113,7 +92,7 @@ export function NamespaceListPage() {
         header: t('detail.fields.annotations'),
         meta: { align: 'left' },
         cell: ({ row }) => (
-          <MetadataAction
+          <MetadataActionButton
             icon="annotations"
             ariaLabel={t('namespaceList.manageAnnotations')}
             onClick={() => setAnnotationsNamespace(row.original)}
