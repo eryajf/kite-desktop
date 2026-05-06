@@ -1,12 +1,17 @@
 import { type ReactNode } from 'react'
 import { createColumnHelper, flexRender } from '@tanstack/react-table'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Deployment } from 'kubernetes-types/apps/v1'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DeploymentListPage } from './deployment-list-page'
 
 const mockNavigate = vi.fn()
+const mockCopyTextToClipboard = vi.fn()
+const mockToastSuccess = vi.fn()
+const mockToastError = vi.fn()
+const mockInvalidateQueries = vi.fn()
+const mockPatchResource = vi.fn()
 const mockResourceTable = vi.fn(
   ({
     onCreateClick,
@@ -45,6 +50,35 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   }
 })
+
+vi.mock('@tanstack/react-query', async () => {
+  const actual =
+    await vi.importActual<typeof import('@tanstack/react-query')>(
+      '@tanstack/react-query'
+    )
+
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      invalidateQueries: mockInvalidateQueries,
+    }),
+  }
+})
+
+vi.mock('@/lib/desktop', () => ({
+  copyTextToClipboard: (value: string) => mockCopyTextToClipboard(value),
+}))
+
+vi.mock('@/lib/api', () => ({
+  patchResource: (...args: unknown[]) => mockPatchResource(...args),
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: (value: string) => mockToastSuccess(value),
+    error: (value: string) => mockToastError(value),
+  },
+}))
 
 vi.mock('@/components/resource-table', () => ({
   ResourceTable: (props: {
@@ -105,6 +139,11 @@ describe('DeploymentListPage', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-05-05T10:00:00.000Z'))
     mockNavigate.mockReset()
+    mockCopyTextToClipboard.mockReset()
+    mockToastSuccess.mockReset()
+    mockToastError.mockReset()
+    mockInvalidateQueries.mockReset()
+    mockPatchResource.mockReset()
     mockResourceTable.mockClear()
   })
 
@@ -129,11 +168,9 @@ describe('DeploymentListPage', () => {
 
     expect(resourceTableProps.columns[3].id).toBe('labels')
     expect(resourceTableProps.columns[4].id).toBe('annotations')
-    expect(resourceTableProps.columns[5].id).toBe('tolerations')
-    expect(resourceTableProps.columns[6].id).toBe('affinity')
-    expect(resourceTableProps.columns[7].id).toBe('containers-and-images')
-    expect(resourceTableProps.columns[8].id).toBe('resource-limits')
-    expect(resourceTableProps.columns[9].id).toBe('created')
+    expect(resourceTableProps.columns[5].id).toBe('containers-and-images')
+    expect(resourceTableProps.columns[6].id).toBe('resource-limits')
+    expect(resourceTableProps.columns[7].id).toBe('created')
 
     const deployment = {
       metadata: {
@@ -163,24 +200,6 @@ describe('DeploymentListPage', () => {
         replicas: 3,
         template: {
           spec: {
-            tolerations: [
-              {
-                key: 'dedicated',
-                operator: 'Exists',
-                effect: 'NoSchedule',
-              },
-              {
-                key: 'gpu',
-                operator: 'Equal',
-                value: 'true',
-                effect: 'NoExecute',
-              },
-            ],
-            affinity: {
-              nodeAffinity: {},
-              podAffinity: {},
-              podAntiAffinity: {},
-            },
             containers: [
               {
                 name: 'api',
@@ -223,9 +242,7 @@ describe('DeploymentListPage', () => {
         {flexRender(resourceTableProps.columns[4].cell!, { row })}
         {flexRender(resourceTableProps.columns[5].cell!, { row })}
         {flexRender(resourceTableProps.columns[6].cell!, { row })}
-        {flexRender(resourceTableProps.columns[7].cell!, { row })}
-        {flexRender(resourceTableProps.columns[8].cell!, { row })}
-        {flexRender(resourceTableProps.columns[9].cell!, {
+        {flexRender(resourceTableProps.columns[7].cell!, {
           row,
           getValue: () => deployment.metadata?.creationTimestamp,
         })}
@@ -245,9 +262,6 @@ describe('DeploymentListPage', () => {
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
-    expect(renderedRow.container).toHaveTextContent('dedicated')
-    expect(renderedRow.container).toHaveTextContent('+1')
-    expect(renderedRow.container).toHaveTextContent('Node, Pod, Pod Anti')
     expect(renderedRow.container).toHaveTextContent(
       'api: nginx:1.0 | sidecar: busybox:1.0'
     )
@@ -256,5 +270,165 @@ describe('DeploymentListPage', () => {
     expect(renderedRow.container).toHaveTextContent(
       '2026-05-04 16:00:00 (1 days ago)'
     )
+  })
+
+  it('provides row context menu actions for deployment rows', async () => {
+    render(<DeploymentListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (deployment: Deployment) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const deployment = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+      },
+    } as Deployment
+
+    const items = resourceTableProps.getRowContextMenuItems(deployment)
+
+    expect(items.map((item) => item.key)).toEqual([
+      'view-yaml',
+      'primary-actions-separator',
+      'copy-name',
+      'copy-namespace',
+      'metadata-actions-separator',
+      'manage-labels',
+      'manage-annotations',
+      'deployment-operations-separator',
+      'scale-deployment',
+      'restart-deployment',
+    ])
+
+    await items[0].onSelect?.()
+    expect(mockNavigate).toHaveBeenCalledWith('/deployments/default/web?tab=yaml')
+
+    await items[2].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('web')
+
+    await items[3].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('default')
+    expect(mockToastSuccess).toHaveBeenCalledWith(
+      'keyValueDataViewer.copiedToClipboard'
+    )
+
+    await act(async () => {
+      await items[5].onSelect?.()
+    })
+    expect(
+      screen.getByText('resource-metadata-dialog-labels')
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      await items[6].onSelect?.()
+    })
+    expect(
+      screen.getByText('resource-metadata-dialog-annotations')
+    ).toBeInTheDocument()
+  })
+
+  it('opens scale and restart dialogs from row context menu actions', async () => {
+    vi.useRealTimers()
+    mockPatchResource.mockResolvedValue(undefined)
+
+    render(<DeploymentListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (deployment: Deployment) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const deployment = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+      },
+      spec: {
+        replicas: 3,
+      },
+    } as Deployment
+
+    const items = resourceTableProps.getRowContextMenuItems(deployment)
+
+    await act(async () => {
+      await items[8].onSelect?.()
+    })
+    expect(
+      screen.getByText('detail.dialogs.scaleDeployment.title')
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.change(
+        screen.getByLabelText('detail.dialogs.scaleDeployment.replicas'),
+        {
+          target: { value: '5' },
+        }
+      )
+    })
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'detail.dialogs.scaleDeployment.scaleButton',
+        })
+      )
+    })
+
+    await waitFor(() => {
+      expect(mockPatchResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        'default',
+        {
+          spec: {
+            replicas: 5,
+          },
+        }
+      )
+    })
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ['deployments'],
+      })
+    })
+
+    await act(async () => {
+      await items[9].onSelect?.()
+    })
+    expect(
+      screen.getByText('detail.dialogs.restartDeployment.title')
+    ).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'detail.dialogs.restartDeployment.restartButton',
+        })
+      )
+    })
+
+    await waitFor(() => {
+      expect(mockPatchResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        'default',
+        expect.objectContaining({
+          spec: {
+            template: {
+              metadata: {
+                annotations: {
+                  'kite.kubernetes.io/restartedAt': expect.any(String),
+                },
+              },
+            },
+          },
+        })
+      )
+    })
   })
 })
