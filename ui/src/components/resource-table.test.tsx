@@ -135,4 +135,40 @@ describe('ResourceTable batch delete confirmation', () => {
 
     expect(onInspect).toHaveBeenCalledWith('demo')
   })
+
+  it('renders an actions column menu that uses the same row actions', async () => {
+    const onInspect = vi.fn()
+    const columnHelper = createColumnHelper<Deployment>()
+
+    render(
+      <ResourceTable
+        resourceName="Deployments"
+        resourceType="deployments"
+        clusterScope={true}
+        columns={[
+          columnHelper.accessor('metadata.name', {
+            header: 'Name',
+            cell: ({ row }) => row.original.metadata?.name,
+          }),
+        ]}
+        getRowContextMenuItems={(item) => [
+          {
+            key: 'inspect',
+            label: 'Inspect resource',
+            onSelect: () => onInspect(item.metadata?.name),
+          },
+        ]}
+      />
+    )
+
+    fireEvent.pointerDown(
+      screen.getAllByRole('button', { name: /Actions|操作/i })[0],
+      { button: 0 }
+    )
+
+    const menuItem = await screen.findByText('Inspect resource')
+    fireEvent.click(menuItem)
+
+    expect(onInspect).toHaveBeenCalledWith('demo')
+  })
 })

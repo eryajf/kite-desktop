@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import { createColumnHelper, flexRender } from '@tanstack/react-table'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -8,6 +8,8 @@ import type { NodeWithMetrics } from '@/types/api'
 import { NodeListPage } from './node-list-page'
 
 const mockResourceTable = vi.fn()
+const mockNavigate = vi.fn()
+const mockCopyTextToClipboard = vi.fn()
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -29,7 +31,7 @@ vi.mock('react-router-dom', async () => {
     Link: ({ children, to }: { children: ReactNode; to: string }) => (
       <a href={to}>{children}</a>
     ),
-    useNavigate: () => vi.fn(),
+    useNavigate: () => mockNavigate,
   }
 })
 
@@ -51,6 +53,17 @@ vi.mock('@/components/resource-table', () => ({
   ResourceTable: (props: unknown) => {
     mockResourceTable(props)
     return null
+  },
+}))
+
+vi.mock('@/lib/desktop', () => ({
+  copyTextToClipboard: (value: string) => mockCopyTextToClipboard(value),
+}))
+
+vi.mock('sonner', () => ({
+  toast: {
+    success: vi.fn(),
+    error: vi.fn(),
   },
 }))
 
@@ -107,5 +120,58 @@ describe('NodeListPage', () => {
 
     expect(screen.getByText('detail.fields.ready')).toBeInTheDocument()
     expect(screen.getByText('control-plane')).toBeInTheDocument()
+  })
+
+  it('keeps the shared node row action model intact', async () => {
+    render(<NodeListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (node: NodeWithMetrics) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const node = {
+      metadata: {
+        name: 'orbstack',
+      },
+      spec: {},
+      status: {
+        addresses: [
+          {
+            type: 'InternalIP',
+            address: '192.168.64.3',
+          },
+        ],
+      },
+    } as NodeWithMetrics
+
+    const items = resourceTableProps.getRowContextMenuItems(node)
+
+    expect(items.map((item) => item.key)).toEqual([
+      'view-yaml',
+      'primary-actions-separator',
+      'copy-name',
+      'copy-ip',
+      'node-operations-separator',
+      'open-terminal',
+      'cordon',
+      'drain',
+    ])
+
+    await items[0].onSelect?.()
+    expect(mockNavigate).toHaveBeenCalledWith('/nodes/orbstack?tab=yaml')
+
+    await items[2].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('orbstack')
+
+    await items[3].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('192.168.64.3')
+
+    await act(async () => {
+      await items[5].onSelect?.()
+    })
+    expect(screen.getByText('nodes.terminalDialogTitle')).toBeInTheDocument()
   })
 })

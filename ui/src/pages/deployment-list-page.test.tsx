@@ -159,7 +159,7 @@ describe('DeploymentListPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/deployments/default/web')
   })
 
-  it('renders metadata actions and the extended deployment columns', () => {
+  it('renders deployment metadata columns alongside the data columns', () => {
     render(<DeploymentListPage />)
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
@@ -262,6 +262,7 @@ describe('DeploymentListPage', () => {
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
+
     expect(renderedRow.container).toHaveTextContent(
       'api: nginx:1.0 | sidecar: busybox:1.0'
     )

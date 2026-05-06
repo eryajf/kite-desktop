@@ -17,6 +17,7 @@ import {
 import {
   Box,
   Database,
+  MoreHorizontal,
   Plus,
   RefreshCw,
   Search,
@@ -61,7 +62,10 @@ import { Toggle } from '@/components/ui/toggle'
 
 import { ErrorMessage } from './error-message'
 import { ResourceTableView } from './resource-table-view'
-import { RowContextMenuItem } from './row-context-menu'
+import {
+  RowContextMenuItem,
+  RowDropdownMenuContentRenderer,
+} from './row-context-menu'
 import { NamespaceSelector } from './selector/namespace-selector'
 
 export interface ResourceTableProps<T> {
@@ -284,7 +288,48 @@ export function ResourceTable<T>({
       enableHiding: false,
     }
 
-    const baseColumns = [selectColumn, ...columns]
+    const hasActionsColumn = columns.some((col) => col.id === 'actions')
+    const actionColumn: ColumnDef<T> | null =
+      getRowContextMenuItems && !hasActionsColumn
+        ? {
+            id: 'actions',
+            header: t('common.actions', 'Actions'),
+            meta: { align: 'right' },
+            cell: ({ row }) => {
+              const menuItems = getRowContextMenuItems(row.original) ?? []
+
+              if (menuItems.length === 0) {
+                return null
+              }
+
+              return (
+                <div className="flex justify-end">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t('common.actions', 'Actions')}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <RowDropdownMenuContentRenderer
+                      item={row.original}
+                      items={menuItems}
+                    />
+                  </DropdownMenu>
+                </div>
+              )
+            },
+            enableSorting: false,
+            enableColumnFilter: false,
+          }
+        : null
+
+    const baseColumns = actionColumn
+      ? [selectColumn, ...columns, actionColumn]
+      : [selectColumn, ...columns]
 
     // Only add namespace column if not cluster scope, showing all namespaces,
     // and there isn't already a namespace column in the provided columns
@@ -326,7 +371,7 @@ export function ResourceTable<T>({
       }
     }
     return baseColumns
-  }, [columns, clusterScope, selectedNamespace, t])
+  }, [columns, clusterScope, getRowContextMenuItems, selectedNamespace, t])
 
   const data = useMemo(() => {
     if (useSSE) return watchData
@@ -357,7 +402,7 @@ export function ResourceTable<T>({
   // Apply arrIncludesSome filterFn to all filterable columns (unified faceted filter)
   const columnsWithFilterFn = useMemo(() => {
     return enhancedColumns.map((col) => {
-      if (col.id !== 'select' && !('filterFn' in col)) {
+      if (col.id !== 'select' && col.id !== 'actions' && !('filterFn' in col)) {
         return { ...col, filterFn: arrIncludesSome }
       }
       return col

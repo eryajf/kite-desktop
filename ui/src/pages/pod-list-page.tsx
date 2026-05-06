@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Pod } from 'kubernetes-types/core/v1'
-import { Copy, Eye } from 'lucide-react'
+import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -10,6 +10,7 @@ import { PodWithMetrics } from '@/types/api'
 import { copyTextToClipboard } from '@/lib/desktop'
 import { getPodStatus } from '@/lib/k8s'
 import { formatDate, getAge } from '@/lib/utils'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import { Badge } from '@/components/ui/badge'
 import {
   Tooltip,
@@ -24,6 +25,8 @@ import { RowContextMenuItem } from '@/components/row-context-menu'
 export function PodListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [labelsPod, setLabelsPod] = useState<Pod | null>(null)
+  const [annotationsPod, setAnnotationsPod] = useState<Pod | null>(null)
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<PodWithMetrics>()
 
@@ -172,10 +175,10 @@ export function PodListPage() {
 
       return [
         {
-          key: 'open-details',
-          label: t('common.viewDetails', 'View details'),
-          icon: <Eye className="h-4 w-4" />,
-          onSelect: () => navigate(getPodDetailPath(pod)),
+          key: 'view-yaml',
+          label: t('common.viewYaml', 'View YAML'),
+          icon: <FileCode2 className="h-4 w-4" />,
+          onSelect: () => navigate(`${getPodDetailPath(pod)}?tab=yaml`),
         },
         { type: 'separator', key: 'primary-actions-separator' },
         {
@@ -197,21 +200,60 @@ export function PodListPage() {
           disabled: !podIP,
           onSelect: () => handleCopy(podIP || ''),
         },
+        { type: 'separator', key: 'metadata-actions-separator' },
+        {
+          key: 'manage-labels',
+          label: t('common.manageLabels', 'Manage labels'),
+          icon: <Tags className="h-4 w-4" />,
+          onSelect: () => setLabelsPod(pod),
+        },
+        {
+          key: 'manage-annotations',
+          label: t('common.manageAnnotations', 'Manage annotations'),
+          icon: <FileText className="h-4 w-4" />,
+          onSelect: () => setAnnotationsPod(pod),
+        },
       ]
     },
     [getPodDetailPath, handleCopy, navigate, t]
   )
 
   return (
-    <ResourceTable<Pod>
-      resourceName="Pods"
-      columns={columns}
-      clusterScope={false}
-      searchQueryFilter={podSearchFilter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-      getRowContextMenuItems={getRowContextMenuItems}
-    />
+    <>
+      <ResourceTable<Pod>
+        resourceName="Pods"
+        columns={columns}
+        clusterScope={false}
+        searchQueryFilter={podSearchFilter}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
+        getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(labelsPod)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLabelsPod(null)
+          }
+        }}
+        resourceType="pods"
+        resource={labelsPod}
+        type="labels"
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(annotationsPod)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAnnotationsPod(null)
+          }
+        }}
+        resourceType="pods"
+        resource={annotationsPod}
+        type="annotations"
+      />
+    </>
   )
 }

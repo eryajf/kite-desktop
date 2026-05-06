@@ -1,7 +1,7 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Service } from 'kubernetes-types/core/v1'
-import { Copy, Eye } from 'lucide-react'
+import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { copyTextToClipboard } from '@/lib/desktop'
 import { getServiceExternalIP } from '@/lib/k8s'
 import { formatDate } from '@/lib/utils'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
@@ -16,6 +17,10 @@ import { RowContextMenuItem } from '@/components/row-context-menu'
 export function ServiceListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [labelsService, setLabelsService] = useState<Service | null>(null)
+  const [annotationsService, setAnnotationsService] = useState<Service | null>(
+    null
+  )
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<Service>()
 
@@ -128,10 +133,10 @@ export function ServiceListPage() {
 
       return [
         {
-          key: 'open-details',
-          label: t('common.viewDetails', 'View details'),
-          icon: <Eye className="h-4 w-4" />,
-          onSelect: () => navigate(getServiceDetailPath(service)),
+          key: 'view-yaml',
+          label: t('common.viewYaml', 'View YAML'),
+          icon: <FileCode2 className="h-4 w-4" />,
+          onSelect: () => navigate(`${getServiceDetailPath(service)}?tab=yaml`),
         },
         { type: 'separator', key: 'primary-actions-separator' },
         {
@@ -153,21 +158,60 @@ export function ServiceListPage() {
           disabled: !clusterIP || clusterIP === 'None',
           onSelect: () => handleCopy(clusterIP || ''),
         },
+        { type: 'separator', key: 'metadata-actions-separator' },
+        {
+          key: 'manage-labels',
+          label: t('common.manageLabels', 'Manage labels'),
+          icon: <Tags className="h-4 w-4" />,
+          onSelect: () => setLabelsService(service),
+        },
+        {
+          key: 'manage-annotations',
+          label: t('common.manageAnnotations', 'Manage annotations'),
+          icon: <FileText className="h-4 w-4" />,
+          onSelect: () => setAnnotationsService(service),
+        },
       ]
     },
     [getServiceDetailPath, handleCopy, navigate, t]
   )
 
   return (
-    <ResourceTable
-      resourceName="Services"
-      columns={columns}
-      clusterScope={false} // Services are namespace-scoped
-      searchQueryFilter={serviceSearchFilter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-      getRowContextMenuItems={getRowContextMenuItems}
-    />
+    <>
+      <ResourceTable
+        resourceName="Services"
+        columns={columns}
+        clusterScope={false} // Services are namespace-scoped
+        searchQueryFilter={serviceSearchFilter}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
+        getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(labelsService)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLabelsService(null)
+          }
+        }}
+        resourceType="services"
+        resource={labelsService}
+        type="labels"
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(annotationsService)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAnnotationsService(null)
+          }
+        }}
+        resourceType="services"
+        resource={annotationsService}
+        type="annotations"
+      />
+    </>
   )
 }

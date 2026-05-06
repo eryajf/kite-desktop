@@ -21,7 +21,10 @@ import { Button } from '@/components/ui/button'
 import { DeploymentStatusIcon } from '@/components/deployment-status-icon'
 import { DeploymentCreateDialog } from '@/components/editors/deployment-create-dialog'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
-import { MetadataActionButton } from '@/components/metadata-action-button'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
 import {
@@ -149,6 +152,9 @@ export function DeploymentListPage() {
           <MetadataActionButton
             icon="labels"
             ariaLabel={t('deploymentList.manageLabels')}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
             onClick={() => setLabelsDeployment(row.original)}
           />
         ),
@@ -161,6 +167,9 @@ export function DeploymentListPage() {
           <MetadataActionButton
             icon="annotations"
             ariaLabel={t('deploymentList.manageAnnotations')}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
             onClick={() => setAnnotationsDeployment(row.original)}
           />
         ),

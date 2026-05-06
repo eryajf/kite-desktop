@@ -50,6 +50,35 @@ export function MetricCell({
       return 'bg-blue-500'
     }
 
+    if (showPercentage) {
+      const valueWidthClass = type === 'cpu' ? 'w-[104px]' : 'w-[148px]'
+      const containerWidthClass =
+        type === 'cpu'
+          ? 'min-w-[220px] max-w-[260px]'
+          : 'min-w-[260px] max-w-[320px]'
+
+      return (
+        <div
+          className={`mx-auto flex items-center gap-2 text-sm text-foreground transition-colors hover:text-primary ${containerWidthClass}`}
+        >
+          <span
+            className={`${valueWidthClass} shrink-0 whitespace-nowrap text-right font-medium tabular-nums`}
+          >
+            {formatValue(metricValue)}/{formatValue(metricLimit)}
+          </span>
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted/80 ring-1 ring-border/50">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${getProgressColor()}`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          <span className="w-[42px] shrink-0 whitespace-nowrap text-left font-medium tabular-nums">
+            {Math.round(percentage)}%
+          </span>
+        </div>
+      )
+    }
+
     return (
       <div className="flex items-center justify-center gap-1">
         <Tooltip>

@@ -65,7 +65,7 @@ export function ContainerImagesSummary(props: { containers?: Container[] }) {
           <span className="font-mono">{summary}</span>
         </div>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-md">
+      <TooltipContent side="top" className="w-max max-w-[95vw]">
         <div className="space-y-2">
           {images.map((entry) => (
             <div
@@ -76,7 +76,10 @@ export function ContainerImagesSummary(props: { containers?: Container[] }) {
                 {entry.name}
               </div>
               <div className="mt-1 flex items-start gap-2">
-                <div className="text-primary-foreground min-w-0 flex-1 font-mono text-xs break-all leading-relaxed">
+                <div
+                  className="text-primary-foreground min-w-0 flex-1 whitespace-nowrap font-mono text-xs leading-relaxed"
+                  title={entry.image}
+                >
                   {entry.image}
                 </div>
                 <Button

@@ -1,12 +1,13 @@
 import { type ReactNode } from 'react'
 import { createColumnHelper, flexRender } from '@tanstack/react-table'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { Namespace, ResourceQuota } from 'kubernetes-types/core/v1'
 import { describe, expect, it, vi } from 'vitest'
 
 import { NamespaceListPage } from './namespace-list-page'
 
 const mockNavigate = vi.fn()
+const mockCopyTextToClipboard = vi.fn()
 const mockResourceQuotas: ResourceQuota[] = [
   {
     metadata: {
@@ -69,6 +70,10 @@ vi.mock('@/lib/api', () => ({
   useResources: () => ({
     data: mockResourceQuotas,
   }),
+}))
+
+vi.mock('@/lib/desktop', () => ({
+  copyTextToClipboard: (value: string) => mockCopyTextToClipboard(value),
 }))
 
 vi.mock('@/components/resource-table', () => ({
@@ -158,14 +163,16 @@ describe('NamespaceListPage', () => {
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
       columns: ReturnType<typeof createColumnHelper<Namespace>>[]
-      extraToolbars?: ReactNode[]
+      getRowContextMenuItems: (namespace: Namespace) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
     }
 
     expect(resourceTableProps.columns[3].id).toBe('labels')
     expect(resourceTableProps.columns[4].id).toBe('annotations')
     expect(resourceTableProps.columns[5].id).toBe('cpu-limit')
     expect(resourceTableProps.columns[6].id).toBe('memory-limit')
-    expect(resourceTableProps.columns[7].id).toBe('actions')
     expect(resourceTableProps.columns[1].meta).toEqual({ align: 'left' })
     expect(resourceTableProps.columns[2].meta).toBeUndefined()
 
@@ -188,32 +195,16 @@ describe('NamespaceListPage', () => {
       },
     } as Namespace
 
+    const items = resourceTableProps.getRowContextMenuItems(namespace)
+
     const row = {
       original: namespace,
     }
 
-    const renderedRow = render(
+    render(
       <div>
-        {flexRender(resourceTableProps.columns[3].cell!, {
-          row,
-          getValue: () => namespace.metadata?.labels,
-        })}
-        {flexRender(resourceTableProps.columns[4].cell!, {
-          row,
-          getValue: () => namespace.metadata?.annotations,
-        })}
-        {flexRender(resourceTableProps.columns[5].cell!, {
-          row,
-          getValue: () => '4',
-        })}
-        {flexRender(resourceTableProps.columns[6].cell!, {
-          row,
-          getValue: () => '8Gi',
-        })}
-        {flexRender(resourceTableProps.columns[7].cell!, {
-          row,
-          getValue: () => undefined,
-        })}
+        {flexRender(resourceTableProps.columns[3].cell!, { row })}
+        {flexRender(resourceTableProps.columns[4].cell!, { row })}
       </div>
     )
 
@@ -230,15 +221,66 @@ describe('NamespaceListPage', () => {
     expect(
       screen.getByText('namespace-metadata-dialog-annotations')
     ).toBeInTheDocument()
-    expect(renderedRow.container).toHaveTextContent('48Gi')
+
+    expect(items.map((item) => item.key)).toEqual([
+      'view-yaml',
+      'primary-actions-separator',
+      'copy-name',
+      'metadata-actions-separator',
+      'manage-labels',
+      'manage-annotations',
+      'namespace-operations-separator',
+      'edit-namespace',
+    ])
+  })
+
+  it('opens namespace row actions from the shared menu model', async () => {
+    render(<NamespaceListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (namespace: Namespace) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const namespace = {
+      metadata: {
+        name: 'team-a',
+      },
+    } as Namespace
+
+    const items = resourceTableProps.getRowContextMenuItems(namespace)
+
+    await items[0].onSelect?.()
+    expect(mockNavigate).toHaveBeenCalledWith('/namespaces/team-a?tab=yaml')
+
+    await items[2].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('team-a')
+
+    await act(async () => {
+      await items[4].onSelect?.()
+    })
     expect(
-      screen.getByRole('button', { name: 'common.edit' })
+      screen.getByText('namespace-metadata-dialog-labels')
     ).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'common.edit' }))
+    await act(async () => {
+      await items[5].onSelect?.()
+    })
+    expect(
+      screen.getByText('namespace-metadata-dialog-annotations')
+    ).toBeInTheDocument()
 
+    await act(async () => {
+      await items[7].onSelect?.()
+    })
     expect(screen.getByText('namespace-edit-dialog')).toBeInTheDocument()
     expect(screen.getAllByText('team-a')[0]).toBeInTheDocument()
     expect(screen.getByText('team-a-quota')).toBeInTheDocument()
+    expect(items[7]).toMatchObject({
+      key: 'edit-namespace',
+      label: 'namespaceList.editQuota',
+    })
   })
 })

@@ -1,11 +1,13 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import type { Namespace, ResourceQuota } from 'kubernetes-types/core/v1'
-import { Edit3 } from 'lucide-react'
+import { Copy, Edit3, FileCode2, FileText, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
 import { useResources } from '@/lib/api'
+import { copyTextToClipboard } from '@/lib/desktop'
 import {
   findPrimaryResourceQuota,
   getNamespaceQuotaSummary,
@@ -13,12 +15,15 @@ import {
 } from '@/lib/namespace-utils'
 import { getAge } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { MetadataActionButton } from '@/components/metadata-action-button'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
 import { NamespaceCreateDialog } from '@/components/editors/namespace-create-dialog'
 import { NamespaceEditDialog } from '@/components/editors/namespace-edit-dialog'
 import { NamespaceMetadataDialog } from '@/components/editors/namespace-metadata-dialog'
 import { ResourceTable } from '@/components/resource-table'
+import { RowContextMenuItem } from '@/components/row-context-menu'
 
 export function NamespaceListPage() {
   const { t } = useTranslation()
@@ -83,6 +88,9 @@ export function NamespaceListPage() {
           <MetadataActionButton
             icon="labels"
             ariaLabel={t('namespaceList.manageLabels')}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
             onClick={() => setLabelsNamespace(row.original)}
           />
         ),
@@ -95,6 +103,9 @@ export function NamespaceListPage() {
           <MetadataActionButton
             icon="annotations"
             ariaLabel={t('namespaceList.manageAnnotations')}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
             onClick={() => setAnnotationsNamespace(row.original)}
           />
         ),
@@ -141,23 +152,6 @@ export function NamespaceListPage() {
           return summary.memoryLimit || '-'
         },
       }),
-      columnHelper.display({
-        id: 'actions',
-        header: t('common.actions', 'Actions'),
-        meta: { align: 'right' },
-        cell: ({ row }) => (
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setEditingNamespace(row.original)}
-            >
-              <Edit3 className="h-4 w-4" />
-              {t('common.edit', 'Edit')}
-            </Button>
-          </div>
-        ),
-      }),
     ],
     [columnHelper, resourceQuotaMap, t]
   )
@@ -182,6 +176,53 @@ export function NamespaceListPage() {
     navigate(`/namespaces/${namespaceName}`)
   }
 
+  const handleCopy = useCallback(
+    async (value: string) => {
+      await copyTextToClipboard(value)
+      toast.success(t('keyValueDataViewer.copiedToClipboard'))
+    },
+    [t]
+  )
+
+  const getRowContextMenuItems = useCallback(
+    (namespace: Namespace): RowContextMenuItem<Namespace>[] => [
+      {
+        key: 'view-yaml',
+        label: t('common.viewYaml', 'View YAML'),
+        icon: <FileCode2 className="h-4 w-4" />,
+        onSelect: () => navigate(`/namespaces/${namespace.metadata?.name}?tab=yaml`),
+      },
+      { type: 'separator', key: 'primary-actions-separator' },
+      {
+        key: 'copy-name',
+        label: t('common.copyName', 'Copy name'),
+        icon: <Copy className="h-4 w-4" />,
+        onSelect: () => handleCopy(namespace.metadata?.name || ''),
+      },
+      { type: 'separator', key: 'metadata-actions-separator' },
+      {
+        key: 'manage-labels',
+        label: t('namespaceList.manageLabels'),
+        icon: <Tags className="h-4 w-4" />,
+        onSelect: () => setLabelsNamespace(namespace),
+      },
+      {
+        key: 'manage-annotations',
+        label: t('namespaceList.manageAnnotations'),
+        icon: <FileText className="h-4 w-4" />,
+        onSelect: () => setAnnotationsNamespace(namespace),
+      },
+      { type: 'separator', key: 'namespace-operations-separator' },
+      {
+        key: 'edit-namespace',
+        label: t('namespaceList.editQuota', '配额编辑'),
+        icon: <Edit3 className="h-4 w-4" />,
+        onSelect: () => setEditingNamespace(namespace),
+      },
+    ],
+    [handleCopy, navigate, t]
+  )
+
   const editingNamespaceQuotas = editingNamespace
     ? getResourceQuotasForNamespace(editingNamespace, resourceQuotas)
     : []
@@ -198,6 +239,7 @@ export function NamespaceListPage() {
         searchQueryFilter={filter}
         showCreateButton={true}
         onCreateClick={() => setIsCreateDialogOpen(true)}
+        getRowContextMenuItems={getRowContextMenuItems}
       />
 
       <NamespaceCreateDialog
