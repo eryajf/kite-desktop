@@ -101,17 +101,26 @@ func TestGetLocalDesktopUser(t *testing.T) {
 	}
 }
 
-func TestUpdateUserSidebarPreference_LocalDesktopUser(t *testing.T) {
+func assertLocalDesktopUserPreferenceLifecycle(
+	t *testing.T,
+	preferenceName string,
+	createValue string,
+	updateValue string,
+	updateFn func(*User, string) error,
+	preferenceValue func(*User) string,
+) {
+	t.Helper()
+
 	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
 		t.Fatalf("cleanup local desktop user failed: %v", err)
 	}
 
 	user := GetLocalDesktopUser()
-	if err := UpdateUserSidebarPreference(&user, `{"groups":[]}`); err != nil {
-		t.Fatalf("UpdateUserSidebarPreference() create path error = %v", err)
+	if err := updateFn(&user, createValue); err != nil {
+		t.Fatalf("initial %s update failed: %v", preferenceName, err)
 	}
 	if user.ID == 0 {
-		t.Fatal("UpdateUserSidebarPreference() did not hydrate local user ID")
+		t.Fatalf("initial %s update did not hydrate local user ID", preferenceName)
 	}
 
 	reloaded, err := GetUserByUsername(LocalDesktopUser.Username)
@@ -121,60 +130,48 @@ func TestUpdateUserSidebarPreference_LocalDesktopUser(t *testing.T) {
 	if reloaded.Provider != LocalDesktopUser.Provider {
 		t.Fatalf("Provider = %q, want %q", reloaded.Provider, LocalDesktopUser.Provider)
 	}
-	if reloaded.SidebarPreference != `{"groups":[]}` {
-		t.Fatalf("SidebarPreference = %q, want %q", reloaded.SidebarPreference, `{"groups":[]}`)
+	if got := preferenceValue(reloaded); got != createValue {
+		t.Fatalf("%s = %q, want %q", preferenceName, got, createValue)
 	}
 
 	user = GetLocalDesktopUser()
-	if err := UpdateUserSidebarPreference(&user, `{"hiddenItems":["deployments"]}`); err != nil {
-		t.Fatalf("UpdateUserSidebarPreference() update path error = %v", err)
+	if err := updateFn(&user, updateValue); err != nil {
+		t.Fatalf("second %s update failed: %v", preferenceName, err)
 	}
 
 	reloaded, err = GetUserByUsername(LocalDesktopUser.Username)
 	if err != nil {
 		t.Fatalf("GetUserByUsername() second reload error = %v", err)
 	}
-	if reloaded.SidebarPreference != `{"hiddenItems":["deployments"]}` {
-		t.Fatalf("SidebarPreference after update = %q, want %q", reloaded.SidebarPreference, `{"hiddenItems":["deployments"]}`)
+	if got := preferenceValue(reloaded); got != updateValue {
+		t.Fatalf("%s after update = %q, want %q", preferenceName, got, updateValue)
 	}
 }
 
+func TestUpdateUserSidebarPreference_LocalDesktopUser(t *testing.T) {
+	assertLocalDesktopUserPreferenceLifecycle(
+		t,
+		"SidebarPreference",
+		`{"groups":[]}`,
+		`{"hiddenItems":["deployments"]}`,
+		UpdateUserSidebarPreference,
+		func(user *User) string {
+			return user.SidebarPreference
+		},
+	)
+}
+
 func TestUpdateUserAppearancePreference_LocalDesktopUser(t *testing.T) {
-	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
-		t.Fatalf("cleanup local desktop user failed: %v", err)
-	}
-
-	user := GetLocalDesktopUser()
-	if err := UpdateUserAppearancePreference(&user, `{"theme":"dark"}`); err != nil {
-		t.Fatalf("UpdateUserAppearancePreference() create path error = %v", err)
-	}
-	if user.ID == 0 {
-		t.Fatal("UpdateUserAppearancePreference() did not hydrate local user ID")
-	}
-
-	reloaded, err := GetUserByUsername(LocalDesktopUser.Username)
-	if err != nil {
-		t.Fatalf("GetUserByUsername() error = %v", err)
-	}
-	if reloaded.Provider != LocalDesktopUser.Provider {
-		t.Fatalf("Provider = %q, want %q", reloaded.Provider, LocalDesktopUser.Provider)
-	}
-	if reloaded.AppearancePreference != `{"theme":"dark"}` {
-		t.Fatalf("AppearancePreference = %q, want %q", reloaded.AppearancePreference, `{"theme":"dark"}`)
-	}
-
-	user = GetLocalDesktopUser()
-	if err := UpdateUserAppearancePreference(&user, `{"theme":"light","font":"system"}`); err != nil {
-		t.Fatalf("UpdateUserAppearancePreference() update path error = %v", err)
-	}
-
-	reloaded, err = GetUserByUsername(LocalDesktopUser.Username)
-	if err != nil {
-		t.Fatalf("GetUserByUsername() second reload error = %v", err)
-	}
-	if reloaded.AppearancePreference != `{"theme":"light","font":"system"}` {
-		t.Fatalf("AppearancePreference after update = %q, want %q", reloaded.AppearancePreference, `{"theme":"light","font":"system"}`)
-	}
+	assertLocalDesktopUserPreferenceLifecycle(
+		t,
+		"AppearancePreference",
+		`{"theme":"dark"}`,
+		`{"theme":"light","font":"system"}`,
+		UpdateUserAppearancePreference,
+		func(user *User) string {
+			return user.AppearancePreference
+		},
+	)
 }
 
 func TestSaveDesktopPreferences_LocalDesktopUser(t *testing.T) {
