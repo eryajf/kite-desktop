@@ -10,6 +10,7 @@ import { NodeListPage } from './node-list-page'
 const mockResourceTable = vi.fn()
 const mockNavigate = vi.fn()
 const mockCopyTextToClipboard = vi.fn()
+const mockMetricCell = vi.fn()
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -56,6 +57,13 @@ vi.mock('@/components/resource-table', () => ({
   },
 }))
 
+vi.mock('@/components/metrics-cell', () => ({
+  MetricCell: (props: unknown) => {
+    mockMetricCell(props)
+    return null
+  },
+}))
+
 vi.mock('@/lib/desktop', () => ({
   copyTextToClipboard: (value: string) => mockCopyTextToClipboard(value),
 }))
@@ -68,6 +76,13 @@ vi.mock('sonner', () => ({
 }))
 
 describe('NodeListPage', () => {
+  beforeEach(() => {
+    mockResourceTable.mockClear()
+    mockNavigate.mockClear()
+    mockCopyTextToClipboard.mockClear()
+    mockMetricCell.mockClear()
+  })
+
   it('keeps status and roles columns mapped to the correct headers and values', () => {
     render(<NodeListPage />)
 
@@ -120,6 +135,61 @@ describe('NodeListPage', () => {
 
     expect(screen.getByText('detail.fields.ready')).toBeInTheDocument()
     expect(screen.getByText('control-plane')).toBeInTheDocument()
+  })
+
+  it('renders cpu and memory metrics with the compact stacked layout', () => {
+    render(<NodeListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      columns: ReturnType<typeof createColumnHelper<NodeWithMetrics>>[]
+    }
+
+    const sampleNode = {
+      metadata: {
+        name: 'orbstack',
+      },
+      spec: {},
+      status: {},
+      metrics: {
+        cpuUsage: 2378,
+        cpuLimit: 31850,
+        memoryUsage: 50261951275,
+        memoryLimit: 62331219968,
+      },
+    } as NodeWithMetrics
+
+    const row = { original: sampleNode }
+
+    render(
+      <div>
+        {flexRender(resourceTableProps.columns[4].cell!, { row })}
+        {flexRender(resourceTableProps.columns[5].cell!, { row })}
+      </div>
+    )
+
+    expect(mockMetricCell).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        metrics: sampleNode.metrics,
+        type: 'cpu',
+        limitLabel: 'detail.fields.allocatable',
+        showPercentage: true,
+        layout: 'stacked',
+        cpuUnit: 'cores',
+      })
+    )
+
+    expect(mockMetricCell).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        metrics: sampleNode.metrics,
+        type: 'memory',
+        limitLabel: 'detail.fields.allocatable',
+        showPercentage: true,
+        layout: 'stacked',
+        compactValue: true,
+      })
+    )
   })
 
   it('keeps the shared node row action model intact', async () => {

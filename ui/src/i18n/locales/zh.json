@@ -1551,6 +1551,7 @@
     "sections": {
       "statusOverview": "状态概览",
       "nodeInformation": "节点信息",
+      "resourceUtilization": "资源利用概览",
       "resourceCapacity": "资源容量",
       "nodeTaints": "节点污点",
       "nodeConditions": "节点条件",
@@ -1568,6 +1569,15 @@
       "containers": "容器",
       "conditions": "条件",
       "activeJobs": "活跃任务"
+    },
+    "sectionDescriptions": {
+      "resourceUtilization": "展示节点当前的资源利用概览，包括 Pod 数量，以及 CPU、内存相对于可分配资源的占用情况，用于快速判断节点当前负载。",
+      "resourceCapacity": "展示节点在 Kubernetes 中上报的资源容量。容量表示节点总量，可分配表示扣除系统与保留资源后，可供工作负载调度和使用的部分。"
+    },
+    "metricSummary": {
+      "podsUsageSummary": "已调度 / 可分配",
+      "cpuUsageSummary": "已使用 / 可分配",
+      "memoryUsageSummary": "已使用 / 可分配"
     },
     "fields": {
       "created": "创建时间",
@@ -1964,7 +1974,8 @@
   },
   "metric": {
     "usage": "使用量",
-    "request": "请求"
+    "request": "请求",
+    "coreUnit": "核"
   },
   "searchButton": {
     "placeholder": "搜索资源..."

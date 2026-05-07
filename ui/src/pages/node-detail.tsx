@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   IconBan,
   IconCircleCheckFilled,
@@ -7,12 +7,13 @@ import {
   IconLock,
   IconReload,
 } from '@tabler/icons-react'
-import { Droplets } from 'lucide-react'
+import { CircleHelp, Droplets } from 'lucide-react'
 import * as yaml from 'js-yaml'
 import { Node } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { NodeWithMetrics } from '@/types/api'
 import { trackResourceAction } from '@/lib/analytics'
 import {
   cordonNode,
@@ -49,16 +50,89 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LabelsAnno } from '@/components/lables-anno'
+import { MetricCell } from '@/components/metrics-cell'
 import { NodeImageTable } from '@/components/node-image-table'
 import { NodeMonitoring } from '@/components/node-monitoring'
 import { PodTable } from '@/components/pod-table'
 import { RefreshButton } from '@/components/refresh-button'
 import { Terminal } from '@/components/terminal'
 import { YamlEditor } from '@/components/yaml-editor'
+
+function NodePodsUsageSummary({
+  metrics,
+  summaryLabel,
+}: {
+  metrics?: NodeWithMetrics['metrics']
+  summaryLabel: string
+}) {
+  const podsUsed = metrics?.pods || 0
+  const podsLimit = metrics?.podsLimit || 0
+  const percentage =
+    podsLimit > 0 ? Math.min((podsUsed / podsLimit) * 100, 100) : 0
+  const progressClassName =
+    percentage >= 85
+      ? 'bg-gradient-to-r from-orange-500 via-red-500 to-rose-500'
+      : percentage >= 60
+        ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-orange-500'
+        : 'bg-gradient-to-r from-sky-500 via-cyan-500 to-emerald-500'
+
+  return (
+    <div className="flex min-w-[160px] max-w-[190px] flex-col gap-1.5 text-xs text-foreground">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-left font-medium tabular-nums">
+          {podsUsed} / {podsLimit}
+        </span>
+        <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+          {Math.round(percentage)}%
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/80 ring-1 ring-border/50">
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${progressClassName}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <p className="text-[11px] text-muted-foreground">{summaryLabel}</p>
+    </div>
+  )
+}
+
+function SectionTitleWithInfo({
+  title,
+  description,
+}: {
+  title: string
+  description: string
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span>{title}</span>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+            aria-label={description}
+          >
+            <CircleHelp className="h-3.5 w-3.5" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent sideOffset={6} className="max-w-72 leading-5">
+          {description}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+}
 
 export function NodeDetail(props: { name: string }) {
   const { name } = props
@@ -111,6 +185,16 @@ export function NodeDetail(props: { name: string }) {
   } = useResources('pods', undefined, {
     fieldSelector: `spec.nodeName=${name}`,
   })
+
+  const { data: nodesWithMetrics, refetch: refetchNodesWithMetrics } =
+    useResources('nodes', undefined, {
+      staleTime: 1000,
+    })
+
+  const nodeMetrics = useMemo(
+    () => nodesWithMetrics?.find((node) => node.metadata?.name === name)?.metrics,
+    [name, nodesWithMetrics]
+  )
 
   const handleSaveYaml = async (content: Node) => {
     setIsSavingYaml(true)
@@ -257,6 +341,7 @@ export function NodeDetail(props: { name: string }) {
     setRefreshKey((prev) => prev + 1)
     await handleRefresh()
     await refetchRelated()
+    await refetchNodesWithMetrics()
   }
 
   if (isLoading) {
@@ -724,14 +809,79 @@ export function NodeDetail(props: { name: string }) {
                       labels={data.metadata?.labels || {}}
                       annotations={data.metadata?.annotations || {}}
                     />
+                </CardContent>
+              </Card>
+
+              {nodeMetrics ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      <SectionTitleWithInfo
+                        title={t('detail.sections.resourceUtilization')}
+                        description={t(
+                          'detail.sectionDescriptions.resourceUtilization'
+                        )}
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                      <div className="rounded-lg border p-4">
+                        <p className="mb-3 text-sm font-medium">
+                          {t('detail.fields.pods')}
+                        </p>
+                        <NodePodsUsageSummary
+                          metrics={nodeMetrics}
+                          summaryLabel={t(
+                            'detail.metricSummary.podsUsageSummary'
+                          )}
+                        />
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <p className="mb-3 text-sm font-medium">CPU</p>
+                        <MetricCell
+                          metrics={nodeMetrics}
+                          type="cpu"
+                          limitLabel={t('detail.fields.allocatable')}
+                          showPercentage={true}
+                          layout="stacked"
+                          cpuUnit="cores"
+                        />
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {t('detail.metricSummary.cpuUsageSummary')}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border p-4">
+                        <p className="mb-3 text-sm font-medium">
+                          {t('detail.fields.memory')}
+                        </p>
+                        <MetricCell
+                          metrics={nodeMetrics}
+                          type="memory"
+                          limitLabel={t('detail.fields.allocatable')}
+                          showPercentage={true}
+                          layout="stacked"
+                          compactValue={true}
+                        />
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          {t('detail.metricSummary.memoryUsageSummary')}
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
+              ) : null}
 
                 {/* Resource Capacity & Allocation */}
                 <Card>
                   <CardHeader>
                     <CardTitle>
-                      {t('detail.sections.resourceCapacity')}
+                      <SectionTitleWithInfo
+                        title={t('detail.sections.resourceCapacity')}
+                        description={t(
+                          'detail.sectionDescriptions.resourceCapacity'
+                        )}
+                      />
                     </CardTitle>
                   </CardHeader>
                   <CardContent>

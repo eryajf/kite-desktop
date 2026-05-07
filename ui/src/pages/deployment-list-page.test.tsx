@@ -251,6 +251,13 @@ describe('DeploymentListPage', () => {
       </div>
     )
 
+    expect(
+      screen.getByRole('button', { name: 'deploymentList.manageLabels' })
+    ).toHaveTextContent('3')
+    expect(
+      screen.getByRole('button', { name: 'deploymentList.manageAnnotations' })
+    ).toHaveTextContent('3')
+
     fireEvent.click(
       screen.getByRole('button', { name: 'deploymentList.manageLabels' })
     )

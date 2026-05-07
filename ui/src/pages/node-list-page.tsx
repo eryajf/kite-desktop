@@ -52,20 +52,22 @@ function NodePodsUsageCell({ node }: { node: NodeWithMetrics }) {
   return (
     <Link
       to={`/nodes/${node.metadata!.name}?tab=pods`}
-      className="group mx-auto flex min-w-[180px] max-w-[220px] items-center gap-2 text-sm text-foreground transition-colors hover:text-primary"
+      className="group mx-auto flex min-w-[160px] max-w-[190px] flex-col gap-1.5 text-xs text-foreground transition-colors hover:text-primary"
     >
-      <span className="w-[58px] shrink-0 text-right font-medium tabular-nums">
-        {podsUsed}/{podsLimit}
-      </span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted/80 ring-1 ring-border/50">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="min-w-0 truncate text-left font-medium tabular-nums">
+          {podsUsed} / {podsLimit}
+        </span>
+        <span className="shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+          {Math.round(percentage)}%
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted/80 ring-1 ring-border/50">
         <div
           className={`h-full rounded-full transition-all duration-300 group-hover:brightness-110 ${progressClassName}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <span className="w-[38px] shrink-0 text-left font-medium tabular-nums">
-        {Math.round(percentage)}%
-      </span>
     </Link>
   )
 }
@@ -298,8 +300,10 @@ export function NodeListPage() {
           <MetricCell
             metrics={row.original.metrics}
             type="cpu"
-            limitLabel="Allocatable"
+            limitLabel={t('detail.fields.allocatable', '可分配')}
             showPercentage={true}
+            layout="stacked"
+            cpuUnit="cores"
           />
         ),
       }),
@@ -313,8 +317,10 @@ export function NodeListPage() {
           <MetricCell
             metrics={row.original.metrics}
             type="memory"
-            limitLabel="Allocatable"
+            limitLabel={t('detail.fields.allocatable', '可分配')}
             showPercentage={true}
+            layout="stacked"
+            compactValue={true}
           />
         ),
       }),

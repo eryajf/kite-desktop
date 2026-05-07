@@ -88,6 +88,7 @@ export function NamespaceListPage() {
           <MetadataActionButton
             icon="labels"
             ariaLabel={t('namespaceList.manageLabels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
             tooltipContent={renderMetadataTooltipContent(
               row.original.metadata?.labels
             )}
@@ -103,6 +104,7 @@ export function NamespaceListPage() {
           <MetadataActionButton
             icon="annotations"
             ariaLabel={t('namespaceList.manageAnnotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
             tooltipContent={renderMetadataTooltipContent(
               row.original.metadata?.annotations
             )}

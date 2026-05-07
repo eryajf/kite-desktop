@@ -9,23 +9,28 @@ export function MetadataActionButton(props: {
   onClick: () => void
   ariaLabel: string
   tooltipContent?: ReactNode
+  count?: number
 }) {
-  const { ariaLabel, icon, onClick, tooltipContent } = props
+  const { ariaLabel, count = 0, icon, onClick, tooltipContent } = props
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
+          size="sm"
           aria-label={ariaLabel}
           onClick={onClick}
+          className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
         >
           {icon === 'labels' ? (
             <Tags className="h-4 w-4" />
           ) : (
             <FileText className="h-4 w-4" />
           )}
+          <span className="min-w-[1ch] text-xs font-medium tabular-nums">
+            {count}
+          </span>
         </Button>
       </TooltipTrigger>
       <TooltipContent>{tooltipContent || ariaLabel}</TooltipContent>

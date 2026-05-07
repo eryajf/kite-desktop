@@ -152,6 +152,7 @@ export function DeploymentListPage() {
           <MetadataActionButton
             icon="labels"
             ariaLabel={t('deploymentList.manageLabels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
             tooltipContent={renderMetadataTooltipContent(
               row.original.metadata?.labels
             )}
@@ -167,6 +168,7 @@ export function DeploymentListPage() {
           <MetadataActionButton
             icon="annotations"
             ariaLabel={t('deploymentList.manageAnnotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
             tooltipContent={renderMetadataTooltipContent(
               row.original.metadata?.annotations
             )}

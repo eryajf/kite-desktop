@@ -208,6 +208,13 @@ describe('NamespaceListPage', () => {
       </div>
     )
 
+    expect(
+      screen.getByRole('button', { name: 'namespaceList.manageLabels' })
+    ).toHaveTextContent('3')
+    expect(
+      screen.getByRole('button', { name: 'namespaceList.manageAnnotations' })
+    ).toHaveTextContent('3')
+
     fireEvent.click(
       screen.getByRole('button', { name: 'namespaceList.manageLabels' })
     )

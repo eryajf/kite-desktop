@@ -1072,6 +1072,7 @@
     "sections": {
       "statusOverview": "Status Overview",
       "nodeInformation": "Node Information",
+      "resourceUtilization": "Resource Utilization Overview",
       "resourceCapacity": "Resource Capacity",
       "nodeTaints": "Node Taints",
       "nodeConditions": "Node Conditions",
@@ -1089,6 +1090,15 @@
       "containers": "Containers",
       "conditions": "Conditions",
       "activeJobs": "Active Jobs"
+    },
+    "sectionDescriptions": {
+      "resourceUtilization": "Shows the node's current utilization overview, including pod count and how CPU and memory usage compare with allocatable resources for a quick load snapshot.",
+      "resourceCapacity": "Shows the resource capacity reported by Kubernetes for this node. Capacity is the total amount, while allocatable is the portion available for workload scheduling after system and reserved resources are accounted for."
+    },
+    "metricSummary": {
+      "podsUsageSummary": "Scheduled / Allocatable",
+      "cpuUsageSummary": "Used / Allocatable",
+      "memoryUsageSummary": "Used / Allocatable"
     },
     "fields": {
       "created": "Created",
@@ -1672,7 +1682,8 @@
   },
   "metric": {
     "usage": "Usage",
-    "request": "Request"
+    "request": "Request",
+    "coreUnit": "cores"
   },
   "searchButton": {
     "placeholder": "Search resources..."
