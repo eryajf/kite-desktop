@@ -315,19 +315,19 @@ func UpdateUser(user *User) error {
 	return err
 }
 
-func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
+func updateUserPreference(user *User, column string, value string, applyPreference func(*User, string)) error {
 	if user == nil {
 		return errors.New("user is nil")
 	}
 
-	sidebarPreference = strings.TrimSpace(sidebarPreference)
+	value = strings.TrimSpace(value)
 
 	if user.ID > 0 {
 		err := DB.Model(&User{}).
 			Where("id = ?", user.ID).
-			Update("sidebar_preference", sidebarPreference).Error
+			Update(column, value).Error
 		if err == nil {
-			user.SidebarPreference = sidebarPreference
+			applyPreference(user, value)
 			InvalidateUserCache(uint64(user.ID))
 		}
 		return err
@@ -349,12 +349,12 @@ func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
 		}
 
 		toCreate := &User{
-			Username:          user.Username,
-			Name:              user.Name,
-			Provider:          user.Provider,
-			Enabled:           user.Enabled,
-			SidebarPreference: sidebarPreference,
+			Username: user.Username,
+			Name:     user.Name,
+			Provider: user.Provider,
+			Enabled:  user.Enabled,
 		}
+		applyPreference(toCreate, value)
 		if strings.TrimSpace(toCreate.Name) == "" {
 			toCreate.Name = toCreate.Username
 		}
@@ -364,89 +364,34 @@ func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
 		user.ID = toCreate.ID
 		user.CreatedAt = toCreate.CreatedAt
 		user.UpdatedAt = toCreate.UpdatedAt
-		user.SidebarPreference = sidebarPreference
+		applyPreference(user, value)
 		InvalidateUserCache(uint64(toCreate.ID))
 		return nil
 	}
 
 	err := DB.Model(&User{}).
 		Where("id = ?", existing.ID).
-		Update("sidebar_preference", sidebarPreference).Error
+		Update(column, value).Error
 	if err == nil {
 		user.ID = existing.ID
 		user.CreatedAt = existing.CreatedAt
 		user.UpdatedAt = existing.UpdatedAt
-		user.SidebarPreference = sidebarPreference
+		applyPreference(user, value)
 		InvalidateUserCache(uint64(existing.ID))
 	}
 	return err
 }
 
+func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
+	return updateUserPreference(user, "sidebar_preference", sidebarPreference, func(user *User, value string) {
+		user.SidebarPreference = value
+	})
+}
+
 func UpdateUserAppearancePreference(user *User, appearancePreference string) error {
-	if user == nil {
-		return errors.New("user is nil")
-	}
-
-	appearancePreference = strings.TrimSpace(appearancePreference)
-
-	if user.ID > 0 {
-		err := DB.Model(&User{}).
-			Where("id = ?", user.ID).
-			Update("appearance_preference", appearancePreference).Error
-		if err == nil {
-			user.AppearancePreference = appearancePreference
-			InvalidateUserCache(uint64(user.ID))
-		}
-		return err
-	}
-
-	if strings.TrimSpace(user.Username) == "" {
-		return errors.New("user username is empty")
-	}
-
-	query := DB.Where("username = ?", user.Username)
-	if strings.TrimSpace(user.Provider) != "" {
-		query = query.Where("provider = ?", user.Provider)
-	}
-
-	var existing User
-	if err := query.First(&existing).Error; err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-
-		toCreate := &User{
-			Username:             user.Username,
-			Name:                 user.Name,
-			Provider:             user.Provider,
-			Enabled:              user.Enabled,
-			AppearancePreference: appearancePreference,
-		}
-		if strings.TrimSpace(toCreate.Name) == "" {
-			toCreate.Name = toCreate.Username
-		}
-		if err := DB.Create(toCreate).Error; err != nil {
-			return err
-		}
-		user.ID = toCreate.ID
-		user.CreatedAt = toCreate.CreatedAt
-		user.UpdatedAt = toCreate.UpdatedAt
-		user.AppearancePreference = appearancePreference
-		InvalidateUserCache(uint64(toCreate.ID))
-		return nil
-	}
-
-	err := DB.Model(&User{}).
-		Where("id = ?", existing.ID).
-		Update("appearance_preference", appearancePreference).Error
-	if err == nil {
-		user.ID = existing.ID
-		user.CreatedAt = existing.CreatedAt
-		user.UpdatedAt = existing.UpdatedAt
-		user.AppearancePreference = appearancePreference
-		InvalidateUserCache(uint64(existing.ID))
-	}
-	return err
+	return updateUserPreference(user, "appearance_preference", appearancePreference, func(user *User, value string) {
+		user.AppearancePreference = value
+	})
 }
 
 // ResetPasswordByID sets a new password (hashed) for user with given id
