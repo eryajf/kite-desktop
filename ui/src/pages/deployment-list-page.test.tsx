@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Deployment } from 'kubernetes-types/apps/v1'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
+
 import { DeploymentListPage } from './deployment-list-page'
 
 const mockNavigate = vi.fn()
@@ -269,7 +271,9 @@ describe('DeploymentListPage', () => {
     expect(renderedRow.container).toHaveTextContent('CPU: 750m')
     expect(renderedRow.container).toHaveTextContent('Memory: 384Mi')
     expect(renderedRow.container).toHaveTextContent(
-      '2026-05-04 16:00:00 (1 days ago)'
+      `${formatDate(deployment.metadata!.creationTimestamp!)} (${formatRelativeTimeStrict(
+        deployment.metadata!.creationTimestamp!
+      )})`
     )
   })
 
