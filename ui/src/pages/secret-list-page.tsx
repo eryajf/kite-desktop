@@ -1,15 +1,25 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Secret } from 'kubernetes-types/core/v1'
+import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
+import { copyTextToClipboard } from '@/lib/desktop'
 import { formatDate } from '@/lib/utils'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
+import { RowContextMenuItem } from '@/components/row-context-menu'
 
 export function SecretListPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [labelsSecret, setLabelsSecret] = useState<Secret | null>(null)
+  const [annotationsSecret, setAnnotationsSecret] = useState<Secret | null>(
+    null
+  )
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<Secret>()
 
@@ -82,15 +92,92 @@ export function SecretListPage() {
     )
   }, [])
 
+  const getSecretDetailPath = useCallback((secret: Secret) => {
+    return `/secrets/${secret.metadata!.namespace}/${secret.metadata!.name}`
+  }, [])
+
+  const handleCopy = useCallback(
+    async (value: string) => {
+      await copyTextToClipboard(value)
+      toast.success(t('keyValueDataViewer.copiedToClipboard'))
+    },
+    [t]
+  )
+
+  const getRowContextMenuItems = useCallback(
+    (secret: Secret): RowContextMenuItem<Secret>[] => [
+      {
+        key: 'view-yaml',
+        label: t('common.viewYaml', 'View YAML'),
+        icon: <FileCode2 className="h-4 w-4" />,
+        onSelect: () => navigate(`${getSecretDetailPath(secret)}?tab=yaml`),
+      },
+      { type: 'separator', key: 'primary-actions-separator' },
+      {
+        key: 'copy-name',
+        label: t('common.copyName', 'Copy name'),
+        icon: <Copy className="h-4 w-4" />,
+        onSelect: () => handleCopy(secret.metadata?.name || ''),
+      },
+      {
+        key: 'copy-namespace',
+        label: t('common.copyNamespace', 'Copy namespace'),
+        icon: <Copy className="h-4 w-4" />,
+        onSelect: () => handleCopy(secret.metadata?.namespace || ''),
+      },
+      { type: 'separator', key: 'metadata-actions-separator' },
+      {
+        key: 'manage-labels',
+        label: t('common.manageLabels', 'Manage labels'),
+        icon: <Tags className="h-4 w-4" />,
+        onSelect: () => setLabelsSecret(secret),
+      },
+      {
+        key: 'manage-annotations',
+        label: t('common.manageAnnotations', 'Manage annotations'),
+        icon: <FileText className="h-4 w-4" />,
+        onSelect: () => setAnnotationsSecret(secret),
+      },
+    ],
+    [getSecretDetailPath, handleCopy, navigate, t]
+  )
+
   return (
-    <ResourceTable
-      resourceName="Secrets"
-      columns={columns}
-      clusterScope={false} // Secrets are namespace-scoped
-      searchQueryFilter={secretSearchFilter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-    />
+    <>
+      <ResourceTable
+        resourceName="Secrets"
+        columns={columns}
+        clusterScope={false} // Secrets are namespace-scoped
+        searchQueryFilter={secretSearchFilter}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
+        getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(labelsSecret)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLabelsSecret(null)
+          }
+        }}
+        resourceType="secrets"
+        resource={labelsSecret}
+        type="labels"
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(annotationsSecret)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAnnotationsSecret(null)
+          }
+        }}
+        resourceType="secrets"
+        resource={annotationsSecret}
+        type="annotations"
+      />
+    </>
   )
 }

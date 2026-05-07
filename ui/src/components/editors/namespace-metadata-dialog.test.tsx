@@ -126,4 +126,30 @@ describe('NamespaceMetadataDialog', () => {
     expect(footer).toHaveClass('border-t')
     expect(footer).toHaveClass('shrink-0')
   })
+
+  it('uses a more compact dialog height when there are only a few items', () => {
+    const namespace = {
+      metadata: {
+        name: 'team-a',
+        labels: {
+          env: 'prod',
+          owner: 'platform',
+        },
+      },
+    } as Namespace
+
+    render(
+      <NamespaceMetadataDialog
+        open={true}
+        onOpenChange={() => undefined}
+        namespace={namespace}
+        type="labels"
+      />
+    )
+
+    const dialogContent = document.querySelector('[data-slot="dialog-content"]')
+    expect(dialogContent).not.toHaveClass('h-[85vh]')
+    expect(dialogContent).toHaveClass('max-h-[65vh]')
+    expect(dialogContent).toHaveClass('overflow-hidden')
+  })
 })

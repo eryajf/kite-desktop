@@ -1,14 +1,23 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { ConfigMap } from 'kubernetes-types/core/v1'
+import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
+import { copyTextToClipboard } from '@/lib/desktop'
 import { formatDate } from '@/lib/utils'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import { ResourceTable } from '@/components/resource-table'
+import { RowContextMenuItem } from '@/components/row-context-menu'
 
 export function ConfigMapListPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const [labelsConfigMap, setLabelsConfigMap] = useState<ConfigMap | null>(null)
+  const [annotationsConfigMap, setAnnotationsConfigMap] =
+    useState<ConfigMap | null>(null)
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<ConfigMap>()
 
@@ -77,14 +86,92 @@ export function ConfigMapListPage() {
     []
   )
 
+  const getConfigMapDetailPath = useCallback((configMap: ConfigMap) => {
+    return `/configmaps/${configMap.metadata!.namespace}/${configMap.metadata!.name}`
+  }, [])
+
+  const handleCopy = useCallback(
+    async (value: string) => {
+      await copyTextToClipboard(value)
+      toast.success(t('keyValueDataViewer.copiedToClipboard'))
+    },
+    [t]
+  )
+
+  const getRowContextMenuItems = useCallback(
+    (configMap: ConfigMap): RowContextMenuItem<ConfigMap>[] => [
+      {
+        key: 'view-yaml',
+        label: t('common.viewYaml', 'View YAML'),
+        icon: <FileCode2 className="h-4 w-4" />,
+        onSelect: () =>
+          navigate(`${getConfigMapDetailPath(configMap)}?tab=yaml`),
+      },
+      { type: 'separator', key: 'primary-actions-separator' },
+      {
+        key: 'copy-name',
+        label: t('common.copyName', 'Copy name'),
+        icon: <Copy className="h-4 w-4" />,
+        onSelect: () => handleCopy(configMap.metadata?.name || ''),
+      },
+      {
+        key: 'copy-namespace',
+        label: t('common.copyNamespace', 'Copy namespace'),
+        icon: <Copy className="h-4 w-4" />,
+        onSelect: () => handleCopy(configMap.metadata?.namespace || ''),
+      },
+      { type: 'separator', key: 'metadata-actions-separator' },
+      {
+        key: 'manage-labels',
+        label: t('common.manageLabels', 'Manage labels'),
+        icon: <Tags className="h-4 w-4" />,
+        onSelect: () => setLabelsConfigMap(configMap),
+      },
+      {
+        key: 'manage-annotations',
+        label: t('common.manageAnnotations', 'Manage annotations'),
+        icon: <FileText className="h-4 w-4" />,
+        onSelect: () => setAnnotationsConfigMap(configMap),
+      },
+    ],
+    [getConfigMapDetailPath, handleCopy, navigate, t]
+  )
+
   return (
-    <ResourceTable
-      resourceName="ConfigMaps"
-      columns={columns}
-      searchQueryFilter={configMapSearchFilter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-    />
+    <>
+      <ResourceTable
+        resourceName="ConfigMaps"
+        columns={columns}
+        searchQueryFilter={configMapSearchFilter}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
+        getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(labelsConfigMap)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLabelsConfigMap(null)
+          }
+        }}
+        resourceType="configmaps"
+        resource={labelsConfigMap}
+        type="labels"
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(annotationsConfigMap)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAnnotationsConfigMap(null)
+          }
+        }}
+        resourceType="configmaps"
+        resource={annotationsConfigMap}
+        type="annotations"
+      />
+    </>
   )
 }
