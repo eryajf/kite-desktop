@@ -29,6 +29,10 @@ import {
   parseAnsi,
 } from '@/lib/ansi-parser'
 import { useLogsWebSocket } from '@/lib/api'
+import {
+  loadViewerPreference,
+  updateViewerPreference,
+} from '@/lib/desktop-preferences'
 import { saveTextFile } from '@/lib/desktop'
 import { toSimpleContainer } from '@/lib/k8s'
 import { MonacoEditor } from '@/lib/monaco-loader'
@@ -148,6 +152,8 @@ export function LogViewer({
     )
   }, [pods])
   const currentTheme = TERMINAL_THEMES[logTheme]
+  const viewerPreferenceReadyRef = useRef(false)
+  const lastPersistedViewerPreferenceRef = useRef<string | null>(null)
 
   const [selectPodName, setSelectPodName] = useState<string | undefined>(
     podName || pods?.[0]?.metadata?.name || undefined
@@ -156,6 +162,57 @@ export function LogViewer({
   useEffect(() => {
     normalizedFilterTermRef.current = filterTerm.toLocaleLowerCase()
   }, [filterTerm])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPreference = async () => {
+      try {
+        const preference = await loadViewerPreference()
+        if (cancelled) {
+          return
+        }
+
+        setLogTheme(preference.logViewer.theme as TerminalTheme)
+        setTailLines(preference.logViewer.tailLines)
+        setWordWrap(preference.logViewer.wordWrap)
+        setShowLineNumbers(preference.logViewer.showLineNumbers)
+        setFontSize(preference.logViewer.fontSize)
+        localStorage.setItem('log-viewer-theme', preference.logViewer.theme)
+        localStorage.setItem(
+          'log-viewer-tail-lines',
+          preference.logViewer.tailLines.toString()
+        )
+        localStorage.setItem(
+          'log-viewer-word-wrap',
+          String(preference.logViewer.wordWrap)
+        )
+        localStorage.setItem(
+          'log-viewer-show-line-numbers',
+          String(preference.logViewer.showLineNumbers)
+        )
+        localStorage.setItem(
+          'log-viewer-font-size',
+          preference.logViewer.fontSize.toString()
+        )
+        lastPersistedViewerPreferenceRef.current = JSON.stringify(
+          preference.logViewer
+        )
+      } catch (error) {
+        console.error('Failed to load viewer preference from storage:', error)
+      } finally {
+        if (!cancelled) {
+          viewerPreferenceReadyRef.current = true
+        }
+      }
+    }
+
+    void loadPreference()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (podName) {
@@ -200,6 +257,37 @@ export function LogViewer({
       localStorage.setItem('log-viewer-tail-lines', lines.toString())
     }
   }, [])
+
+  useEffect(() => {
+    if (!viewerPreferenceReadyRef.current) {
+      return
+    }
+
+    const serialized = JSON.stringify({
+      theme: logTheme,
+      tailLines,
+      wordWrap,
+      showLineNumbers,
+      fontSize,
+    })
+    if (serialized === lastPersistedViewerPreferenceRef.current) {
+      return
+    }
+
+    lastPersistedViewerPreferenceRef.current = serialized
+    void updateViewerPreference((preference) => ({
+      ...preference,
+      logViewer: {
+        theme: logTheme,
+        tailLines,
+        wordWrap,
+        showLineNumbers,
+        fontSize,
+      },
+    })).catch((error) => {
+      console.error('Failed to save viewer preference to storage:', error)
+    })
+  }, [fontSize, logTheme, showLineNumbers, tailLines, wordWrap])
 
   // Quick theme cycling function
   const cycleTheme = useCallback(() => {

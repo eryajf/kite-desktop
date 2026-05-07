@@ -138,3 +138,138 @@ func TestUpdateUserSidebarPreference_LocalDesktopUser(t *testing.T) {
 		t.Fatalf("SidebarPreference after update = %q, want %q", reloaded.SidebarPreference, `{"hiddenItems":["deployments"]}`)
 	}
 }
+
+func TestUpdateUserAppearancePreference_LocalDesktopUser(t *testing.T) {
+	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
+		t.Fatalf("cleanup local desktop user failed: %v", err)
+	}
+
+	user := GetLocalDesktopUser()
+	if err := UpdateUserAppearancePreference(&user, `{"theme":"dark"}`); err != nil {
+		t.Fatalf("UpdateUserAppearancePreference() create path error = %v", err)
+	}
+	if user.ID == 0 {
+		t.Fatal("UpdateUserAppearancePreference() did not hydrate local user ID")
+	}
+
+	reloaded, err := GetUserByUsername(LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() error = %v", err)
+	}
+	if reloaded.Provider != LocalDesktopUser.Provider {
+		t.Fatalf("Provider = %q, want %q", reloaded.Provider, LocalDesktopUser.Provider)
+	}
+	if reloaded.AppearancePreference != `{"theme":"dark"}` {
+		t.Fatalf("AppearancePreference = %q, want %q", reloaded.AppearancePreference, `{"theme":"dark"}`)
+	}
+
+	user = GetLocalDesktopUser()
+	if err := UpdateUserAppearancePreference(&user, `{"theme":"light","font":"system"}`); err != nil {
+		t.Fatalf("UpdateUserAppearancePreference() update path error = %v", err)
+	}
+
+	reloaded, err = GetUserByUsername(LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() second reload error = %v", err)
+	}
+	if reloaded.AppearancePreference != `{"theme":"light","font":"system"}` {
+		t.Fatalf("AppearancePreference after update = %q, want %q", reloaded.AppearancePreference, `{"theme":"light","font":"system"}`)
+	}
+}
+
+func TestSaveDesktopPreferences_LocalDesktopUser(t *testing.T) {
+	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
+		t.Fatalf("cleanup local desktop user failed: %v", err)
+	}
+	if err := DB.Where("1 = 1").Delete(&DesktopPreference{}).Error; err != nil {
+		t.Fatalf("cleanup desktop preferences failed: %v", err)
+	}
+
+	prefs := DesktopPreferences{
+		Version: 1,
+		Workspace: DesktopWorkspacePreferences{
+			CurrentCluster: "prod",
+			RecentClusters: []string{"prod", "staging"},
+			SelectedNamespaceByCluster: map[string]string{
+				"prod": "kube-system",
+			},
+		},
+	}
+
+	if err := SaveDesktopPreferences(prefs); err != nil {
+		t.Fatalf("SaveDesktopPreferences() error = %v", err)
+	}
+
+	reloaded, err := GetDesktopPreferences()
+	if err != nil {
+		t.Fatalf("GetDesktopPreferences() error = %v", err)
+	}
+
+	if reloaded.Workspace.CurrentCluster != "prod" {
+		t.Fatalf("Workspace.CurrentCluster = %q, want %q", reloaded.Workspace.CurrentCluster, "prod")
+	}
+	if len(reloaded.Workspace.RecentClusters) != 2 {
+		t.Fatalf("Workspace.RecentClusters len = %d, want %d", len(reloaded.Workspace.RecentClusters), 2)
+	}
+	if got := reloaded.Workspace.SelectedNamespaceByCluster["prod"]; got != "kube-system" {
+		t.Fatalf("Workspace.SelectedNamespaceByCluster[prod] = %q, want %q", got, "kube-system")
+	}
+
+	user, err := GetUserByUsername(LocalDesktopUser.Username)
+	if err != nil {
+		t.Fatalf("GetUserByUsername() error = %v", err)
+	}
+
+	var stored DesktopPreference
+	if err := DB.Where("user_id = ?", user.ID).First(&stored).Error; err != nil {
+		t.Fatalf("desktop preference row query error = %v", err)
+	}
+	if stored.PreferencesJSON == "" {
+		t.Fatal("PreferencesJSON is empty, want persisted JSON")
+	}
+}
+
+func TestGetDesktopPreferences_MigratesLegacyUserColumn(t *testing.T) {
+	if err := DB.Where("username = ?", LocalDesktopUser.Username).Delete(&User{}).Error; err != nil {
+		t.Fatalf("cleanup local desktop user failed: %v", err)
+	}
+	if err := DB.Where("1 = 1").Delete(&DesktopPreference{}).Error; err != nil {
+		t.Fatalf("cleanup desktop preferences failed: %v", err)
+	}
+
+	user, err := EnsureLocalDesktopUser()
+	if err != nil {
+		t.Fatalf("EnsureLocalDesktopUser() error = %v", err)
+	}
+
+	if err := DB.Exec("ALTER TABLE users ADD COLUMN desktop_preferences TEXT").Error; err != nil &&
+		err.Error() != "SQL logic error: duplicate column name: desktop_preferences (1)" {
+		t.Fatalf("add legacy desktop_preferences column error = %v", err)
+	}
+
+	legacyJSON := `{"version":1,"workspace":{"currentCluster":"legacy","recentClusters":["legacy"]}}`
+	if err := DB.Exec(
+		"UPDATE users SET desktop_preferences = ? WHERE id = ?",
+		legacyJSON,
+		user.ID,
+	).Error; err != nil {
+		t.Fatalf("seed legacy desktop_preferences error = %v", err)
+	}
+
+	reloaded, err := GetDesktopPreferences()
+	if err != nil {
+		t.Fatalf("GetDesktopPreferences() error = %v", err)
+	}
+
+	if reloaded.Workspace.CurrentCluster != "legacy" {
+		t.Fatalf("Workspace.CurrentCluster = %q, want %q", reloaded.Workspace.CurrentCluster, "legacy")
+	}
+
+	var stored DesktopPreference
+	if err := DB.Where("user_id = ?", user.ID).First(&stored).Error; err != nil {
+		t.Fatalf("migrated desktop preference row query error = %v", err)
+	}
+	if stored.PreferencesJSON != legacyJSON {
+		t.Fatalf("PreferencesJSON = %q, want %q", stored.PreferencesJSON, legacyJSON)
+	}
+}

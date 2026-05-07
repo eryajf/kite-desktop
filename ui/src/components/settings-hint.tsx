@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   IconCheck,
   IconKey,
@@ -15,6 +15,10 @@ import {
   useOAuthProviderList,
   useRoleList,
 } from '@/lib/api'
+import {
+  loadUIPreference,
+  updateUIPreference,
+} from '@/lib/desktop-preferences'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +39,19 @@ export function SettingsHint({ onDismiss }: SettingsHintProps) {
     () => localStorage.getItem('settings-hint-dismissed') === 'true'
   )
 
+  useEffect(() => {
+    void loadUIPreference()
+      .then((preference) => {
+        if (preference.settingsHintDismissed) {
+          setIsDismissed(true)
+          localStorage.setItem('settings-hint-dismissed', 'true')
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load UI preference from storage:', error)
+      })
+  }, [])
+
   const { data: clusters = [] } = useClusterList()
   const { data: oauthProviders = [] } = useOAuthProviderList()
   const { data: ldapSetting } = useLDAPSetting({ staleTime: 30000 })
@@ -52,6 +69,12 @@ export function SettingsHint({ onDismiss }: SettingsHintProps) {
   const handleDismiss = () => {
     setIsDismissed(true)
     localStorage.setItem('settings-hint-dismissed', 'true')
+    void updateUIPreference((preference) => ({
+      ...preference,
+      settingsHintDismissed: true,
+    })).catch((error) => {
+      console.error('Failed to save UI preference to storage:', error)
+    })
     onDismiss?.()
   }
 

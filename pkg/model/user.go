@@ -27,7 +27,8 @@ type User struct {
 	APIKey SecretString  `json:"apiKey,omitempty" gorm:"type:text"`
 	Roles  []common.Role `json:"roles,omitempty" gorm:"-"`
 
-	SidebarPreference string `json:"sidebar_preference,omitempty" gorm:"type:text"`
+	SidebarPreference    string `json:"sidebar_preference,omitempty" gorm:"type:text"`
+	AppearancePreference string `json:"appearance_preference,omitempty" gorm:"type:text"`
 }
 
 func (u *User) Key() string {
@@ -121,6 +122,7 @@ func GetLocalDesktopUser() User {
 			user.Enabled = existing.Enabled
 			user.Sub = existing.Sub
 			user.SidebarPreference = existing.SidebarPreference
+			user.AppearancePreference = existing.AppearancePreference
 		}
 	}
 	return user
@@ -174,6 +176,30 @@ func SaveDesktopSidebarPreference(pref string) error {
 	return UpdateUserSidebarPreference(&user, pref)
 }
 
+func GetDesktopAppearancePreference() (string, error) {
+	if DB == nil {
+		return "", nil
+	}
+
+	user, err := EnsureLocalDesktopUser()
+	if err != nil {
+		return "", err
+	}
+	return user.AppearancePreference, nil
+}
+
+func SaveDesktopAppearancePreference(pref string) error {
+	if DB == nil {
+		return nil
+	}
+
+	user, err := EnsureLocalDesktopUser()
+	if err != nil {
+		return err
+	}
+	return UpdateUserAppearancePreference(&user, pref)
+}
+
 func FindWithSubOrUpsertUser(user *User) error {
 	if user.Sub == "" {
 		return errors.New("user sub is empty")
@@ -192,6 +218,7 @@ func FindWithSubOrUpsertUser(user *User) error {
 	user.ID = existingUser.ID
 	user.CreatedAt = existingUser.CreatedAt
 	user.SidebarPreference = existingUser.SidebarPreference
+	user.AppearancePreference = existingUser.AppearancePreference
 	err := DB.Save(user).Error
 	InvalidateUserCache(uint64(user.ID))
 	return err
@@ -350,6 +377,73 @@ func UpdateUserSidebarPreference(user *User, sidebarPreference string) error {
 		user.CreatedAt = existing.CreatedAt
 		user.UpdatedAt = existing.UpdatedAt
 		user.SidebarPreference = sidebarPreference
+		InvalidateUserCache(uint64(existing.ID))
+	}
+	return err
+}
+
+func UpdateUserAppearancePreference(user *User, appearancePreference string) error {
+	if user == nil {
+		return errors.New("user is nil")
+	}
+
+	appearancePreference = strings.TrimSpace(appearancePreference)
+
+	if user.ID > 0 {
+		err := DB.Model(&User{}).
+			Where("id = ?", user.ID).
+			Update("appearance_preference", appearancePreference).Error
+		if err == nil {
+			user.AppearancePreference = appearancePreference
+			InvalidateUserCache(uint64(user.ID))
+		}
+		return err
+	}
+
+	if strings.TrimSpace(user.Username) == "" {
+		return errors.New("user username is empty")
+	}
+
+	query := DB.Where("username = ?", user.Username)
+	if strings.TrimSpace(user.Provider) != "" {
+		query = query.Where("provider = ?", user.Provider)
+	}
+
+	var existing User
+	if err := query.First(&existing).Error; err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		toCreate := &User{
+			Username:             user.Username,
+			Name:                 user.Name,
+			Provider:             user.Provider,
+			Enabled:              user.Enabled,
+			AppearancePreference: appearancePreference,
+		}
+		if strings.TrimSpace(toCreate.Name) == "" {
+			toCreate.Name = toCreate.Username
+		}
+		if err := DB.Create(toCreate).Error; err != nil {
+			return err
+		}
+		user.ID = toCreate.ID
+		user.CreatedAt = toCreate.CreatedAt
+		user.UpdatedAt = toCreate.UpdatedAt
+		user.AppearancePreference = appearancePreference
+		InvalidateUserCache(uint64(toCreate.ID))
+		return nil
+	}
+
+	err := DB.Model(&User{}).
+		Where("id = ?", existing.ID).
+		Update("appearance_preference", appearancePreference).Error
+	if err == nil {
+		user.ID = existing.ID
+		user.CreatedAt = existing.CreatedAt
+		user.UpdatedAt = existing.UpdatedAt
+		user.AppearancePreference = appearancePreference
 		InvalidateUserCache(uint64(existing.ID))
 	}
 	return err

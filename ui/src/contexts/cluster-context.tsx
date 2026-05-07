@@ -6,6 +6,10 @@ import { toast } from 'sonner'
 import { trackEvent } from '@/lib/analytics'
 import { getCurrentAnalyticsPageKey } from '@/lib/analytics-route'
 import { clearClusterCookie, setClusterCookie } from '@/lib/cluster-cookie'
+import {
+  loadWorkspacePreference,
+  updateWorkspacePreference,
+} from '@/lib/desktop-preferences'
 import { Cluster } from '@/types/api'
 import { clusterQueryKey } from '@/lib/cluster-query'
 import { withSubPath } from '@/lib/subpath'
@@ -34,19 +38,38 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
   const queryClient = useQueryClient()
   const [isSwitching, setIsSwitching] = useState(false)
 
-  const saveRecentCluster = (clusterName: string) => {
+  const buildRecentClusters = (clusterName: string) => {
     const recentClusters = JSON.parse(
       localStorage.getItem(recentClustersStorageKey) || '[]'
     ) as string[]
-    const nextRecentClusters = [
+    return [
       clusterName,
       ...recentClusters.filter((name) => name !== clusterName),
     ].slice(0, 8)
-    localStorage.setItem(
-      recentClustersStorageKey,
-      JSON.stringify(nextRecentClusters)
-    )
   }
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPreference = async () => {
+      try {
+        const preference = await loadWorkspacePreference()
+        if (cancelled || !preference.currentCluster) {
+          return
+        }
+
+        setCurrentClusterState(preference.currentCluster)
+      } catch (error) {
+        console.error('Failed to load workspace preference from storage:', error)
+      }
+    }
+
+    void loadPreference()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (currentCluster) {
@@ -98,17 +121,37 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
         setCurrentClusterState(defaultCluster.name)
         setClusterCookie(defaultCluster.name)
         localStorage.setItem('current-cluster', defaultCluster.name)
+        void updateWorkspacePreference((preference) => ({
+          ...preference,
+          currentCluster: defaultCluster.name,
+          recentClusters:
+            preference.recentClusters.length > 0
+              ? preference.recentClusters
+              : [defaultCluster.name],
+        }))
       } else {
         // If no default cluster, use the first one
         setCurrentClusterState(clusters[0].name)
         localStorage.setItem('current-cluster', clusters[0].name)
         setClusterCookie(clusters[0].name)
+        void updateWorkspacePreference((preference) => ({
+          ...preference,
+          currentCluster: clusters[0].name,
+          recentClusters:
+            preference.recentClusters.length > 0
+              ? preference.recentClusters
+              : [clusters[0].name],
+        }))
       }
     }
     if (clusters.length === 0 && currentCluster) {
       setCurrentClusterState(null)
       localStorage.removeItem('current-cluster')
       clearClusterCookie()
+      void updateWorkspacePreference((preference) => ({
+        ...preference,
+        currentCluster: '',
+      }))
     }
     if (
       currentCluster &&
@@ -119,6 +162,10 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
       setCurrentClusterState(null)
       localStorage.removeItem('current-cluster')
       clearClusterCookie()
+      void updateWorkspacePreference((preference) => ({
+        ...preference,
+        currentCluster: '',
+      }))
     }
   }, [clusters, currentCluster])
 
@@ -128,8 +175,17 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsSwitching(true)
         setCurrentClusterState(clusterName)
         localStorage.setItem('current-cluster', clusterName)
-        saveRecentCluster(clusterName)
+        const nextRecentClusters = buildRecentClusters(clusterName)
+        localStorage.setItem(
+          recentClustersStorageKey,
+          JSON.stringify(nextRecentClusters)
+        )
         setClusterCookie(clusterName)
+        void updateWorkspacePreference((preference) => ({
+          ...preference,
+          currentCluster: clusterName,
+          recentClusters: nextRecentClusters,
+        }))
         trackEvent('cluster_switch', {
           runtime: 'desktop',
           page: getCurrentAnalyticsPageKey(),

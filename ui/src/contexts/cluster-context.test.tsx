@@ -65,10 +65,34 @@ describe('ClusterProvider', () => {
   })
 
   it('clears stale cluster state and does not auto-select when clusters are empty', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => [],
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/api/v1/preferences/workspace')) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            currentCluster: '',
+            recentClusters: [],
+            selectedNamespaceByCluster: {},
+          }),
+          text: async () =>
+            JSON.stringify({
+              currentCluster: '',
+              recentClusters: [],
+              selectedNamespaceByCluster: {},
+            }),
+        }
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: async () => [],
+        text: async () => '[]',
+      }
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -91,13 +115,46 @@ describe('ClusterProvider', () => {
 
   it('tracks a sanitized cluster switch event without leaking the cluster name', async () => {
     const user = userEvent.setup()
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => [
-        { name: 'cluster-a', isDefault: true },
-        { name: 'cluster-b', isDefault: false },
-      ],
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+
+      if (url.includes('/api/v1/preferences/workspace')) {
+        if (init?.method === 'PUT') {
+          return {
+            ok: true,
+            status: 204,
+            headers: new Headers(),
+            json: async () => ({}),
+            text: async () => '',
+          }
+        }
+
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: async () => ({
+            currentCluster: 'cluster-a',
+            recentClusters: ['cluster-a'],
+            selectedNamespaceByCluster: {},
+          }),
+          text: async () =>
+            JSON.stringify({
+              currentCluster: 'cluster-a',
+              recentClusters: ['cluster-a'],
+              selectedNamespaceByCluster: {},
+            }),
+        }
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => [
+          { name: 'cluster-a', isDefault: true },
+          { name: 'cluster-b', isDefault: false },
+        ],
+      }
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -115,6 +172,10 @@ describe('ClusterProvider', () => {
       runtime: 'desktop',
       page: 'overview',
     })
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/preferences/workspace'),
+      expect.objectContaining({ method: 'PUT' })
+    )
     expect(trackEvent).not.toHaveBeenCalledWith(
       'cluster_switch',
       expect.objectContaining({ clusterName: 'cluster-b' })

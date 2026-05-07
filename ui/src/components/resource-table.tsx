@@ -28,6 +28,12 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { ResourceType } from '@/types/api'
+import {
+  loadResourceTablePreference,
+  loadWorkspacePreference,
+  updateResourceTablePreference,
+  updateWorkspacePreference,
+} from '@/lib/desktop-preferences'
 import { deleteResource, useResources, useResourcesWatch } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -137,6 +143,9 @@ export function ResourceTable<T>({
     }
   })
   const [refreshInterval, setRefreshInterval] = useState(5000)
+  const resourceStorageKey = (
+    resourceType ?? (resourceName.toLowerCase() as ResourceType)
+  ).toString()
 
   const [selectedNamespace, setSelectedNamespace] = useState<
     string | undefined
@@ -151,6 +160,8 @@ export function ResourceTable<T>({
   })
   const effectiveNamespace = clusterScope ? undefined : selectedNamespace
   const [useSSE, setUseSSE] = useState(false)
+  const columnVisibilityReadyRef = React.useRef(false)
+  const lastPersistedColumnVisibilityRef = React.useRef<string | null>(null)
   const {
     isLoading: queryLoading,
     data: queryData,
@@ -192,6 +203,64 @@ export function ResourceTable<T>({
     setSelectedNamespace(storedNamespace || 'default')
   }, [clusterScope, selectedNamespace])
 
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPreferences = async () => {
+      const currentCluster = localStorage.getItem('current-cluster')
+      if (!currentCluster) {
+        columnVisibilityReadyRef.current = true
+        return
+      }
+
+      try {
+        const [workspacePreference, resourceTablePreference] = await Promise.all([
+          loadWorkspacePreference(),
+          loadResourceTablePreference(),
+        ])
+
+        if (cancelled) {
+          return
+        }
+
+        if (!clusterScope && workspacePreference.selectedNamespaceByCluster[currentCluster]) {
+          setSelectedNamespace(
+            workspacePreference.selectedNamespaceByCluster[currentCluster]
+          )
+        }
+
+        const remoteColumnVisibility =
+          resourceTablePreference.columnVisibilityByCluster[currentCluster]?.[
+            resourceStorageKey
+          ]
+        if (remoteColumnVisibility) {
+          setColumnVisibility(remoteColumnVisibility)
+          lastPersistedColumnVisibilityRef.current = JSON.stringify(
+            remoteColumnVisibility
+          )
+        } else {
+          lastPersistedColumnVisibilityRef.current =
+            JSON.stringify(columnVisibility)
+        }
+      } catch (error) {
+        console.error(
+          'Failed to load resource table preferences from storage:',
+          error
+        )
+      } finally {
+        if (!cancelled) {
+          columnVisibilityReadyRef.current = true
+        }
+      }
+    }
+
+    void loadPreferences()
+
+    return () => {
+      cancelled = true
+    }
+  }, [clusterScope, resourceStorageKey])
+
   // (moved below after error is defined)
 
   // Update sessionStorage when search query changes
@@ -210,6 +279,29 @@ export function ResourceTable<T>({
     const currentCluster = localStorage.getItem('current-cluster')
     const storageKey = `${currentCluster}-${resourceName}-columnVisibility`
     localStorage.setItem(storageKey, JSON.stringify(columnVisibility))
+
+    if (!columnVisibilityReadyRef.current || !currentCluster) {
+      return
+    }
+
+    const serialized = JSON.stringify(columnVisibility)
+    if (serialized === lastPersistedColumnVisibilityRef.current) {
+      return
+    }
+
+    lastPersistedColumnVisibilityRef.current = serialized
+    void updateResourceTablePreference((preference) => ({
+      ...preference,
+      columnVisibilityByCluster: {
+        ...preference.columnVisibilityByCluster,
+        [currentCluster]: {
+          ...preference.columnVisibilityByCluster[currentCluster],
+          [resourceStorageKey]: columnVisibility,
+        },
+      },
+    })).catch((error) => {
+      console.error('Failed to save resource table preferences to storage:', error)
+    })
   }, [columnVisibility, resourceName])
 
   // Update sessionStorage when page size changes
@@ -239,11 +331,20 @@ export function ResourceTable<T>({
   const handleNamespaceChange = useCallback(
     (value: string) => {
       if (setSelectedNamespace) {
-        localStorage.setItem(
-          localStorage.getItem('current-cluster') + 'selectedNamespace',
-          value
-        )
+        const currentCluster = localStorage.getItem('current-cluster') || ''
+        localStorage.setItem(`${currentCluster}selectedNamespace`, value)
         setSelectedNamespace(value)
+        if (currentCluster) {
+          void updateWorkspacePreference((preference) => ({
+            ...preference,
+            selectedNamespaceByCluster: {
+              ...preference.selectedNamespaceByCluster,
+              [currentCluster]: value,
+            },
+          })).catch((error) => {
+            console.error('Failed to save workspace preference to storage:', error)
+          })
+        }
         // Reset pagination and search when changing namespace
         setPagination({ pageIndex: 0, pageSize: pagination.pageSize })
         setSearchQuery('')

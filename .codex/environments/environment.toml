@@ -8,4 +8,4 @@ script = ""
 [[actions]]
 name = "运行"
 icon = "run"
-command = "make dev"
+command = "pkill -f \"make dev\" >/dev/null 2>&1 || true; make dev"

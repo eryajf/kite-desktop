@@ -19,6 +19,10 @@ import { useTranslation } from 'react-i18next'
 
 import { TERMINAL_THEMES, TerminalTheme } from '@/types/themes'
 import { appendClusterNameParam } from '@/lib/cluster-transport'
+import {
+  loadViewerPreference,
+  updateViewerPreference,
+} from '@/lib/desktop-preferences'
 import { toSimpleContainer } from '@/lib/k8s'
 import { getWebSocketUrl } from '@/lib/subpath'
 import { translateError } from '@/lib/utils'
@@ -88,6 +92,8 @@ export function Terminal({
     }
   )
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const viewerPreferenceReadyRef = useRef(false)
+  const lastPersistedViewerPreferenceRef = useRef<string | null>(null)
 
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
@@ -102,6 +108,47 @@ export function Terminal({
   const speedUpdateTimerRef = useRef<NodeJS.Timeout | null>(null)
   const pingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const { t } = useTranslation()
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPreference = async () => {
+      try {
+        const preference = await loadViewerPreference()
+        if (cancelled) {
+          return
+        }
+
+        setTerminalTheme(preference.terminal.theme as TerminalTheme)
+        setFontSize(preference.terminal.fontSize)
+        setCursorStyle(preference.terminal.cursorStyle)
+        localStorage.setItem('terminal-theme', preference.terminal.theme)
+        localStorage.setItem(
+          'log-viewer-font-size',
+          preference.terminal.fontSize.toString()
+        )
+        localStorage.setItem(
+          'terminal-cursor-style',
+          preference.terminal.cursorStyle
+        )
+        lastPersistedViewerPreferenceRef.current = JSON.stringify(
+          preference.terminal
+        )
+      } catch (error) {
+        console.error('Failed to load viewer preference from storage:', error)
+      } finally {
+        if (!cancelled) {
+          viewerPreferenceReadyRef.current = true
+        }
+      }
+    }
+
+    void loadPreference()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Initialize pod/container state on props change
   useEffect(() => {
@@ -182,6 +229,33 @@ export function Terminal({
     },
     []
   )
+
+  useEffect(() => {
+    if (!viewerPreferenceReadyRef.current) {
+      return
+    }
+
+    const serialized = JSON.stringify({
+      theme: terminalTheme,
+      cursorStyle,
+      fontSize,
+    })
+    if (serialized === lastPersistedViewerPreferenceRef.current) {
+      return
+    }
+
+    lastPersistedViewerPreferenceRef.current = serialized
+    void updateViewerPreference((preference) => ({
+      ...preference,
+      terminal: {
+        theme: terminalTheme,
+        cursorStyle,
+        fontSize,
+      },
+    })).catch((error) => {
+      console.error('Failed to save viewer preference to storage:', error)
+    })
+  }, [cursorStyle, fontSize, terminalTheme])
 
   // Quick theme cycling function
   const cycleTheme = useCallback(() => {

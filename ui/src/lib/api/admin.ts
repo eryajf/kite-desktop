@@ -477,6 +477,105 @@ export interface SidebarPreferenceResponse {
   sidebar_preference: string
 }
 
+export interface AppearancePreferencePayload {
+  theme: 'dark' | 'light' | 'system'
+  colorTheme: 'default' | 'eye-care' | 'darkmatter' | 'notebook' | 'clean-slate' | 'claude'
+  font: 'system' | 'maple' | 'jetbrains'
+  language: 'en' | 'zh'
+}
+
+export const getAppearancePreference =
+  async (): Promise<Partial<AppearancePreferencePayload>> => {
+    return apiClient.get<Partial<AppearancePreferencePayload>>('/preferences/appearance')
+  }
+
+export const saveAppearancePreference = async (
+  appearancePreference: AppearancePreferencePayload
+): Promise<void> => {
+  await apiClient.put<void>('/preferences/appearance', appearancePreference)
+}
+
+export interface ViewerPreferencePayload {
+  logViewer: {
+    theme: string
+    tailLines: number
+    wordWrap: boolean
+    showLineNumbers: boolean
+    fontSize: number
+  }
+  terminal: {
+    theme: string
+    cursorStyle: 'block' | 'underline' | 'bar'
+    fontSize: number
+  }
+}
+
+export const getViewerPreference =
+  async (): Promise<Partial<ViewerPreferencePayload>> => {
+    return apiClient.get<Partial<ViewerPreferencePayload>>('/preferences/viewer')
+  }
+
+export const saveViewerPreference = async (
+  viewerPreference: ViewerPreferencePayload
+): Promise<void> => {
+  await apiClient.put<void>('/preferences/viewer', viewerPreference)
+}
+
+export interface WorkspacePreferencePayload {
+  currentCluster: string
+  recentClusters: string[]
+  selectedNamespaceByCluster: Record<string, string>
+}
+
+export const getWorkspacePreference =
+  async (): Promise<Partial<WorkspacePreferencePayload>> => {
+    return apiClient.get<Partial<WorkspacePreferencePayload>>('/preferences/workspace')
+  }
+
+export const saveWorkspacePreference = async (
+  workspacePreference: WorkspacePreferencePayload
+): Promise<void> => {
+  await apiClient.put<void>('/preferences/workspace', workspacePreference)
+}
+
+export interface ResourceTablePreferencePayload {
+  columnVisibilityByCluster: Record<
+    string,
+    Record<string, Record<string, boolean>>
+  >
+}
+
+export const getResourceTablePreference =
+  async (): Promise<Partial<ResourceTablePreferencePayload>> => {
+    return apiClient.get<Partial<ResourceTablePreferencePayload>>(
+      '/preferences/resource-table'
+    )
+  }
+
+export const saveResourceTablePreference = async (
+  resourceTablePreference: ResourceTablePreferencePayload
+): Promise<void> => {
+  await apiClient.put<void>(
+    '/preferences/resource-table',
+    resourceTablePreference
+  )
+}
+
+export interface UIPreferencePayload {
+  settingsHintDismissed: boolean
+}
+
+export const getUIPreference =
+  async (): Promise<Partial<UIPreferencePayload>> => {
+    return apiClient.get<Partial<UIPreferencePayload>>('/preferences/ui')
+  }
+
+export const saveUIPreference = async (
+  uiPreference: UIPreferencePayload
+): Promise<void> => {
+  await apiClient.put<void>('/preferences/ui', uiPreference)
+}
+
 export const getSidebarPreference =
   async (): Promise<SidebarPreferenceResponse> => {
     return apiClient.get<SidebarPreferenceResponse>('/preferences/sidebar')
