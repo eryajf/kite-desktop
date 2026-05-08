@@ -161,14 +161,51 @@ describe('ResourceTable batch delete confirmation', () => {
       />
     )
 
-    fireEvent.pointerDown(
-      screen.getAllByRole('button', { name: /Actions|操作/i })[0],
-      { button: 0 }
+    fireEvent.pointerEnter(
+      screen.getAllByRole('button', { name: /Actions|操作/i })[0]
     )
 
     const menuItem = await screen.findByText('Inspect resource')
     fireEvent.click(menuItem)
 
     expect(onInspect).toHaveBeenCalledWith('demo')
+  })
+
+  it('opens the actions menu on hover and closes after leaving trigger and menu', async () => {
+    const columnHelper = createColumnHelper<Deployment>()
+
+    render(
+      <ResourceTable
+        resourceName="Deployments"
+        resourceType="deployments"
+        clusterScope={true}
+        columns={[
+          columnHelper.accessor('metadata.name', {
+            header: 'Name',
+            cell: ({ row }) => row.original.metadata?.name,
+          }),
+        ]}
+        getRowContextMenuItems={() => [
+          {
+            key: 'inspect',
+            label: 'Inspect resource',
+            onSelect: vi.fn(),
+          },
+        ]}
+      />
+    )
+
+    const trigger = screen.getAllByRole('button', { name: /Actions|操作/i })[0]
+    fireEvent.pointerEnter(trigger)
+
+    const menuItem = await screen.findByText('Inspect resource')
+    expect(menuItem).toBeInTheDocument()
+
+    fireEvent.pointerLeave(trigger)
+    fireEvent.pointerLeave(menuItem)
+
+    await waitFor(() => {
+      expect(screen.queryByText('Inspect resource')).not.toBeInTheDocument()
+    })
   })
 })

@@ -6,11 +6,12 @@
 
 1. [项目背景](./project-context.md)
 2. [开发约定](./development-guide.md)
-3. 仓库根目录的 `README.md`
-4. `desktop/README.md`
-5. `docs/desktop-runtime-contract.md`
-6. `docs/desktop-feature-boundary.md`
-7. `docs/frontend-context-menu-pattern.md`（涉及列表右键/上下文菜单能力时）
+3. [功能代码索引](./feature-code-index.md)
+4. 仓库根目录的 `README.md`
+5. `desktop/README.md`
+6. `docs/desktop-runtime-contract.md`
+7. `docs/desktop-feature-boundary.md`
+8. `docs/frontend-context-menu-pattern.md`（涉及列表右键/上下文菜单能力时）
 
 ## 这份导航解决什么问题
 
@@ -26,6 +27,8 @@
   - 解决“这个项目现在到底是什么、核心架构是什么、桌面版和上游有什么不同”
 - [开发约定](./development-guide.md)
   - 解决“改动应该落在哪里、怎么开发、怎么验证、哪些地方最容易出错”
+- [功能代码索引](./feature-code-index.md)
+  - 解决“某个主功能对应哪些前端页面、共享组件、API 和后端 handler”
 - [列表右键菜单模式](../docs/frontend-context-menu-pattern.md)
   - 解决“资源列表或设置表格要加右键菜单时，应复用哪套组件、从哪个共享入口接入、避免哪些重复实现”
 

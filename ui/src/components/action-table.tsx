@@ -11,13 +11,12 @@ import {
   RowContextMenuContentRenderer,
   RowContextMenuItem,
 } from './row-context-menu'
+import { HoverActionDropdownMenu } from './hover-action-dropdown-menu'
 import { Button } from './ui/button'
 import { ContextMenu, ContextMenuTrigger } from './ui/context-menu'
 import {
-  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import {
   Table,
@@ -54,27 +53,29 @@ export function ActionTable<T>({
         header: t('common.actions'),
         cell: ({ row }) => (
           <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <HoverActionDropdownMenu
+              trigger={
                 <Button variant="ghost" size="sm">
                   •••
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {actions.map((action, index) => (
-                  <DropdownMenuItem
-                    key={index}
-                    disabled={action.shouldDisable?.(row.original)}
-                    onClick={() => action.onClick(row.original)}
-                    className="gap-2"
-                  >
-                    {action.dynamicLabel
-                      ? action.dynamicLabel(row.original)
-                      : action.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+              content={
+                <DropdownMenuContent align="end">
+                  {actions.map((action, index) => (
+                    <DropdownMenuItem
+                      key={index}
+                      disabled={action.shouldDisable?.(row.original)}
+                      onClick={() => action.onClick(row.original)}
+                      className="gap-2"
+                    >
+                      {action.dynamicLabel
+                        ? action.dynamicLabel(row.original)
+                        : action.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              }
+            />
           </div>
         ),
       }

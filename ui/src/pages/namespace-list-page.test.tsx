@@ -4,6 +4,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import type { Namespace, ResourceQuota } from 'kubernetes-types/core/v1'
 import { describe, expect, it, vi } from 'vitest'
 
+import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
+
 import { NamespaceListPage } from './namespace-list-page'
 
 const mockNavigate = vi.fn()
@@ -163,6 +165,7 @@ describe('NamespaceListPage', () => {
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
       columns: ReturnType<typeof createColumnHelper<Namespace>>[]
+      defaultHiddenColumns: string[]
       getRowContextMenuItems: (namespace: Namespace) => {
         key: string
         onSelect?: () => void | Promise<void>
@@ -173,12 +176,17 @@ describe('NamespaceListPage', () => {
     expect(resourceTableProps.columns[4].id).toBe('annotations')
     expect(resourceTableProps.columns[5].id).toBe('cpu-limit')
     expect(resourceTableProps.columns[6].id).toBe('memory-limit')
+    expect(resourceTableProps.defaultHiddenColumns).toEqual([
+      'cpu-limit',
+      'memory-limit',
+    ])
     expect(resourceTableProps.columns[1].meta).toEqual({ align: 'left' })
-    expect(resourceTableProps.columns[2].meta).toBeUndefined()
+    expect(resourceTableProps.columns[2].meta).toEqual({ align: 'left' })
 
     const namespace = {
       metadata: {
         name: 'team-a',
+        creationTimestamp: '2026-05-04T16:00:00Z',
         labels: {
           env: 'prod',
           owner: 'platform',
@@ -203,10 +211,19 @@ describe('NamespaceListPage', () => {
 
     render(
       <div>
+        {flexRender(resourceTableProps.columns[2].cell!, {
+          getValue: () => namespace.metadata?.creationTimestamp,
+        })}
         {flexRender(resourceTableProps.columns[3].cell!, { row })}
         {flexRender(resourceTableProps.columns[4].cell!, { row })}
       </div>
     )
+
+    expect(screen.getByText(
+      `${formatDate(namespace.metadata!.creationTimestamp!)} (${formatRelativeTimeStrict(
+        namespace.metadata!.creationTimestamp!
+      )})`
+    )).toBeInTheDocument()
 
     expect(
       screen.getByRole('button', { name: 'namespaceList.manageLabels' })
