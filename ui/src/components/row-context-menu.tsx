@@ -208,9 +208,10 @@ export function RowDropdownMenuContentRenderer<T>({
   item,
   items,
   align = 'end',
+  ...contentProps
 }: RowContextMenuContentProps<T> & {
   align?: 'start' | 'center' | 'end'
-}) {
+} & React.ComponentProps<typeof DropdownMenuContent>) {
   const normalizedItems = getNormalizedRowContextMenuItems(items, item)
 
   if (normalizedItems.length === 0) {
@@ -218,7 +219,7 @@ export function RowDropdownMenuContentRenderer<T>({
   }
 
   return (
-    <DropdownMenuContent align={align}>
+    <DropdownMenuContent align={align} {...contentProps}>
       {normalizedItems.map((menuItem) => renderDropdownMenuItem(menuItem, item))}
     </DropdownMenuContent>
   )

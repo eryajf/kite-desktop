@@ -13,7 +13,7 @@ import {
   getNamespaceQuotaSummary,
   getResourceQuotasForNamespace,
 } from '@/lib/namespace-utils'
-import { getAge } from '@/lib/utils'
+import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import {
   MetadataActionButton,
@@ -78,7 +78,11 @@ export function NamespaceListPage() {
       }),
       columnHelper.accessor('metadata.creationTimestamp', {
         header: t('common.created'),
-        cell: ({ getValue }) => getAge(getValue() as string),
+        meta: { align: 'left' },
+        cell: ({ getValue }) => {
+          const timestamp = getValue() as string
+          return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+        },
       }),
       columnHelper.display({
         id: 'labels',
@@ -239,6 +243,7 @@ export function NamespaceListPage() {
         columns={columns}
         clusterScope={true}
         searchQueryFilter={filter}
+        defaultHiddenColumns={['cpu-limit', 'memory-limit']}
         showCreateButton={true}
         onCreateClick={() => setIsCreateDialogOpen(true)}
         getRowContextMenuItems={getRowContextMenuItems}

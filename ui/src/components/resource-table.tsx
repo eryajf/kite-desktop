@@ -67,6 +67,7 @@ import {
 import { Toggle } from '@/components/ui/toggle'
 
 import { ErrorMessage } from './error-message'
+import { HoverActionDropdownMenu } from './hover-action-dropdown-menu'
 import { ResourceTableView } from './resource-table-view'
 import {
   RowContextMenuItem,
@@ -405,8 +406,8 @@ export function ResourceTable<T>({
 
               return (
                 <div className="flex justify-end">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                  <HoverActionDropdownMenu
+                    trigger={
                       <Button
                         variant="ghost"
                         size="icon"
@@ -414,12 +415,14 @@ export function ResourceTable<T>({
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <RowDropdownMenuContentRenderer
-                      item={row.original}
-                      items={menuItems}
-                    />
-                  </DropdownMenu>
+                    }
+                    content={
+                      <RowDropdownMenuContentRenderer
+                        item={row.original}
+                        items={menuItems}
+                      />
+                    }
+                  />
                 </div>
               )
             },
