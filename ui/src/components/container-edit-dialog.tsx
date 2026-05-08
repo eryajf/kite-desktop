@@ -23,13 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from './ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 
 interface BaseContainerEditDialogProps {
@@ -77,7 +70,10 @@ export function ContainerEditDialog({
           />
         ) : (
           <SimpleContainerEditDialogContent
-            {...(props as Omit<SimpleContainerEditDialogProps, 'open' | 'mode'>)}
+            {...(props as Omit<
+              SimpleContainerEditDialogProps,
+              'open' | 'mode'
+            >)}
           />
         )
       ) : null}
@@ -241,25 +237,30 @@ function DeploymentContainerEditDialogContent({
         </DialogDescription>
       </DialogHeader>
       {containers.length > 1 ? (
-        <div className="space-y-2">
+        <div className="space-y-2 overflow-hidden">
           <label className="text-sm font-medium">
             {t('containerEditor.containerSelector')}
           </label>
-          <Select
+          <Tabs
             value={selectedContainerName}
             onValueChange={setSelectedContainerName}
+            className="gap-0"
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
+            <TabsList
+              aria-label={t('containerEditor.containerSelector')}
+              className="h-auto max-w-full justify-start overflow-x-auto"
+            >
               {containers.map((container) => (
-                <SelectItem key={container.name} value={container.name}>
+                <TabsTrigger
+                  key={container.name}
+                  value={container.name}
+                  className="h-9 min-w-fit flex-none px-4 font-mono text-sm"
+                >
                   {container.name}
-                </SelectItem>
+                </TabsTrigger>
               ))}
-            </SelectContent>
-          </Select>
+            </TabsList>
+          </Tabs>
         </div>
       ) : null}
 

@@ -3,30 +3,30 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Deployment } from 'kubernetes-types/apps/v1'
 import type { Container } from 'kubernetes-types/core/v1'
-import { Copy, FileCode2, FileText, RefreshCcw, Scaling, Tags } from 'lucide-react'
+import {
+  FileCode2,
+  FileText,
+  History,
+  Image,
+  Pause,
+  Play,
+  RefreshCcw,
+  Tags,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import {
-  aggregateContainerResources,
-  getDeploymentStatus,
-} from '@/lib/k8s'
 import { patchResource } from '@/lib/api'
-import { copyTextToClipboard } from '@/lib/desktop'
-import { formatDate, formatRelativeTimeStrict, translateError } from '@/lib/utils'
-import { ContainerImagesSummary } from '@/components/container-images-summary'
+import { aggregateContainerResources, getDeploymentStatus } from '@/lib/k8s'
+import {
+  formatDate,
+  formatRelativeTimeStrict,
+  translateError,
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { DeploymentStatusIcon } from '@/components/deployment-status-icon'
-import { DeploymentCreateDialog } from '@/components/editors/deployment-create-dialog'
-import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
-import {
-  MetadataActionButton,
-  renderMetadataTooltipContent,
-} from '@/components/metadata-action-button'
-import { ResourceTable } from '@/components/resource-table'
-import { RowContextMenuItem } from '@/components/row-context-menu'
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { ContainerEditDialog } from '@/components/container-edit-dialog'
+import { ContainerImagesSummary } from '@/components/container-images-summary'
+import { DeploymentStatusIcon } from '@/components/deployment-status-icon'
+import { DeploymentCreateDialog } from '@/components/editors/deployment-create-dialog'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
+import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
+import { ResourceTable } from '@/components/resource-table'
+import { RowContextMenuItem } from '@/components/row-context-menu'
 
 const cpuUnits: Record<string, number> = {
   n: 1e-9,
@@ -180,13 +190,14 @@ export function DeploymentListPage() {
   )
   const [annotationsDeployment, setAnnotationsDeployment] =
     useState<Deployment | null>(null)
-  const [scaleDeploymentTarget, setScaleDeploymentTarget] =
-    useState<Deployment | null>(null)
   const [restartDeploymentTarget, setRestartDeploymentTarget] =
     useState<Deployment | null>(null)
-  const [scaleReplicas, setScaleReplicas] = useState<number>(0)
-  const [isScaling, setIsScaling] = useState(false)
+  const [imageDeploymentTarget, setImageDeploymentTarget] =
+    useState<Deployment | null>(null)
+  const [deleteDeploymentTarget, setDeleteDeploymentTarget] =
+    useState<Deployment | null>(null)
   const [isRestarting, setIsRestarting] = useState(false)
+  const [isPauseToggling, setIsPauseToggling] = useState(false)
 
   // Define column helper outside of any hooks
   const columnHelper = createColumnHelper<Deployment>()
@@ -317,52 +328,9 @@ export function DeploymentListPage() {
     return `/deployments/${deployment.metadata!.namespace}/${deployment.metadata!.name}`
   }, [])
 
-  const handleCopy = useCallback(
-    async (value: string) => {
-      await copyTextToClipboard(value)
-      toast.success(t('keyValueDataViewer.copiedToClipboard'))
-    },
-    [t]
-  )
-
   const refreshDeploymentList = useCallback(async () => {
     await queryClient.invalidateQueries({ queryKey: ['deployments'] })
   }, [queryClient])
-
-  const openScaleDialog = useCallback((deployment: Deployment) => {
-    setScaleDeploymentTarget(deployment)
-    setScaleReplicas(deployment.spec?.replicas || 0)
-  }, [])
-
-  const handleScale = useCallback(async () => {
-    if (
-      !scaleDeploymentTarget?.metadata?.name ||
-      !scaleDeploymentTarget.metadata?.namespace
-    ) {
-      return
-    }
-
-    setIsScaling(true)
-    try {
-      await patchResource(
-        'deployments',
-        scaleDeploymentTarget.metadata.name,
-        scaleDeploymentTarget.metadata.namespace,
-        {
-          spec: {
-            replicas: scaleReplicas,
-          },
-        }
-      )
-      toast.success(`Deployment scaled to ${scaleReplicas} replicas`)
-      setScaleDeploymentTarget(null)
-      await refreshDeploymentList()
-    } catch (error) {
-      toast.error(translateError(error, t))
-    } finally {
-      setIsScaling(false)
-    }
-  }, [refreshDeploymentList, scaleDeploymentTarget, scaleReplicas, t])
 
   const handleRestart = useCallback(async () => {
     if (
@@ -400,9 +368,70 @@ export function DeploymentListPage() {
     }
   }, [refreshDeploymentList, restartDeploymentTarget, t])
 
+  const handlePauseToggle = useCallback(
+    async (deployment: Deployment) => {
+      if (!deployment.metadata?.name || !deployment.metadata?.namespace) {
+        return
+      }
+
+      const nextPaused = deployment.spec?.paused !== true
+
+      setIsPauseToggling(true)
+      try {
+        await patchResource(
+          'deployments',
+          deployment.metadata.name,
+          deployment.metadata.namespace,
+          {
+            spec: {
+              paused: nextPaused,
+            },
+          }
+        )
+        toast.success(
+          nextPaused
+            ? t('deploymentList.pauseInitiated')
+            : t('deploymentList.resumeInitiated')
+        )
+        await refreshDeploymentList()
+      } catch (error) {
+        toast.error(translateError(error, t))
+      } finally {
+        setIsPauseToggling(false)
+      }
+    },
+    [refreshDeploymentList, t]
+  )
+
+  const handleContainerEditorSave = useCallback(
+    async (updatedDeployment: Deployment) => {
+      if (
+        !imageDeploymentTarget?.metadata?.name ||
+        !imageDeploymentTarget.metadata?.namespace
+      ) {
+        return
+      }
+
+      await patchResource(
+        'deployments',
+        imageDeploymentTarget.metadata.name,
+        imageDeploymentTarget.metadata.namespace,
+        {
+          spec: {
+            template: updatedDeployment.spec?.template,
+          },
+        }
+      )
+      toast.success(t('deploymentList.imageUpdateInitiated'))
+      await refreshDeploymentList()
+    },
+    [imageDeploymentTarget, refreshDeploymentList, t]
+  )
+
   const getRowContextMenuItems = useCallback(
     (deployment: Deployment): RowContextMenuItem<Deployment>[] => {
       const detailPath = getDeploymentDetailPath(deployment)
+      const isPaused = deployment.spec?.paused === true
 
       return [
         {
@@ -411,18 +440,36 @@ export function DeploymentListPage() {
           icon: <FileCode2 className="h-4 w-4" />,
           onSelect: () => navigate(`${detailPath}?tab=yaml`),
         },
-        { type: 'separator', key: 'primary-actions-separator' },
         {
-          key: 'copy-name',
-          label: t('common.copyName', 'Copy name'),
-          icon: <Copy className="h-4 w-4" />,
-          onSelect: () => handleCopy(deployment.metadata?.name || ''),
+          key: 'edit-image',
+          label: t('deploymentList.editImage'),
+          icon: <Image className="h-4 w-4" />,
+          onSelect: () => setImageDeploymentTarget(deployment),
         },
         {
-          key: 'copy-namespace',
-          label: t('common.copyNamespace', 'Copy namespace'),
-          icon: <Copy className="h-4 w-4" />,
-          onSelect: () => handleCopy(deployment.metadata?.namespace || ''),
+          key: isPaused ? 'resume-orchestration' : 'pause-orchestration',
+          label: isPaused
+            ? t('deploymentList.resumeOrchestration')
+            : t('deploymentList.pauseOrchestration'),
+          icon: isPaused ? (
+            <Play className="h-4 w-4" />
+          ) : (
+            <Pause className="h-4 w-4" />
+          ),
+          disabled: isPauseToggling,
+          onSelect: () => handlePauseToggle(deployment),
+        },
+        {
+          key: 'rollout-restart',
+          label: t('deploymentList.rolloutRestart'),
+          icon: <RefreshCcw className="h-4 w-4" />,
+          onSelect: () => setRestartDeploymentTarget(deployment),
+        },
+        {
+          key: 'rollback',
+          label: t('deploymentList.rollback'),
+          icon: <History className="h-4 w-4" />,
+          onSelect: () => navigate(`${detailPath}?tab=history`),
         },
         { type: 'separator', key: 'metadata-actions-separator' },
         {
@@ -437,22 +484,16 @@ export function DeploymentListPage() {
           icon: <FileText className="h-4 w-4" />,
           onSelect: () => setAnnotationsDeployment(deployment),
         },
-        { type: 'separator', key: 'deployment-operations-separator' },
         {
-          key: 'scale-deployment',
-          label: t('detail.buttons.scale'),
-          icon: <Scaling className="h-4 w-4" />,
-          onSelect: () => openScaleDialog(deployment),
-        },
-        {
-          key: 'restart-deployment',
-          label: t('detail.buttons.restart'),
-          icon: <RefreshCcw className="h-4 w-4" />,
-          onSelect: () => setRestartDeploymentTarget(deployment),
+          key: 'delete-deployment',
+          label: t('common.delete'),
+          icon: <Trash2 className="h-4 w-4" />,
+          variant: 'destructive',
+          onSelect: () => setDeleteDeploymentTarget(deployment),
         },
       ]
     },
-    [getDeploymentDetailPath, handleCopy, navigate, openScaleDialog, t]
+    [getDeploymentDetailPath, handlePauseToggle, isPauseToggling, navigate, t]
   )
 
   return (
@@ -474,72 +515,6 @@ export function DeploymentListPage() {
         onOpenChange={setIsCreateDialogOpen}
         onSuccess={handleCreateSuccess}
       />
-
-      <Dialog
-        open={Boolean(scaleDeploymentTarget)}
-        onOpenChange={(open) => {
-          if (!open && !isScaling) {
-            setScaleDeploymentTarget(null)
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('detail.dialogs.scaleDeployment.title')}</DialogTitle>
-            <DialogDescription>
-              {t('detail.dialogs.scaleDeployment.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="deployment-scale-replicas">
-              {t('detail.dialogs.scaleDeployment.replicas')}
-            </Label>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0"
-                onClick={() => setScaleReplicas(Math.max(0, scaleReplicas - 1))}
-                disabled={scaleReplicas <= 0 || isScaling}
-              >
-                -
-              </Button>
-              <Input
-                id="deployment-scale-replicas"
-                type="number"
-                min="0"
-                value={scaleReplicas}
-                onChange={(event) =>
-                  setScaleReplicas(parseInt(event.target.value) || 0)
-                }
-                className="text-center"
-                disabled={isScaling}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 w-9 p-0"
-                onClick={() => setScaleReplicas(scaleReplicas + 1)}
-                disabled={isScaling}
-              >
-                +
-              </Button>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setScaleDeploymentTarget(null)}
-              disabled={isScaling}
-            >
-              {t('detail.buttons.cancel')}
-            </Button>
-            <Button onClick={handleScale} disabled={isScaling}>
-              {t('detail.dialogs.scaleDeployment.scaleButton')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(restartDeploymentTarget)}
@@ -595,6 +570,34 @@ export function DeploymentListPage() {
         resourceType="deployments"
         resource={annotationsDeployment}
         type="annotations"
+      />
+
+      {imageDeploymentTarget ? (
+        <ContainerEditDialog
+          open={Boolean(imageDeploymentTarget)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setImageDeploymentTarget(null)
+            }
+          }}
+          mode="deployment"
+          deployment={imageDeploymentTarget}
+          namespace={imageDeploymentTarget.metadata?.namespace || ''}
+          onSaveDeployment={handleContainerEditorSave}
+        />
+      ) : null}
+
+      <ResourceDeleteConfirmationDialog
+        open={Boolean(deleteDeploymentTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteDeploymentTarget(null)
+          }
+        }}
+        resourceName={deleteDeploymentTarget?.metadata?.name || ''}
+        resourceType="deployments"
+        namespace={deleteDeploymentTarget?.metadata?.namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </>
   )

@@ -39,10 +39,10 @@ func (h *NodeHandler) DrainNode(c *gin.Context) {
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
 	// Parse the request body for drain options
 	var drainRequest struct {
-		Force            bool `json:"force" binding:"required"`
-		GracePeriod      int  `json:"gracePeriod" binding:"min=0"`
-		DeleteLocal      bool `json:"deleteLocalData"`
-		IgnoreDaemonsets bool `json:"ignoreDaemonsets"`
+		Force            *bool `json:"force" binding:"required"`
+		GracePeriod      int   `json:"gracePeriod" binding:"min=0"`
+		DeleteLocal      bool  `json:"deleteLocalData"`
+		IgnoreDaemonsets bool  `json:"ignoreDaemonsets"`
 	}
 
 	if err := c.ShouldBindJSON(&drainRequest); err != nil {
@@ -72,7 +72,12 @@ func (h *NodeHandler) DrainNode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Node %s drain initiated", nodeName),
 		"node":    node.Name,
-		"options": drainRequest,
+		"options": gin.H{
+			"force":            *drainRequest.Force,
+			"gracePeriod":      drainRequest.GracePeriod,
+			"deleteLocalData":  drainRequest.DeleteLocal,
+			"ignoreDaemonsets": drainRequest.IgnoreDaemonsets,
+		},
 	})
 }
 

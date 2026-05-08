@@ -1545,6 +1545,14 @@
     "manageAnnotations": "Manage annotations"
   },
   "deploymentList": {
+    "editImage": "Update image version",
+    "pauseOrchestration": "Pause rollout",
+    "pauseInitiated": "Deployment rollout paused",
+    "resumeOrchestration": "Resume rollout",
+    "resumeInitiated": "Deployment rollout resumed",
+    "rolloutRestart": "Rolling restart",
+    "rollback": "Rollback",
+    "imageUpdateInitiated": "Deployment image update initiated",
     "manageLabels": "Manage labels",
     "manageAnnotations": "Manage annotations"
   },

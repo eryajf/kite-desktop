@@ -54,10 +54,9 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('@tanstack/react-query', async () => {
-  const actual =
-    await vi.importActual<typeof import('@tanstack/react-query')>(
-      '@tanstack/react-query'
-    )
+  const actual = await vi.importActual<typeof import('@tanstack/react-query')>(
+    '@tanstack/react-query'
+  )
 
   return {
     ...actual,
@@ -132,6 +131,61 @@ vi.mock('@/components/editors/resource-metadata-dialog', () => ({
       <div>
         <span>{`resource-metadata-dialog-${type}`}</span>
         <span>{resource?.metadata?.name}</span>
+      </div>
+    ) : null,
+}))
+
+vi.mock('@/components/container-edit-dialog', () => ({
+  ContainerEditDialog: ({
+    open,
+    deployment,
+    onSaveDeployment,
+  }: {
+    open: boolean
+    deployment?: { metadata?: { name?: string } }
+    onSaveDeployment?: (deployment: Deployment) => void | Promise<void>
+  }) =>
+    open ? (
+      <div>
+        <span>container-edit-dialog</span>
+        <span>{deployment?.metadata?.name}</span>
+        <button
+          onClick={() =>
+            onSaveDeployment?.({
+              metadata: deployment?.metadata,
+              spec: {
+                template: {
+                  spec: {
+                    containers: [
+                      {
+                        name: 'api',
+                        image: 'nginx:2.0',
+                      },
+                    ],
+                  },
+                },
+              },
+            } as Deployment)
+          }
+        >
+          save-container-edit
+        </button>
+      </div>
+    ) : null,
+}))
+
+vi.mock('@/components/resource-delete-confirmation-dialog', () => ({
+  ResourceDeleteConfirmationDialog: ({
+    open,
+    resourceName,
+  }: {
+    open: boolean
+    resourceName: string
+  }) =>
+    open ? (
+      <div>
+        <span>resource-delete-confirmation-dialog</span>
+        <span>{resourceName}</span>
       </div>
     ) : null,
 }))
@@ -305,45 +359,61 @@ describe('DeploymentListPage', () => {
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
-      'primary-actions-separator',
-      'copy-name',
-      'copy-namespace',
+      'edit-image',
+      'pause-orchestration',
+      'rollout-restart',
+      'rollback',
       'metadata-actions-separator',
       'manage-labels',
       'manage-annotations',
-      'deployment-operations-separator',
-      'scale-deployment',
-      'restart-deployment',
+      'delete-deployment',
     ])
 
     await items[0].onSelect?.()
-    expect(mockNavigate).toHaveBeenCalledWith('/deployments/default/web?tab=yaml')
-
-    await items[2].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('web')
-
-    await items[3].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('default')
-    expect(mockToastSuccess).toHaveBeenCalledWith(
-      'keyValueDataViewer.copiedToClipboard'
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/deployments/default/web?tab=yaml'
     )
 
     await act(async () => {
-      await items[5].onSelect?.()
+      await items[1].onSelect?.()
+    })
+    expect(screen.getByText('container-edit-dialog')).toBeInTheDocument()
+
+    await act(async () => {
+      await items[3].onSelect?.()
+    })
+    expect(
+      screen.getByText('detail.dialogs.restartDeployment.title')
+    ).toBeInTheDocument()
+
+    await items[4].onSelect?.()
+    expect(mockNavigate).toHaveBeenCalledWith(
+      '/deployments/default/web?tab=history'
+    )
+
+    await act(async () => {
+      await items[6].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-labels')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[6].onSelect?.()
+      await items[7].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
+
+    await act(async () => {
+      await items[8].onSelect?.()
+    })
+    expect(
+      screen.getByText('resource-delete-confirmation-dialog')
+    ).toBeInTheDocument()
   })
 
-  it('opens scale and restart dialogs from row context menu actions', async () => {
+  it('opens restart dialog from row context menu actions', async () => {
     vi.useRealTimers()
     mockPatchResource.mockResolvedValue(undefined)
 
@@ -369,48 +439,7 @@ describe('DeploymentListPage', () => {
     const items = resourceTableProps.getRowContextMenuItems(deployment)
 
     await act(async () => {
-      await items[8].onSelect?.()
-    })
-    expect(
-      screen.getByText('detail.dialogs.scaleDeployment.title')
-    ).toBeInTheDocument()
-
-    await act(async () => {
-      fireEvent.change(
-        screen.getByLabelText('detail.dialogs.scaleDeployment.replicas'),
-        {
-          target: { value: '5' },
-        }
-      )
-    })
-    await act(async () => {
-      fireEvent.click(
-        screen.getByRole('button', {
-          name: 'detail.dialogs.scaleDeployment.scaleButton',
-        })
-      )
-    })
-
-    await waitFor(() => {
-      expect(mockPatchResource).toHaveBeenCalledWith(
-        'deployments',
-        'web',
-        'default',
-        {
-          spec: {
-            replicas: 5,
-          },
-        }
-      )
-    })
-    await waitFor(() => {
-      expect(mockInvalidateQueries).toHaveBeenCalledWith({
-        queryKey: ['deployments'],
-      })
-    })
-
-    await act(async () => {
-      await items[9].onSelect?.()
+      await items[3].onSelect?.()
     })
     expect(
       screen.getByText('detail.dialogs.restartDeployment.title')
@@ -440,6 +469,132 @@ describe('DeploymentListPage', () => {
             },
           },
         })
+      )
+    })
+  })
+
+  it('patches deployment pause and image edits from row context menu actions', async () => {
+    vi.useRealTimers()
+    mockPatchResource.mockResolvedValue(undefined)
+
+    render(<DeploymentListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (deployment: Deployment) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const deployment = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+      },
+      spec: {
+        paused: false,
+        template: {
+          spec: {
+            containers: [
+              {
+                name: 'api',
+                image: 'nginx:1.0',
+              },
+            ],
+          },
+        },
+      },
+    } as Deployment
+
+    const items = resourceTableProps.getRowContextMenuItems(deployment)
+
+    await act(async () => {
+      await items[2].onSelect?.()
+    })
+    await waitFor(() => {
+      expect(mockPatchResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        'default',
+        {
+          spec: {
+            paused: true,
+          },
+        }
+      )
+    })
+
+    await act(async () => {
+      await items[1].onSelect?.()
+    })
+    await act(async () => {
+      fireEvent.click(screen.getByText('save-container-edit'))
+    })
+    await waitFor(() => {
+      expect(mockPatchResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        'default',
+        {
+          spec: {
+            template: {
+              spec: {
+                containers: [
+                  {
+                    name: 'api',
+                    image: 'nginx:2.0',
+                  },
+                ],
+              },
+            },
+          },
+        }
+      )
+    })
+  })
+
+  it('shows resume orchestration for paused deployments', async () => {
+    vi.useRealTimers()
+    mockPatchResource.mockResolvedValue(undefined)
+
+    render(<DeploymentListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (deployment: Deployment) => {
+        key: string
+        label?: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const deployment = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+      },
+      spec: {
+        paused: true,
+      },
+    } as Deployment
+
+    const items = resourceTableProps.getRowContextMenuItems(deployment)
+
+    expect(items[2].key).toBe('resume-orchestration')
+    expect(items[2].label).toBe('deploymentList.resumeOrchestration')
+
+    await act(async () => {
+      await items[2].onSelect?.()
+    })
+    await waitFor(() => {
+      expect(mockPatchResource).toHaveBeenCalledWith(
+        'deployments',
+        'web',
+        'default',
+        {
+          spec: {
+            paused: false,
+          },
+        }
       )
     })
   })

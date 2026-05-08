@@ -1837,6 +1837,14 @@
     "manageAnnotations": "管理注解"
   },
   "deploymentList": {
+    "editImage": "修改镜像版本",
+    "pauseOrchestration": "暂停编排",
+    "pauseInitiated": "Deployment 编排已暂停",
+    "resumeOrchestration": "恢复编排",
+    "resumeInitiated": "Deployment 编排已恢复",
+    "rolloutRestart": "滚动重启",
+    "rollback": "回滚",
+    "imageUpdateInitiated": "Deployment 镜像更新已发起",
     "manageLabels": "管理标签",
     "manageAnnotations": "管理注解"
   },

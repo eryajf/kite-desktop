@@ -1,6 +1,7 @@
 package resources
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -163,6 +164,29 @@ func decodeNodeListResponse(t *testing.T, rec *httptest.ResponseRecorder) *commo
 }
 
 // ---------- Tests ----------
+
+func TestNodeHandlerDrain_AcceptsExplicitFalseForce(t *testing.T) {
+	node := makeNode("node-a", 4000, 8*1024*1024*1024, 110)
+	cs := newFakeClientSet(t, node)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("cluster", cs)
+		c.Next()
+	})
+	handler := NewNodeHandler()
+	router.POST("/nodes/_all/:name/drain", handler.DrainNode)
+
+	body := []byte(`{"force":false,"gracePeriod":30,"deleteLocalData":false,"ignoreDaemonsets":true}`)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/nodes/_all/node-a/drain", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code, "unexpected status code; body=%s", rec.Body.String())
+	assert.Contains(t, rec.Body.String(), "Node node-a drain initiated")
+}
 
 // TestNodeHandlerList_PodAssignmentByFieldIndex verifies that the List method
 // correctly uses the spec.nodeName field indexer to count pods per node and

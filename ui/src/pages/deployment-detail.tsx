@@ -11,6 +11,7 @@ import { Container } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
+import { trackResourceAction } from '@/lib/analytics'
 import {
   patchResource,
   updateResource,
@@ -18,7 +19,6 @@ import {
   useResources,
   useResourcesWatch,
 } from '@/lib/api'
-import { trackResourceAction } from '@/lib/analytics'
 import {
   buildDeploymentOverviewViewModel,
   filterPodsOwnedByDeployment,
@@ -47,12 +47,12 @@ import { EventTable } from '@/components/event-table'
 import { LogViewer } from '@/components/log-viewer'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
+import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
 import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
-import { RefreshButton } from '@/components/refresh-button'
 import { YamlEditor } from '@/components/yaml-editor'
 
 export function DeploymentDetail(props: { namespace: string; name: string }) {
