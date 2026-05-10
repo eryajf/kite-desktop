@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MetricCell } from '@/components/metrics-cell'
+import { NodeDrainOptionRow } from '@/components/node-drain-option-row'
 import { NodeStatusIcon } from '@/components/node-status-icon'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
@@ -729,60 +730,42 @@ export function NodeListPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="node-list-drain-force"
-                checked={drainOptions.force}
-                onChange={(e) =>
-                  setDrainOptions((current) => ({
-                    ...current,
-                    force: e.target.checked,
-                  }))
-                }
-              />
-              <Label htmlFor="node-list-drain-force" className="text-sm">
-                {t('detail.dialogs.drainNode.forceDrain')}
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="node-list-drain-delete-local-data"
-                checked={drainOptions.deleteLocalData}
-                onChange={(e) =>
-                  setDrainOptions((current) => ({
-                    ...current,
-                    deleteLocalData: e.target.checked,
-                  }))
-                }
-              />
-              <Label
-                htmlFor="node-list-drain-delete-local-data"
-                className="text-sm"
-              >
-                {t('detail.dialogs.drainNode.deleteLocalData')}
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="node-list-drain-ignore-daemonsets"
-                checked={drainOptions.ignoreDaemonsets}
-                onChange={(e) =>
-                  setDrainOptions((current) => ({
-                    ...current,
-                    ignoreDaemonsets: e.target.checked,
-                  }))
-                }
-              />
-              <Label
-                htmlFor="node-list-drain-ignore-daemonsets"
-                className="text-sm"
-              >
-                {t('detail.dialogs.drainNode.ignoreDaemonSets')}
-              </Label>
-            </div>
+            <NodeDrainOptionRow
+              id="node-list-drain-force"
+              option="forceDrain"
+              checked={drainOptions.force}
+              onCheckedChange={(checked) =>
+                setDrainOptions((current) => ({
+                  ...current,
+                  force: checked,
+                }))
+              }
+              label={t('detail.dialogs.drainNode.forceDrain')}
+            />
+            <NodeDrainOptionRow
+              id="node-list-drain-delete-local-data"
+              option="deleteLocalData"
+              checked={drainOptions.deleteLocalData}
+              onCheckedChange={(checked) =>
+                setDrainOptions((current) => ({
+                  ...current,
+                  deleteLocalData: checked,
+                }))
+              }
+              label={t('detail.dialogs.drainNode.deleteLocalData')}
+            />
+            <NodeDrainOptionRow
+              id="node-list-drain-ignore-daemonsets"
+              option="ignoreDaemonsets"
+              checked={drainOptions.ignoreDaemonsets}
+              onCheckedChange={(checked) =>
+                setDrainOptions((current) => ({
+                  ...current,
+                  ignoreDaemonsets: checked,
+                }))
+              }
+              label={t('detail.dialogs.drainNode.ignoreDaemonSets')}
+            />
             <div className="space-y-2">
               <Label htmlFor="node-list-drain-grace-period" className="text-sm">
                 {t('detail.dialogs.drainNode.gracePeriod')}

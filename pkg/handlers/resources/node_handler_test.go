@@ -2,10 +2,12 @@ package resources
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/eryajf/kite-desktop/pkg/cluster"
 	"github.com/eryajf/kite-desktop/pkg/common"
@@ -14,12 +16,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/fake"
+	clientgotesting "k8s.io/client-go/testing"
 	metricsv1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 // buildTestScheme creates a runtime.Scheme with all types the handler needs.
@@ -29,6 +34,29 @@ func buildTestScheme(t *testing.T) *runtime.Scheme {
 	require.NoError(t, corev1.AddToScheme(s))
 	require.NoError(t, metricsv1.AddToScheme(s))
 	return s
+}
+
+func toRuntimeObjects(objs []client.Object) []runtime.Object {
+	runtimeObjs := make([]runtime.Object, 0, len(objs))
+	for _, obj := range objs {
+		runtimeObjs = append(runtimeObjs, obj)
+	}
+	return runtimeObjs
+}
+
+func newTypedFakeClient(objs []client.Object) *fake.Clientset {
+	coreObjects := make([]runtime.Object, 0, len(objs))
+	for _, obj := range objs {
+		switch obj.(type) {
+		case *corev1.Node, *corev1.Pod:
+			coreObjects = append(coreObjects, obj)
+		}
+	}
+	clientset := fake.NewSimpleClientset(coreObjects...)
+	clientset.Resources = append(clientset.Resources, &metav1.APIResourceList{
+		GroupVersion: "v1",
+	})
+	return clientset
 }
 
 // podNodeIndexer is the same indexer function registered in pkg/kube/client.go.
@@ -47,7 +75,7 @@ func podNodeIndexer(obj client.Object) []string {
 func newFakeClientSet(t *testing.T, objs ...client.Object) *cluster.ClientSet {
 	t.Helper()
 	scheme := buildTestScheme(t)
-	cb := fake.NewClientBuilder().
+	cb := crfake.NewClientBuilder().
 		WithScheme(scheme).
 		WithIndex(&corev1.Pod{}, "spec.nodeName", podNodeIndexer)
 
@@ -60,6 +88,7 @@ func newFakeClientSet(t *testing.T, objs ...client.Object) *cluster.ClientSet {
 	return &cluster.ClientSet{
 		K8sClient: &kube.K8sClient{
 			Client:       fakeClient,
+			ClientSet:    newTypedFakeClient(objs),
 			CacheEnabled: true,
 		},
 	}
@@ -70,7 +99,7 @@ func newFakeClientSet(t *testing.T, objs ...client.Object) *cluster.ClientSet {
 func newFakeClientSetUncached(t *testing.T, objs ...client.Object) *cluster.ClientSet {
 	t.Helper()
 	scheme := buildTestScheme(t)
-	cb := fake.NewClientBuilder().
+	cb := crfake.NewClientBuilder().
 		WithScheme(scheme)
 
 	for _, o := range objs {
@@ -82,6 +111,7 @@ func newFakeClientSetUncached(t *testing.T, objs ...client.Object) *cluster.Clie
 	return &cluster.ClientSet{
 		K8sClient: &kube.K8sClient{
 			Client:       fakeClient,
+			ClientSet:    newTypedFakeClient(objs),
 			CacheEnabled: false,
 		},
 	}
@@ -184,8 +214,120 @@ func TestNodeHandlerDrain_AcceptsExplicitFalseForce(t *testing.T) {
 
 	router.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusOK, rec.Code, "unexpected status code; body=%s", rec.Body.String())
-	assert.Contains(t, rec.Body.String(), "Node node-a drain initiated")
+	require.Equal(t, http.StatusAccepted, rec.Code, "unexpected status code; body=%s", rec.Body.String())
+	assert.Contains(t, rec.Body.String(), "Node node-a drain started")
+}
+
+func TestNodeHandlerDrain_RejectsBarePodWhenForceFalse(t *testing.T) {
+	node := makeNode("node-a", 4000, 8*1024*1024*1024, 110)
+	pod := makePod("bare-pod", "default", "node-a", 100, 64*1024*1024)
+	cs := newFakeClientSet(t, node, pod)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("cluster", cs)
+		c.Next()
+	})
+	handler := NewNodeHandler()
+	router.POST("/nodes/_all/:name/drain", handler.DrainNode)
+
+	body := []byte(`{"force":false,"gracePeriod":30,"deleteLocalData":false,"ignoreDaemonsets":true}`)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/nodes/_all/node-a/drain", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusConflict, rec.Code, "unexpected status code; body=%s", rec.Body.String())
+	assert.Contains(t, rec.Body.String(), "cannot delete Pods that declare no controller")
+
+	_, err := cs.K8sClient.ClientSet.CoreV1().Pods("default").Get(context.Background(), "bare-pod", metav1.GetOptions{})
+	require.NoError(t, err, "bare pod should remain when force=false")
+}
+
+func TestNodeHandlerDrain_CordonsNodeAndDeletesBarePodWhenForceTrue(t *testing.T) {
+	node := makeNode("node-a", 4000, 8*1024*1024*1024, 110)
+	pod := makePod("bare-pod", "default", "node-a", 100, 64*1024*1024)
+	cs := newFakeClientSet(t, node, pod)
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("cluster", cs)
+		c.Next()
+	})
+	handler := NewNodeHandler()
+	router.POST("/nodes/_all/:name/drain", handler.DrainNode)
+
+	body := []byte(`{"force":true,"gracePeriod":30,"deleteLocalData":false,"ignoreDaemonsets":true}`)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/nodes/_all/node-a/drain", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	router.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusAccepted, rec.Code, "unexpected status code; body=%s", rec.Body.String())
+	assert.Contains(t, rec.Body.String(), "Node node-a drain started")
+
+	updatedNode, err := cs.K8sClient.ClientSet.CoreV1().Nodes().Get(context.Background(), "node-a", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.True(t, updatedNode.Spec.Unschedulable, "drain should cordon the node")
+
+	require.Eventually(t, func() bool {
+		_, err = cs.K8sClient.ClientSet.CoreV1().Pods("default").Get(context.Background(), "bare-pod", metav1.GetOptions{})
+		return apierrors.IsNotFound(err)
+	}, time.Second, 10*time.Millisecond, "force=true should delete bare pod")
+}
+
+func TestNodeHandlerDrain_ReturnsBeforePodDeletionCompletes(t *testing.T) {
+	node := makeNode("node-a", 4000, 8*1024*1024*1024, 110)
+	pod := makePod("bare-pod", "default", "node-a", 100, 64*1024*1024)
+	cs := newFakeClientSet(t, node, pod)
+
+	deleteStarted := make(chan struct{})
+	releaseDelete := make(chan struct{})
+	defer close(releaseDelete)
+
+	typedClient, ok := cs.K8sClient.ClientSet.(*fake.Clientset)
+	require.True(t, ok, "test client should be fake clientset")
+	typedClient.PrependReactor("delete", "pods", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		close(deleteStarted)
+		<-releaseDelete
+		return false, nil, nil
+	})
+
+	router := gin.New()
+	router.Use(func(c *gin.Context) {
+		c.Set("cluster", cs)
+		c.Next()
+	})
+	handler := NewNodeHandler()
+	router.POST("/nodes/_all/:name/drain", handler.DrainNode)
+
+	body := []byte(`{"force":true,"gracePeriod":30,"deleteLocalData":false,"ignoreDaemonsets":true}`)
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/nodes/_all/node-a/drain", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	done := make(chan struct{})
+	go func() {
+		router.ServeHTTP(rec, req)
+		close(done)
+	}()
+
+	select {
+	case <-deleteStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("pod deletion was not started")
+	}
+
+	select {
+	case <-done:
+	case <-time.After(100 * time.Millisecond):
+		t.Fatal("drain request blocked waiting for pod deletion")
+	}
+
+	require.Equal(t, http.StatusAccepted, rec.Code, "unexpected status code; body=%s", rec.Body.String())
+	assert.Contains(t, rec.Body.String(), "Node node-a drain started")
 }
 
 // TestNodeHandlerList_PodAssignmentByFieldIndex verifies that the List method

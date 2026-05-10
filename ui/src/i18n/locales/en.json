@@ -1034,6 +1034,20 @@
         "forceDrain": "Force drain",
         "deleteLocalData": "Delete local data",
         "ignoreDaemonSets": "Ignore DaemonSets",
+        "help": {
+          "forceDrain": {
+            "label": "Explain force drain",
+            "description": "Allows drain to delete standalone Pods that do not have a controller. Use carefully because those Pods will not be recreated automatically."
+          },
+          "deleteLocalData": {
+            "label": "Explain delete local data",
+            "description": "Allows drain to delete Pods that use emptyDir local temporary storage. Keep it off when you are unsure; enable it when errors mention local storage or --delete-emptydir-data."
+          },
+          "ignoreDaemonsets": {
+            "label": "Explain Ignore DaemonSets",
+            "description": "Skips DaemonSet-managed Pods during drain. DaemonSet Pods are not deleted by drain; they continue to be managed by their DaemonSet."
+          }
+        },
         "gracePeriod": "Grace Period (seconds)",
         "drainButton": "Drain Node"
       },

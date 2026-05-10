@@ -42,7 +42,10 @@ func (h *NodeTerminalHandler) HandleNodeTerminalWebSocket(c *gin.Context) {
 		defer func() {
 			_ = conn.Close()
 		}()
-		node, err := cs.K8sClient.ClientSet.CoreV1().Nodes().Get(context.TODO(), nodeName, metav1.GetOptions{})
+		ctx, cancel := context.WithCancel(c.Request.Context())
+		defer cancel()
+
+		node, err := cs.K8sClient.ClientSet.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
 		if err != nil {
 			log.Printf("Failed to get node %s: %v", nodeName, err)
 			h.sendErrorMessage(conn, fmt.Sprintf("Failed to get node %s: %v", nodeName, err))
@@ -63,8 +66,6 @@ func (h *NodeTerminalHandler) HandleNodeTerminalWebSocket(c *gin.Context) {
 		if nodeTerminalImage == "" {
 			nodeTerminalImage = common.NodeTerminalImage
 		}
-		ctx, cancel := context.WithCancel(c.Request.Context())
-		defer cancel()
 
 		nodeAgentName, err := h.createNodeAgent(ctx, cs, nodeName, nodeTerminalImage)
 		if err != nil {
@@ -189,7 +190,7 @@ func (h *NodeTerminalHandler) waitForPodReady(ctx context.Context, cs *cluster.C
 			return fmt.Errorf("timeout waiting for pod %s to be ready", podName)
 		case <-ticker.C:
 			pod, err = cs.K8sClient.ClientSet.CoreV1().Pods(common.AgentPodNamespace).Get(
-				context.TODO(),
+				ctx,
 				podName,
 				metav1.GetOptions{},
 			)
@@ -206,8 +207,11 @@ func (h *NodeTerminalHandler) waitForPodReady(ctx context.Context, cs *cluster.C
 }
 
 func (h *NodeTerminalHandler) cleanupNodeAgentPod(cs *cluster.ClientSet, podName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	return cs.K8sClient.ClientSet.CoreV1().Pods(common.AgentPodNamespace).Delete(
-		context.TODO(),
+		ctx,
 		podName,
 		metav1.DeleteOptions{},
 	)

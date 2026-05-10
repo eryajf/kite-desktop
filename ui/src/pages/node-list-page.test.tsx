@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { act, render, screen } from '@testing-library/react'
 import { createColumnHelper, flexRender } from '@tanstack/react-table'
-import { describe, expect, it, vi } from 'vitest'
+import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { NodeWithMetrics } from '@/types/api'
 
@@ -11,6 +12,10 @@ const mockResourceTable = vi.fn()
 const mockNavigate = vi.fn()
 const mockCopyTextToClipboard = vi.fn()
 const mockMetricCell = vi.fn()
+const mockDrainNode = vi.fn()
+const mockTrackResourceAction = vi.fn()
+const mockToastSuccess = vi.fn()
+const mockToastError = vi.fn()
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -37,10 +42,9 @@ vi.mock('react-router-dom', async () => {
 })
 
 vi.mock('@tanstack/react-query', async () => {
-  const actual =
-    await vi.importActual<typeof import('@tanstack/react-query')>(
-      '@tanstack/react-query'
-    )
+  const actual = await vi.importActual<typeof import('@tanstack/react-query')>(
+    '@tanstack/react-query'
+  )
 
   return {
     ...actual,
@@ -68,10 +72,20 @@ vi.mock('@/lib/desktop', () => ({
   copyTextToClipboard: (value: string) => mockCopyTextToClipboard(value),
 }))
 
+vi.mock('@/lib/api', () => ({
+  cordonNode: vi.fn(),
+  drainNode: (...args: unknown[]) => mockDrainNode(...args),
+  uncordonNode: vi.fn(),
+}))
+
+vi.mock('@/lib/analytics', () => ({
+  trackResourceAction: (...args: unknown[]) => mockTrackResourceAction(...args),
+}))
+
 vi.mock('sonner', () => ({
   toast: {
-    success: vi.fn(),
-    error: vi.fn(),
+    success: (value: string) => mockToastSuccess(value),
+    error: (value: string) => mockToastError(value),
   },
 }))
 
@@ -81,6 +95,11 @@ describe('NodeListPage', () => {
     mockNavigate.mockClear()
     mockCopyTextToClipboard.mockClear()
     mockMetricCell.mockClear()
+    mockDrainNode.mockReset()
+    mockTrackResourceAction.mockClear()
+    mockToastSuccess.mockClear()
+    mockToastError.mockClear()
+    mockDrainNode.mockResolvedValue(undefined)
   })
 
   it('keeps status and roles columns mapped to the correct headers and values', () => {
@@ -243,5 +262,63 @@ describe('NodeListPage', () => {
       await items[5].onSelect?.()
     })
     expect(screen.getByText('nodes.terminalDialogTitle')).toBeInTheDocument()
+  })
+
+  it('explains drain options and submits the selected values', async () => {
+    const user = userEvent.setup()
+    render(<NodeListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (node: NodeWithMetrics) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const node = {
+      metadata: {
+        name: 'orbstack',
+      },
+      spec: {},
+      status: {},
+    } as NodeWithMetrics
+
+    const items = resourceTableProps.getRowContextMenuItems(node)
+
+    await act(async () => {
+      await items.find((item) => item.key === 'drain')?.onSelect?.()
+    })
+
+    expect(
+      screen.getByLabelText('detail.dialogs.drainNode.deleteLocalData')
+    ).not.toBeChecked()
+    expect(
+      screen.getByRole('button', {
+        name: 'detail.dialogs.drainNode.help.forceDrain.label',
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: 'detail.dialogs.drainNode.help.deleteLocalData.label',
+      })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', {
+        name: 'detail.dialogs.drainNode.help.ignoreDaemonsets.label',
+      })
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByLabelText('detail.dialogs.drainNode.deleteLocalData')
+    )
+
+    await user.click(screen.getByText('detail.dialogs.drainNode.drainButton'))
+
+    expect(mockDrainNode).toHaveBeenCalledWith('orbstack', {
+      force: false,
+      gracePeriod: 30,
+      deleteLocalData: true,
+      ignoreDaemonsets: true,
+    })
   })
 })

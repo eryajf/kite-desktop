@@ -1,10 +1,13 @@
 package resources
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
 	"sort"
+	"strings"
+	"time"
 
 	"github.com/eryajf/kite-desktop/pkg/cluster"
 	"github.com/eryajf/kite-desktop/pkg/common"
@@ -12,11 +15,16 @@ import (
 	"github.com/gin-gonic/gin"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
+	kubectldrain "k8s.io/kubectl/pkg/drain"
 	metricsv1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const defaultDrainTimeout = 5 * time.Minute
 
 type NodeHandler struct {
 	*GenericResourceHandler[*corev1.Node, *corev1.NodeList]
@@ -50,9 +58,13 @@ func (h *NodeHandler) DrainNode(c *gin.Context) {
 		return
 	}
 
-	// Get the node first to ensure it exists
-	var node corev1.Node
-	if err := cs.K8sClient.Get(ctx, types.NamespacedName{Name: nodeName}, &node); err != nil {
+	if cs.K8sClient == nil || cs.K8sClient.ClientSet == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kubernetes client is not initialized"})
+		return
+	}
+
+	node, err := cs.K8sClient.ClientSet.CoreV1().Nodes().Get(ctx, nodeName, metav1.GetOptions{})
+	if err != nil {
 		if errors.IsNotFound(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Node not found"})
 			return
@@ -61,17 +73,61 @@ func (h *NodeHandler) DrainNode(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual drain logic
-	// For now, we'll simulate the drain operation
-	// In a real implementation, you would:
-	// 1. Mark the node as unschedulable (cordon)
-	// 2. Evict all pods from the node
-	// 3. Handle daemonsets appropriately
-	// 4. Wait for pods to be evicted or force delete them
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+	drainer := &kubectldrain.Helper{
+		Ctx:                             ctx,
+		Client:                          cs.K8sClient.ClientSet,
+		Force:                           *drainRequest.Force,
+		GracePeriodSeconds:              drainRequest.GracePeriod,
+		IgnoreAllDaemonSets:             drainRequest.IgnoreDaemonsets,
+		DeleteEmptyDirData:              drainRequest.DeleteLocal,
+		Timeout:                         defaultDrainTimeout,
+		EvictErrorRetryDelay:            5 * time.Second,
+		SkipWaitForDeleteTimeoutSeconds: 0,
+		ChunkSize:                       500,
+		Out:                             &out,
+		ErrOut:                          &errOut,
+	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("Node %s drain initiated", nodeName),
-		"node":    node.Name,
+	if err := kubectldrain.RunCordonOrUncordon(drainer, node, true); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to cordon node: " + err.Error()})
+		return
+	}
+
+	podDeleteList, errs := drainer.GetPodsForDeletion(nodeName)
+	if len(errs) > 0 {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":       formatDrainErrors(errs),
+			"errorDetail": drainErrorDetail(errs),
+			"node":        node.Name,
+			"warnings":    errOut.String(),
+		})
+		return
+	}
+
+	warnings := podDeleteList.Warnings()
+	pods := podDeleteList.Pods()
+	podRefs := podNames(pods)
+
+	go func() {
+		drainCtx, cancel := context.WithTimeout(context.Background(), defaultDrainTimeout)
+		defer cancel()
+
+		drainer.Ctx = drainCtx
+		if err := drainer.DeleteOrEvictPods(pods); err != nil {
+			klog.Errorf("Failed to drain node %s: %v", node.Name, err)
+			return
+		}
+		klog.Infof("Node %s drain completed, pods=%v", node.Name, podRefs)
+	}()
+
+	c.JSON(http.StatusAccepted, gin.H{
+		"message":  fmt.Sprintf("Node %s drain started", nodeName),
+		"node":     node.Name,
+		"pods":     podRefs,
+		"warnings": warnings,
+		"output":   strings.TrimSpace(out.String()),
 		"options": gin.H{
 			"force":            *drainRequest.Force,
 			"gracePeriod":      drainRequest.GracePeriod,
@@ -79,6 +135,49 @@ func (h *NodeHandler) DrainNode(c *gin.Context) {
 			"ignoreDaemonsets": drainRequest.IgnoreDaemonsets,
 		},
 	})
+}
+
+func formatDrainErrors(errs []error) string {
+	parts := make([]string, 0, len(errs))
+	for _, err := range errs {
+		if err != nil {
+			parts = append(parts, err.Error())
+		}
+	}
+	return strings.Join(parts, "; ")
+}
+
+func drainErrorDetail(errs []error) string {
+	message := formatDrainErrors(errs)
+	switch {
+	case strings.Contains(message, "Pods with local storage"):
+		return "The node has Pods that use emptyDir local storage. Enable Delete local data and retry if these temporary files can be discarded."
+	case strings.Contains(message, "DaemonSet-managed Pods"):
+		return "The node has DaemonSet-managed Pods. Enable Ignore DaemonSets and retry; DaemonSet Pods are managed by their controller."
+	case strings.Contains(message, "declare no controller"):
+		return "The node has Pods without a controller. Enable Force drain only if deleting these standalone Pods is acceptable."
+	default:
+		return ""
+	}
+}
+
+func podNames(pods []corev1.Pod) []string {
+	names := sets.New[string]()
+	for _, pod := range pods {
+		names.Insert(fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
+	}
+	return sets.List(names)
+}
+
+func nonEmptyStrings(values ...string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func (h *NodeHandler) markNodeSchedulable(ctx context.Context, client *kube.K8sClient, nodeName string, schedulable bool) error {

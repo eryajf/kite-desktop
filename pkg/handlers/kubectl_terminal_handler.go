@@ -216,7 +216,9 @@ func (h *KubectlTerminalHandler) waitForPodReady(ctx context.Context, cs *cluste
 
 // cleanupPod deletes only the per-session pod (the admin SA/CRB are permanent).
 func (h *KubectlTerminalHandler) cleanupPod(cs *cluster.ClientSet, instanceID string) error {
-	ctx := context.TODO()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	opts := []client.DeleteAllOfOption{
 		client.InNamespace(common.AgentPodNamespace),
 		client.MatchingLabels{"kite.io/kubectl-session": instanceID},

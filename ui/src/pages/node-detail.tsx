@@ -7,9 +7,9 @@ import {
   IconLock,
   IconReload,
 } from '@tabler/icons-react'
-import { CircleHelp, Droplets } from 'lucide-react'
 import * as yaml from 'js-yaml'
 import { Node } from 'kubernetes-types/core/v1'
+import { CircleHelp, Droplets } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -60,6 +60,7 @@ import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LabelsAnno } from '@/components/lables-anno'
 import { MetricCell } from '@/components/metrics-cell'
+import { NodeDrainOptionRow } from '@/components/node-drain-option-row'
 import { NodeImageTable } from '@/components/node-image-table'
 import { NodeMonitoring } from '@/components/node-monitoring'
 import { PodTable } from '@/components/pod-table'
@@ -192,7 +193,8 @@ export function NodeDetail(props: { name: string }) {
     })
 
   const nodeMetrics = useMemo(
-    () => nodesWithMetrics?.find((node) => node.metadata?.name === name)?.metrics,
+    () =>
+      nodesWithMetrics?.find((node) => node.metadata?.name === name)?.metrics,
     [name, nodesWithMetrics]
   )
 
@@ -394,7 +396,7 @@ export function NodeDetail(props: { name: string }) {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/20"
+                className="order-5 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/20"
               >
                 <Droplets className="w-4 h-4" />
                 {t('detail.buttons.drain')}
@@ -411,54 +413,42 @@ export function NodeDetail(props: { name: string }) {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="force"
-                      checked={drainOptions.force}
-                      onChange={(e) =>
-                        setDrainOptions({
-                          ...drainOptions,
-                          force: e.target.checked,
-                        })
-                      }
-                    />
-                    <Label htmlFor="force" className="text-sm">
-                      {t('detail.dialogs.drainNode.forceDrain')}
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="deleteLocalData"
-                      checked={drainOptions.deleteLocalData}
-                      onChange={(e) =>
-                        setDrainOptions({
-                          ...drainOptions,
-                          deleteLocalData: e.target.checked,
-                        })
-                      }
-                    />
-                    <Label htmlFor="deleteLocalData" className="text-sm">
-                      {t('detail.dialogs.drainNode.deleteLocalData')}
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="ignoreDaemonsets"
-                      checked={drainOptions.ignoreDaemonsets}
-                      onChange={(e) =>
-                        setDrainOptions({
-                          ...drainOptions,
-                          ignoreDaemonsets: e.target.checked,
-                        })
-                      }
-                    />
-                    <Label htmlFor="ignoreDaemonsets" className="text-sm">
-                      {t('detail.dialogs.drainNode.ignoreDaemonSets')}
-                    </Label>
-                  </div>
+                  <NodeDrainOptionRow
+                    id="force"
+                    option="forceDrain"
+                    checked={drainOptions.force}
+                    onCheckedChange={(checked) =>
+                      setDrainOptions({
+                        ...drainOptions,
+                        force: checked,
+                      })
+                    }
+                    label={t('detail.dialogs.drainNode.forceDrain')}
+                  />
+                  <NodeDrainOptionRow
+                    id="deleteLocalData"
+                    option="deleteLocalData"
+                    checked={drainOptions.deleteLocalData}
+                    onCheckedChange={(checked) =>
+                      setDrainOptions({
+                        ...drainOptions,
+                        deleteLocalData: checked,
+                      })
+                    }
+                    label={t('detail.dialogs.drainNode.deleteLocalData')}
+                  />
+                  <NodeDrainOptionRow
+                    id="ignoreDaemonsets"
+                    option="ignoreDaemonsets"
+                    checked={drainOptions.ignoreDaemonsets}
+                    onCheckedChange={(checked) =>
+                      setDrainOptions({
+                        ...drainOptions,
+                        ignoreDaemonsets: checked,
+                      })
+                    }
+                    label={t('detail.dialogs.drainNode.ignoreDaemonSets')}
+                  />
                   <div className="space-y-2">
                     <Label htmlFor="gracePeriod" className="text-sm">
                       {t('detail.dialogs.drainNode.gracePeriod')}
@@ -495,7 +485,12 @@ export function NodeDetail(props: { name: string }) {
 
           {/* Cordon/Uncordon Toggle */}
           {data.spec?.unschedulable ? (
-            <Button onClick={handleUncordon} variant="outline" size="sm">
+            <Button
+              onClick={handleUncordon}
+              variant="outline"
+              size="sm"
+              className="order-4"
+            >
               <IconReload className="w-4 h-4" />
               {t('detail.buttons.uncordon')}
             </Button>
@@ -505,7 +500,7 @@ export function NodeDetail(props: { name: string }) {
               onOpenChange={setIsCordonPopoverOpen}
             >
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="order-4">
                   <IconBan className="w-4 h-4" />
                   {t('detail.buttons.cordon')}
                 </Button>
@@ -547,7 +542,7 @@ export function NodeDetail(props: { name: string }) {
             onOpenChange={setIsTaintPopoverOpen}
           >
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="order-3">
                 <IconLock className="w-4 h-4" />
                 {t('detail.buttons.taint')}
               </Button>
@@ -809,68 +804,68 @@ export function NodeDetail(props: { name: string }) {
                       labels={data.metadata?.labels || {}}
                       annotations={data.metadata?.annotations || {}}
                     />
-                </CardContent>
-              </Card>
-
-              {nodeMetrics ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      <SectionTitleWithInfo
-                        title={t('detail.sections.resourceUtilization')}
-                        description={t(
-                          'detail.sectionDescriptions.resourceUtilization'
-                        )}
-                      />
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                      <div className="rounded-lg border p-4">
-                        <p className="mb-3 text-sm font-medium">
-                          {t('detail.fields.pods')}
-                        </p>
-                        <NodePodsUsageSummary
-                          metrics={nodeMetrics}
-                          summaryLabel={t(
-                            'detail.metricSummary.podsUsageSummary'
-                          )}
-                        />
-                      </div>
-                      <div className="rounded-lg border p-4">
-                        <p className="mb-3 text-sm font-medium">CPU</p>
-                        <MetricCell
-                          metrics={nodeMetrics}
-                          type="cpu"
-                          limitLabel={t('detail.fields.allocatable')}
-                          showPercentage={true}
-                          layout="stacked"
-                          cpuUnit="cores"
-                        />
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          {t('detail.metricSummary.cpuUsageSummary')}
-                        </p>
-                      </div>
-                      <div className="rounded-lg border p-4">
-                        <p className="mb-3 text-sm font-medium">
-                          {t('detail.fields.memory')}
-                        </p>
-                        <MetricCell
-                          metrics={nodeMetrics}
-                          type="memory"
-                          limitLabel={t('detail.fields.allocatable')}
-                          showPercentage={true}
-                          layout="stacked"
-                          compactValue={true}
-                        />
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          {t('detail.metricSummary.memoryUsageSummary')}
-                        </p>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
-              ) : null}
+
+                {nodeMetrics ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>
+                        <SectionTitleWithInfo
+                          title={t('detail.sections.resourceUtilization')}
+                          description={t(
+                            'detail.sectionDescriptions.resourceUtilization'
+                          )}
+                        />
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="rounded-lg border p-4">
+                          <p className="mb-3 text-sm font-medium">
+                            {t('detail.fields.pods')}
+                          </p>
+                          <NodePodsUsageSummary
+                            metrics={nodeMetrics}
+                            summaryLabel={t(
+                              'detail.metricSummary.podsUsageSummary'
+                            )}
+                          />
+                        </div>
+                        <div className="rounded-lg border p-4">
+                          <p className="mb-3 text-sm font-medium">CPU</p>
+                          <MetricCell
+                            metrics={nodeMetrics}
+                            type="cpu"
+                            limitLabel={t('detail.fields.allocatable')}
+                            showPercentage={true}
+                            layout="stacked"
+                            cpuUnit="cores"
+                          />
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            {t('detail.metricSummary.cpuUsageSummary')}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border p-4">
+                          <p className="mb-3 text-sm font-medium">
+                            {t('detail.fields.memory')}
+                          </p>
+                          <MetricCell
+                            metrics={nodeMetrics}
+                            type="memory"
+                            limitLabel={t('detail.fields.allocatable')}
+                            showPercentage={true}
+                            layout="stacked"
+                            compactValue={true}
+                          />
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            {t('detail.metricSummary.memoryUsageSummary')}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
 
                 {/* Resource Capacity & Allocation */}
                 <Card>

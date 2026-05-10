@@ -1513,6 +1513,20 @@
         "forceDrain": "强制驱逐",
         "deleteLocalData": "删除本地数据",
         "ignoreDaemonSets": "忽略 DaemonSet",
+        "help": {
+          "forceDrain": {
+            "label": "说明强制驱逐",
+            "description": "允许驱逐没有控制器管理的独立 Pod。请谨慎开启，因为这类 Pod 删除后不会被自动重建。"
+          },
+          "deleteLocalData": {
+            "label": "说明删除本地数据",
+            "description": "允许驱逐使用 emptyDir 本地临时存储的 Pod。不确定时保持关闭；当错误提示 local storage 或 --delete-emptydir-data 时再开启。"
+          },
+          "ignoreDaemonsets": {
+            "label": "说明忽略 DaemonSet",
+            "description": "驱逐时跳过 DaemonSet 管理的 Pod。Drain 不会删除这些 Pod，它们仍由 DaemonSet 控制器管理。"
+          }
+        },
         "gracePeriod": "宽限期（秒）",
         "drainButton": "驱逐节点"
       },
