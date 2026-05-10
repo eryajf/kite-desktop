@@ -181,37 +181,11 @@ func (h *KubectlTerminalHandler) createKubectlAgent(ctx context.Context, cs *clu
 }
 
 func (h *KubectlTerminalHandler) waitForPodReady(ctx context.Context, cs *cluster.ClientSet, conn *websocket.Conn, podName string) error {
-	timeout := time.After(60 * time.Second)
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-	h.sendMessage(conn, "info", fmt.Sprintf("waiting for kubectl agent pod %s to be ready", podName))
-
-	var pod *corev1.Pod
-	var err error
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-timeout:
-			h.sendMessage(conn, "info", "")
-			h.sendErrorMessage(conn, utils.GetPodErrorMessage(pod))
-			return fmt.Errorf("timeout waiting for kubectl agent pod %s to be ready", podName)
-		case <-ticker.C:
-			pod, err = cs.K8sClient.ClientSet.CoreV1().Pods(common.AgentPodNamespace).Get(
-				ctx,
-				podName,
-				metav1.GetOptions{},
-			)
-			if err != nil {
-				continue
-			}
-			h.sendMessage(conn, "stdout", ".")
-			if utils.IsPodReady(pod) {
-				h.sendMessage(conn, "info", "kubectl agent ready!")
-				return nil
-			}
-		}
-	}
+	return waitForTerminalPodReady(ctx, cs, conn, podName, terminalPodReadyMessages{
+		Waiting: fmt.Sprintf("waiting for kubectl agent pod %s to be ready", podName),
+		Ready:   "kubectl agent ready!",
+		Timeout: fmt.Sprintf("timeout waiting for kubectl agent pod %s to be ready", podName),
+	}, h.sendMessage, h.sendErrorMessage)
 }
 
 // cleanupPod deletes only the per-session pod (the admin SA/CRB are permanent).

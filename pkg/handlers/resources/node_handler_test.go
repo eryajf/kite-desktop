@@ -36,14 +36,6 @@ func buildTestScheme(t *testing.T) *runtime.Scheme {
 	return s
 }
 
-func toRuntimeObjects(objs []client.Object) []runtime.Object {
-	runtimeObjs := make([]runtime.Object, 0, len(objs))
-	for _, obj := range objs {
-		runtimeObjs = append(runtimeObjs, obj)
-	}
-	return runtimeObjs
-}
-
 func newTypedFakeClient(objs []client.Object) *fake.Clientset {
 	coreObjects := make([]runtime.Object, 0, len(objs))
 	for _, obj := range objs {

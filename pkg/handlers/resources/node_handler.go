@@ -169,17 +169,6 @@ func podNames(pods []corev1.Pod) []string {
 	return sets.List(names)
 }
 
-func nonEmptyStrings(values ...string) []string {
-	result := make([]string, 0, len(values))
-	for _, value := range values {
-		value = strings.TrimSpace(value)
-		if value != "" {
-			result = append(result, value)
-		}
-	}
-	return result
-}
-
 func (h *NodeHandler) markNodeSchedulable(ctx context.Context, client *kube.K8sClient, nodeName string, schedulable bool) error {
 	// Get the current node
 	var node corev1.Node
