@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -168,5 +169,55 @@ func TestTestClusterConnectionReturnsReadableError(t *testing.T) {
 	}
 	if response.ErrorDetail == "" {
 		t.Fatalf("expected errorDetail, got empty response: %+v", response)
+	}
+}
+
+func TestTestClusterConnectionUsesExistingConfigWhenEditing(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	restoreDB := useClusterManagerTestDB(t)
+	defer restoreDB()
+
+	cluster := &model.Cluster{
+		Name:          "demo",
+		Config:        model.SecretString("apiVersion: v1\nclusters: []"),
+		PrometheusURL: "http://old-prometheus.example",
+		Enable:        true,
+	}
+	if err := model.AddCluster(cluster); err != nil {
+		t.Fatalf("add cluster: %v", err)
+	}
+
+	originalTester := clusterConnectionTester
+	t.Cleanup(func() {
+		clusterConnectionTester = originalTester
+	})
+
+	clusterConnectionTester = func(cluster *model.Cluster) (*ClientSet, error) {
+		if cluster.Name != "demo" {
+			t.Fatalf("cluster.Name = %q, want %q", cluster.Name, "demo")
+		}
+		if string(cluster.Config) != "apiVersion: v1\nclusters: []" {
+			t.Fatalf("cluster.Config = %q, want persisted config", string(cluster.Config))
+		}
+		if cluster.PrometheusURL != "http://new-prometheus.example" {
+			t.Fatalf("cluster.PrometheusURL = %q, want request override", cluster.PrometheusURL)
+		}
+		return &ClientSet{Version: "v1.31.0"}, nil
+	}
+
+	recorder := httptest.NewRecorder()
+	ctx, _ := gin.CreateTestContext(recorder)
+	ctx.Request = httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/admin/clusters/test",
+		strings.NewReader(`{"id":`+strconv.FormatUint(uint64(cluster.ID), 10)+`,"name":"demo","prometheusURL":"http://new-prometheus.example"}`),
+	)
+	ctx.Request.Header.Set("Content-Type", "application/json")
+
+	(&ClusterManager{}).TestClusterConnection(ctx)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d, body = %s", recorder.Code, http.StatusOK, recorder.Body.String())
 	}
 }

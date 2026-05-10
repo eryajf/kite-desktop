@@ -15,6 +15,7 @@ import { apiClient, APIError } from '../api-client'
 import { fetchAPI } from './shared'
 
 export interface ClusterCreateRequest {
+  id?: number
   name: string
   description?: string
   config?: string

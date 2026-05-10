@@ -15,6 +15,8 @@ import { clusterQueryKey } from '@/lib/cluster-query'
 import { withSubPath } from '@/lib/subpath'
 
 const recentClustersStorageKey = 'recent-clusters'
+const clusterListRefetchIntervalMs = 60 * 1000
+const clusterListErrorRefetchIntervalMs = 15 * 1000
 
 interface ClusterContextType {
   clusters: Cluster[]
@@ -111,6 +113,13 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
       return response.json()
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchInterval: (query) => {
+      const clusters = query.state.data as Cluster[] | undefined
+      return clusters?.some((cluster) => cluster.error)
+        ? clusterListErrorRefetchIntervalMs
+        : clusterListRefetchIntervalMs
+    },
+    refetchIntervalInBackground: true,
   })
 
   // Set default cluster if none is selected
@@ -191,16 +200,24 @@ export const ClusterProvider: React.FC<{ children: React.ReactNode }> = ({
           page: getCurrentAnalyticsPageKey(),
         })
         setTimeout(async () => {
-          await queryClient.invalidateQueries({
-            predicate: (query) => {
-              const key = query.queryKey[0] as string
-              return !['user', 'auth', 'clusters'].includes(key)
-            },
-          })
-          setIsSwitching(false)
-          toast.success(`Switched to cluster: ${clusterName}`, {
-            id: 'cluster-switch',
-          })
+          try {
+            await queryClient.invalidateQueries({
+              predicate: (query) => {
+                const key = query.queryKey[0] as string
+                return !['user', 'auth', 'clusters'].includes(key)
+              },
+            })
+            toast.success(`Switched to cluster: ${clusterName}`, {
+              id: 'cluster-switch',
+            })
+          } catch (error) {
+            console.error('Failed to refresh data after cluster switch:', error)
+            toast.error('Switched cluster, but failed to refresh data', {
+              id: 'cluster-switch',
+            })
+          } finally {
+            setIsSwitching(false)
+          }
         }, 300)
       } catch (error) {
         console.error('Failed to switch cluster:', error)

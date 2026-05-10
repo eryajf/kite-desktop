@@ -1,5 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
-import { IconEdit, IconPlus, IconServer, IconTrash } from '@tabler/icons-react'
+import {
+  IconEdit,
+  IconPlugConnected,
+  IconPlus,
+  IconRefresh,
+  IconServer,
+  IconTrash,
+} from '@tabler/icons-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
@@ -18,6 +25,7 @@ import {
 } from '@/lib/api'
 import { trackDesktopEvent } from '@/lib/analytics'
 import { invalidateClusterQueries } from '@/lib/cluster-query'
+import { translateClusterConnectionError } from '@/lib/cluster-connection-errors'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,6 +50,20 @@ function getClusterAnalyticsPayload(
   }
 }
 
+function getClusterConnectionTestPayload(
+  cluster: Cluster
+): ClusterCreateRequest {
+  return {
+    id: cluster.id,
+    name: cluster.name,
+    description: cluster.description,
+    config: '',
+    prometheusURL: cluster.prometheusURL,
+    inCluster: cluster.inCluster,
+    isDefault: cluster.isDefault,
+  }
+}
+
 export function ClusterManagement() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
@@ -51,6 +73,7 @@ export function ClusterManagement() {
   const [showClusterDialog, setShowClusterDialog] = useState(false)
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null)
   const [deletingCluster, setDeletingCluster] = useState<Cluster | null>(null)
+  const [testingClusterId, setTestingClusterId] = useState<number | null>(null)
 
   const getClusterTypeBadge = useCallback(
     (cluster: Cluster) => {
@@ -92,6 +115,77 @@ export function ClusterManagement() {
       )
     },
     [t]
+  )
+
+  const getConnectionStatusBadge = useCallback(
+    (cluster: Cluster) => {
+      if (cluster.error) {
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="destructive">
+                {t('clusterManagement.connection.unreachable', 'Unreachable')}
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs break-all">{cluster.error}</p>
+            </TooltipContent>
+          </Tooltip>
+        )
+      }
+
+      if (cluster.version) {
+        return (
+          <Badge
+            variant="outline"
+            className="border-emerald-200 bg-emerald-50 text-emerald-700"
+          >
+            {t('clusterManagement.connection.reachable', 'Reachable')}
+          </Badge>
+        )
+      }
+
+      return (
+        <Badge variant="secondary">
+          {t('clusterManagement.connection.unknown', 'Not checked')}
+        </Badge>
+      )
+    },
+    [t]
+  )
+
+  const handleTestClusterRowConnection = useCallback(
+    async (cluster: Cluster) => {
+      setTestingClusterId(cluster.id)
+      const payload = getClusterConnectionTestPayload(cluster)
+
+      try {
+        await testClusterConnection(payload)
+        trackDesktopEvent('cluster_management_test_connection', {
+          result: 'success',
+          source: 'list',
+          ...getClusterAnalyticsPayload(payload),
+        })
+        await invalidateClusterQueries(queryClient)
+        toast.success(
+          t(
+            'clusterManagement.messages.connectionReachable',
+            'Cluster connection is reachable.'
+          )
+        )
+      } catch (error) {
+        trackDesktopEvent('cluster_management_test_connection', {
+          result: 'error',
+          source: 'list',
+          ...getClusterAnalyticsPayload(payload),
+        })
+        await invalidateClusterQueries(queryClient)
+        toast.error(translateClusterConnectionError(error, t))
+      } finally {
+        setTestingClusterId(null)
+      }
+    },
+    [queryClient, t]
   )
 
   const columns = useMemo<ColumnDef<Cluster>[]>(
@@ -153,6 +247,43 @@ export function ClusterManagement() {
         ),
       },
       {
+        id: 'connection',
+        header: t('clusterManagement.table.connection', 'Connection'),
+        cell: ({ row: { original: cluster } }) => {
+          const isTesting = testingClusterId === cluster.id
+          const testConnectionLabel = isTesting
+            ? t('clusterManagement.actions.testingConnection', 'Testing...')
+            : t('clusterManagement.actions.testConnection', 'Test Connection')
+
+          return (
+            <div className="flex items-center gap-2">
+              {getConnectionStatusBadge(cluster)}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7"
+                    aria-label={testConnectionLabel}
+                    title={testConnectionLabel}
+                    onClick={() => void handleTestClusterRowConnection(cluster)}
+                    disabled={isTesting}
+                  >
+                    {isTesting ? (
+                      <IconRefresh className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <IconPlugConnected className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{testConnectionLabel}</TooltipContent>
+              </Tooltip>
+            </div>
+          )
+        },
+      },
+      {
         id: 'Prometheus',
         header: t('clusterManagement.table.prometheus', 'Prometheus'),
         cell: ({ row: { original: cluster } }) => (
@@ -164,7 +295,14 @@ export function ClusterManagement() {
         ),
       },
     ],
-    [getClusterTypeBadge, getStatusBadge, t]
+    [
+      getClusterTypeBadge,
+      getConnectionStatusBadge,
+      getStatusBadge,
+      handleTestClusterRowConnection,
+      t,
+      testingClusterId,
+    ]
   )
 
   const actions = useMemo<Action<Cluster>[]>(

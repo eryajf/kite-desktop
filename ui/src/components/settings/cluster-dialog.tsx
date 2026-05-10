@@ -42,6 +42,7 @@ interface ClusterDialogProps {
 
 function createClusterFormData(cluster?: Cluster | null) {
   return {
+    id: cluster?.id,
     name: cluster?.name || '',
     description: cluster?.description || '',
     config: cluster?.config || '',
@@ -101,11 +102,11 @@ function ClusterDialogContent({
   )
 
   const canTestConnection =
-    !!onTestConnection && (formData.inCluster || !!formData.config.trim())
+    !!onTestConnection &&
+    (formData.inCluster || !!formData.config.trim() || isEditMode)
+  const isTestingConnection = testStatus === 'testing'
   const isConnectionVerified =
-    !isEditMode &&
-    testStatus === 'success' &&
-    testedSignature === connectionSignature
+    testStatus === 'success' && testedSignature === connectionSignature
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -358,7 +359,7 @@ function ClusterDialogContent({
           </div>
         )}
 
-        {!isEditMode && onTestConnection && (
+        {onTestConnection && (
           <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm">
               {testStatus === 'success' && (
@@ -370,8 +371,12 @@ function ClusterDialogContent({
               {testStatus === 'idle' && (
                 <p className="text-muted-foreground">
                   {t(
-                    'clusterManagement.messages.testRequired',
-                    'Test the cluster connection before adding it.'
+                    isEditMode
+                      ? 'clusterManagement.messages.editTestRequired'
+                      : 'clusterManagement.messages.testRequired',
+                    isEditMode
+                      ? 'Test the cluster connection before saving changes.'
+                      : 'Test the cluster connection before adding it.'
                   )}
                 </p>
               )}
@@ -388,9 +393,9 @@ function ClusterDialogContent({
               type="button"
               variant="outline"
               onClick={handleTestConnection}
-              disabled={!canTestConnection || testStatus === 'testing'}
+              disabled={!canTestConnection || isTestingConnection}
             >
-              {testStatus === 'testing'
+              {isTestingConnection
                 ? t('clusterManagement.actions.testingConnection', 'Testing...')
                 : t(
                     'clusterManagement.actions.testConnection',
@@ -413,8 +418,8 @@ function ClusterDialogContent({
             disabled={
               !formData.name.trim() ||
               (!isEditMode && !formData.inCluster && !formData.config.trim()) ||
-              (!isEditMode && !isConnectionVerified) ||
-              testStatus === 'testing'
+              !isConnectionVerified ||
+              isTestingConnection
             }
           >
             {isEditMode

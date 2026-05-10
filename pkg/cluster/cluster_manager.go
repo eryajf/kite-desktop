@@ -48,6 +48,11 @@ var (
 	}
 )
 
+var (
+	clusterClientRequestTimeout = clusterConnectionTestTimeout
+	clusterBuildTimeout         = 25 * time.Second
+)
+
 func createClientSetInCluster(name, prometheusURL string) (*ClientSet, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -73,6 +78,11 @@ func createClientSetFromConfig(name, content, prometheusURL string) (*ClientSet,
 }
 
 func newClientSet(name string, k8sConfig *rest.Config, prometheusURL string) (*ClientSet, error) {
+	k8sConfig = rest.CopyConfig(k8sConfig)
+	if k8sConfig.Timeout <= 0 {
+		k8sConfig.Timeout = clusterClientRequestTimeout
+	}
+
 	cs := &ClientSet{
 		Name:          name,
 		prometheusURL: prometheusURL,
@@ -291,8 +301,10 @@ func syncClusters(cm *ClusterManager) error {
 		}
 	}
 	results := make(chan buildResult, len(buildQueue))
+	pending := make(map[string]*model.Cluster, len(buildQueue))
 	var wg sync.WaitGroup
 	for _, cluster := range buildQueue {
+		pending[cluster.Name] = cluster
 		wg.Add(1)
 		go func(cluster *model.Cluster) {
 			defer wg.Done()
@@ -304,16 +316,37 @@ func syncClusters(cm *ClusterManager) error {
 			}
 		}(cluster)
 	}
-	wg.Wait()
-	close(results)
-	for result := range results {
-		if result.err != nil {
-			klog.Errorf("Failed to build k8s client for cluster %s, in cluster: %t, err: %v", result.cluster.Name, result.cluster.InCluster, result.err)
-			cm.errors[result.cluster.Name] = result.err.Error()
-			continue
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	timer := time.NewTimer(clusterBuildTimeout)
+	defer timer.Stop()
+	for len(pending) > 0 {
+		select {
+		case result, ok := <-results:
+			if !ok {
+				pending = nil
+				continue
+			}
+			delete(pending, result.cluster.Name)
+			if result.err != nil {
+				klog.Errorf("Failed to build k8s client for cluster %s, in cluster: %t, err: %v", result.cluster.Name, result.cluster.InCluster, result.err)
+				cm.errors[result.cluster.Name] = result.err.Error()
+				continue
+			}
+			delete(cm.errors, result.cluster.Name)
+			cm.clusters[result.cluster.Name] = result.clientSet
+		case <-timer.C:
+			for name, cluster := range pending {
+				message := fmt.Sprintf("Cluster client build timed out after %s.", clusterBuildTimeout)
+				err := fmt.Errorf("%s", message)
+				klog.Errorf("Failed to build k8s client for cluster %s, in cluster: %t, err: %v", cluster.Name, cluster.InCluster, err)
+				cm.errors[name] = message
+			}
+			pending = nil
 		}
-		delete(cm.errors, result.cluster.Name)
-		cm.clusters[result.cluster.Name] = result.clientSet
 	}
 	for name, clientSet := range cm.clusters {
 		if _, ok := dbClusterMap[name]; !ok {
