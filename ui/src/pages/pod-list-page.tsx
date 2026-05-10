@@ -27,8 +27,7 @@ export function PodListPage() {
   const navigate = useNavigate()
   const [labelsPod, setLabelsPod] = useState<Pod | null>(null)
   const [annotationsPod, setAnnotationsPod] = useState<Pod | null>(null)
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<PodWithMetrics>()
+  const columnHelper = useMemo(() => createColumnHelper<PodWithMetrics>(), [])
 
   // Define columns for the pod table - moved outside render cycle for better performance
   const columns = useMemo(

@@ -20,7 +20,7 @@ export function PVListPage() {
   const [annotationsPV, setAnnotationsPV] = useState<PersistentVolume | null>(
     null
   )
-  const columnHelper = createColumnHelper<PersistentVolume>()
+  const columnHelper = useMemo(() => createColumnHelper<PersistentVolume>(), [])
 
   // Define columns for the PV table
   const columns = useMemo(

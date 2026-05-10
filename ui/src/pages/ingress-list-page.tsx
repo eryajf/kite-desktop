@@ -20,8 +20,7 @@ export function IngressListPage() {
   const [annotationsIngress, setAnnotationsIngress] = useState<Ingress | null>(
     null
   )
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<Ingress>()
+  const columnHelper = useMemo(() => createColumnHelper<Ingress>(), [])
 
   const columns = useMemo(
     () => [

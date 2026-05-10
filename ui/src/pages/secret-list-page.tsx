@@ -20,8 +20,7 @@ export function SecretListPage() {
   const [annotationsSecret, setAnnotationsSecret] = useState<Secret | null>(
     null
   )
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<Secret>()
+  const columnHelper = useMemo(() => createColumnHelper<Secret>(), [])
 
   // Define columns for the secret table
   const columns = useMemo(

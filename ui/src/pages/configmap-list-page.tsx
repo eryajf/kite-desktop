@@ -18,8 +18,7 @@ export function ConfigMapListPage() {
   const [labelsConfigMap, setLabelsConfigMap] = useState<ConfigMap | null>(null)
   const [annotationsConfigMap, setAnnotationsConfigMap] =
     useState<ConfigMap | null>(null)
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<ConfigMap>()
+  const columnHelper = useMemo(() => createColumnHelper<ConfigMap>(), [])
 
   // Define columns for the configmap table
   const columns = useMemo(

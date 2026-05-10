@@ -19,8 +19,10 @@ export function PVCListPage() {
   const [labelsPVC, setLabelsPVC] = useState<PersistentVolumeClaim | null>(null)
   const [annotationsPVC, setAnnotationsPVC] =
     useState<PersistentVolumeClaim | null>(null)
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<PersistentVolumeClaim>()
+  const columnHelper = useMemo(
+    () => createColumnHelper<PersistentVolumeClaim>(),
+    []
+  )
 
   // Define columns for the pvc table
   const columns = useMemo(
