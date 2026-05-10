@@ -20,6 +20,7 @@ import (
 )
 
 type clusterRequest struct {
+	ID            uint   `json:"id"`
 	Name          string `json:"name"`
 	Description   string `json:"description"`
 	Config        string `json:"config"`
@@ -386,20 +387,38 @@ func (cm *ClusterManager) TestClusterConnection(c *gin.Context) {
 	}
 
 	config := strings.TrimSpace(req.Config)
-	if !req.InCluster && config == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "config is required when inCluster is false"})
-		return
-	}
 
 	clusterName := strings.TrimSpace(req.Name)
 	if clusterName == "" {
 		clusterName = "test-connection"
 	}
 
+	prometheusURL := strings.TrimSpace(req.PrometheusURL)
+	if !req.InCluster && config == "" && req.ID > 0 {
+		existingCluster, err := model.GetClusterByID(req.ID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "cluster not found"})
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			}
+			return
+		}
+		config = strings.TrimSpace(string(existingCluster.Config))
+		if prometheusURL == "" {
+			prometheusURL = existingCluster.PrometheusURL
+		}
+	}
+
+	if !req.InCluster && config == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "config is required when inCluster is false"})
+		return
+	}
+
 	cluster := &model.Cluster{
 		Name:          clusterName,
 		Config:        model.SecretString(config),
-		PrometheusURL: strings.TrimSpace(req.PrometheusURL),
+		PrometheusURL: prometheusURL,
 		InCluster:     req.InCluster,
 	}
 

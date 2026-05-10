@@ -862,6 +862,7 @@
       "name": "名称",
       "type": "类型",
       "status": "状态",
+      "connection": "连接状态",
       "prometheus": "Prometheus",
       "actions": "操作"
     },
@@ -883,8 +884,10 @@
       "deleted": "集群删除成功",
       "testing": "正在测试集群连接...",
       "testRequired": "添加前请先测试集群连接。",
+      "editTestRequired": "保存更改前请先测试集群连接。",
       "testSuccess": "连接成功。",
       "testSuccessWithVersion": "连接成功，Kubernetes 版本：{{version}}",
+      "connectionReachable": "集群连接可用。",
       "testErrorWithDetail": "{{message}} 详细信息：{{detail}}",
       "testError": "集群连接测试失败",
       "testErrors": {
@@ -903,6 +906,11 @@
     },
     "errors": {
       "loadFailed": "加载集群失败"
+    },
+    "connection": {
+      "reachable": "可连接",
+      "unreachable": "不可连接",
+      "unknown": "未检测"
     },
     "deleteConfirmation": "此操作只会移除 kite 中的集群配置，不会删除任何集群资源。",
     "dialog": {

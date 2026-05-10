@@ -727,6 +727,7 @@
       "name": "Name",
       "type": "Type",
       "status": "Status",
+      "connection": "Connection",
       "prometheus": "Prometheus",
       "actions": "Actions"
     },
@@ -748,8 +749,10 @@
       "deleted": "Cluster deleted successfully",
       "testing": "Testing cluster connection...",
       "testRequired": "Test the cluster connection before adding it.",
+      "editTestRequired": "Test the cluster connection before saving changes.",
       "testSuccess": "Connection successful.",
       "testSuccessWithVersion": "Connection successful. Kubernetes version: {{version}}",
+      "connectionReachable": "Cluster connection is reachable.",
       "testErrorWithDetail": "{{message}} Details: {{detail}}",
       "testError": "Cluster connection test failed",
       "testErrors": {
@@ -768,6 +771,11 @@
     },
     "errors": {
       "loadFailed": "Failed to load clusters"
+    },
+    "connection": {
+      "reachable": "Reachable",
+      "unreachable": "Unreachable",
+      "unknown": "Not checked"
     },
     "deleteConfirmation": "This action will only remove the current cluster's configuration in kite and will not delete any cluster resources.",
     "form": {

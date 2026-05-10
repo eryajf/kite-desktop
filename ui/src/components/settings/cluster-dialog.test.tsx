@@ -102,4 +102,52 @@ describe('ClusterDialog', () => {
       expect(screen.getByRole('button', { name: 'Add Cluster' })).toBeDisabled()
     )
   })
+
+  it('requires and runs connection test when editing an existing cluster', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn()
+    const onTestConnection = vi
+      .fn()
+      .mockResolvedValue({ message: 'ok', version: 'v1.31.0' })
+
+    render(
+      <ClusterDialog
+        open
+        cluster={{
+          id: 42,
+          name: 'prod',
+          description: 'Production',
+          enabled: true,
+          inCluster: false,
+          isDefault: false,
+          createdAt: '',
+          updatedAt: '',
+          prometheusURL: 'https://prometheus.example.com',
+        }}
+        onOpenChange={() => {}}
+        onSubmit={onSubmit}
+        onTestConnection={onTestConnection}
+      />
+    )
+
+    const saveButton = screen.getByRole('button', { name: 'Save Changes' })
+    const testButton = screen.getByRole('button', { name: 'Test Connection' })
+
+    expect(testButton).toBeEnabled()
+    expect(saveButton).toBeDisabled()
+
+    await user.click(testButton)
+
+    await waitFor(() =>
+      expect(onTestConnection).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: 42,
+          name: 'prod',
+          config: '',
+          prometheusURL: 'https://prometheus.example.com',
+        })
+      )
+    )
+    await waitFor(() => expect(saveButton).toBeEnabled())
+  })
 })
