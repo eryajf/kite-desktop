@@ -38,6 +38,34 @@ export function MetadataActionButton(props: {
   )
 }
 
+export function MetadataSummaryButton(props: {
+  children: ReactNode
+  ariaLabel: string
+  tooltipContent?: ReactNode
+  count?: number
+}) {
+  const { ariaLabel, children, count = 0, tooltipContent } = props
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={ariaLabel}
+          className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+        >
+          {children}
+          <span className="min-w-[1ch] text-xs font-medium tabular-nums">
+            {count}
+          </span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{tooltipContent || ariaLabel}</TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function renderMetadataTooltipContent(
   items?: Record<string, string>,
   emptyLabel = 'None'

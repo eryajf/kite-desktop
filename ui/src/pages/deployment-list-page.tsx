@@ -199,8 +199,7 @@ export function DeploymentListPage() {
   const [isRestarting, setIsRestarting] = useState(false)
   const [isPauseToggling, setIsPauseToggling] = useState(false)
 
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<Deployment>()
+  const columnHelper = useMemo(() => createColumnHelper<Deployment>(), [])
 
   // Define columns for the deployment table
   const columns = useMemo(

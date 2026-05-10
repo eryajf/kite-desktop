@@ -35,7 +35,7 @@ export function NamespaceListPage() {
   const [labelsNamespace, setLabelsNamespace] = useState<Namespace | null>(null)
   const [annotationsNamespace, setAnnotationsNamespace] =
     useState<Namespace | null>(null)
-  const columnHelper = createColumnHelper<Namespace>()
+  const columnHelper = useMemo(() => createColumnHelper<Namespace>(), [])
 
   const { data: resourceQuotas = [] } = useResources('resourcequotas', '_all', {
     refreshInterval: 10000,

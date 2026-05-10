@@ -14,6 +14,7 @@ const mockToastSuccess = vi.fn()
 const mockToastError = vi.fn()
 const mockInvalidateQueries = vi.fn()
 const mockPatchResource = vi.fn()
+const mockT = (key: string) => key
 const mockResourceTable = vi.fn(
   ({
     onCreateClick,
@@ -35,7 +36,7 @@ vi.mock('react-i18next', async (importOriginal) => {
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string) => key,
+      t: mockT,
     }),
   }
 })
@@ -336,6 +337,43 @@ describe('DeploymentListPage', () => {
         deployment.metadata!.creationTimestamp!
       )})`
     )
+  })
+
+  it('keeps deployment table columns stable when metadata dialogs open', () => {
+    render(<DeploymentListPage />)
+
+    const initialResourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      columns: ReturnType<typeof createColumnHelper<Deployment>>[]
+    }
+    const initialColumns = initialResourceTableProps.columns
+
+    const deployment = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+        labels: {
+          app: 'web',
+        },
+      },
+    } as Deployment
+
+    const row = {
+      original: deployment,
+    }
+
+    render(<div>{flexRender(initialColumns[3].cell!, { row })}</div>)
+
+    act(() => {
+      screen
+        .getByRole('button', { name: 'deploymentList.manageLabels' })
+        .click()
+    })
+
+    const latestResourceTableProps = mockResourceTable.mock.calls.at(-1)?.[0] as {
+      columns: ReturnType<typeof createColumnHelper<Deployment>>[]
+    }
+
+    expect(latestResourceTableProps.columns).toBe(initialColumns)
   })
 
   it('provides row context menu actions for deployment rows', async () => {

@@ -30,8 +30,10 @@ export function SimpleListPage<T extends keyof ResourceTypeMap>({
   )
   const [annotationsResource, setAnnotationsResource] =
     useState<ResourceTypeMap[T] | null>(null)
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<ResourceTypeMap[T]>()
+  const columnHelper = useMemo(
+    () => createColumnHelper<ResourceTypeMap[T]>(),
+    []
+  )
   const isClusterScope =
     resourceType && clusterScopeResources.includes(resourceType)
 
