@@ -637,6 +637,8 @@ export function isStandardK8sResource(kind: string): boolean {
     'jobs',
     'cronjobs',
     'services',
+    'endpoints',
+    'endpointslices',
     'configmaps',
     'secrets',
     'persistentvolumeclaims',
@@ -647,6 +649,10 @@ export function isStandardK8sResource(kind: string): boolean {
     'nodes',
     'events',
     'storageclasses',
+    'serviceaccounts',
+    'horizontalpodautoscalers',
+    'gateways',
+    'httproutes',
   ]
   const resourcePath = kind.toLowerCase() + 's'
   return (

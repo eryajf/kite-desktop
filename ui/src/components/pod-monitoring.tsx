@@ -125,7 +125,7 @@ export function PodMonitoring({
           </Select>
         </div>
 
-        <div className="w-full space-y-2 md:w-auto md:min-w-[220px]">
+        <div className="w-full space-y-2 md:w-auto md:min-w-[14rem] md:shrink-0">
           <ContainerSelector
             containers={containers}
             selectedContainer={selectedContainer}
@@ -133,7 +133,7 @@ export function PodMonitoring({
           />
         </div>
         {pods && pods.length > 1 && (
-          <div className="w-full space-y-2 md:w-auto md:min-w-[220px]">
+          <div className="w-full space-y-2 md:w-auto md:min-w-[18rem] md:shrink-0">
             {/* Pod Selector */}
             <PodSelector
               pods={pods}

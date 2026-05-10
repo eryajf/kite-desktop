@@ -24,6 +24,8 @@ import {
   ConfigMapList,
   Event,
   EventList,
+  Endpoints,
+  EndpointsList,
   Namespace,
   NamespaceList,
   Node,
@@ -41,6 +43,7 @@ import {
   ServiceAccountList,
   ServiceList,
 } from 'kubernetes-types/core/v1'
+import { EndpointSlice, EndpointSliceList } from 'kubernetes-types/discovery/v1'
 import {
   Ingress,
   IngressList,
@@ -102,6 +105,8 @@ export type ResourceType =
   | 'jobs'
   | 'cronjobs'
   | 'services'
+  | 'endpoints'
+  | 'endpointslices'
   | 'resourcequotas'
   | 'configmaps'
   | 'secrets'
@@ -153,6 +158,8 @@ export interface ResourcesTypeMap {
   jobs: JobList
   cronjobs: CronJobList
   services: ServiceList
+  endpoints: EndpointsList
+  endpointslices: EndpointSliceList
   resourcequotas: ResourceQuotaList
   configmaps: ConfigMapList
   secrets: SecretList
@@ -239,6 +246,8 @@ export interface ResourceTypeMap {
   jobs: Job
   cronjobs: CronJob
   services: Service
+  endpoints: Endpoints
+  endpointslices: EndpointSlice
   resourcequotas: ResourceQuota
   configmaps: ConfigMap
   secrets: Secret
@@ -346,11 +355,15 @@ export interface ImageTagInfo {
   timestamp?: string
 }
 
+export type RelatedResourceDirection = 'references' | 'referencedBy'
+
 export interface RelatedResources {
   type: ResourceType
   name: string
   namespace?: string
   apiVersion?: string
+  direction?: RelatedResourceDirection
+  reason?: string
 }
 
 export interface Cluster {

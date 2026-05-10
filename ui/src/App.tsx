@@ -11,6 +11,7 @@ import {
   GlobalSearchProvider,
   useGlobalSearch,
 } from './components/global-search-provider'
+import { IframeEscapeBridge } from './components/iframe-escape-bridge'
 import { PageFindProvider } from './components/page-find-provider'
 import { SiteHeader } from './components/site-header'
 import { SidebarInset, SidebarProvider } from './components/ui/sidebar'
@@ -79,7 +80,12 @@ function AppContent() {
   const isIframe = searchParams.get('iframe') === 'true'
 
   if (isIframe) {
-    return <Outlet />
+    return (
+      <>
+        <IframeEscapeBridge />
+        <Outlet />
+      </>
+    )
   }
 
   return (

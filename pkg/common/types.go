@@ -18,7 +18,14 @@ type RelatedResource struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 	Name       string `json:"name"`
 	Namespace  string `json:"namespace,omitempty"`
+	Direction  string `json:"direction,omitempty"`
+	Reason     string `json:"reason,omitempty"`
 }
+
+const (
+	RelatedDirectionReferences   = "references"
+	RelatedDirectionReferencedBy = "referencedBy"
+)
 
 type Resource struct {
 	Allocatable int64 `json:"allocatable"`

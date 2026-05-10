@@ -28,6 +28,12 @@ interface EnvironmentEditorProps {
   onUpdate: (updates: Partial<Container>) => void
 }
 
+function hasEnvFromSourceValue(source: EnvFromSource) {
+  return Boolean(
+    source.configMapRef?.name?.trim() || source.secretRef?.name?.trim()
+  )
+}
+
 export function EnvironmentEditor({
   container,
   namespace,
@@ -45,7 +51,7 @@ export function EnvironmentEditor({
   }, [container])
 
   const addEnvVar = () => {
-    const newEnvVars = [...envVars, { name: '', value: '' }]
+    const newEnvVars = [{ name: '', value: '' }, ...envVars]
     setEnvVars(newEnvVars)
     // Don't filter out empty names immediately, let user fill them in
     onUpdate({ env: newEnvVars })
@@ -207,16 +213,12 @@ export function EnvironmentEditor({
   // EnvFrom management functions
   const addEnvFromSource = () => {
     const newEnvFromSources = [
-      ...envFromSources,
       { configMapRef: { name: '' } },
+      ...envFromSources,
     ]
     setEnvFromSources(newEnvFromSources)
     onUpdate({
-      envFrom: newEnvFromSources.filter(
-        (source) =>
-          source.configMapRef?.name?.trim() !== '' ||
-          source.secretRef?.name?.trim() !== ''
-      ),
+      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
     })
   }
 
@@ -224,11 +226,7 @@ export function EnvironmentEditor({
     const newEnvFromSources = envFromSources.filter((_, i) => i !== index)
     setEnvFromSources(newEnvFromSources)
     onUpdate({
-      envFrom: newEnvFromSources.filter(
-        (source) =>
-          source.configMapRef?.name?.trim() !== '' ||
-          source.secretRef?.name?.trim() !== ''
-      ),
+      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
     })
   }
 
@@ -271,11 +269,7 @@ export function EnvironmentEditor({
     })
     setEnvFromSources(newEnvFromSources)
     onUpdate({
-      envFrom: newEnvFromSources.filter(
-        (source) =>
-          source.configMapRef?.name?.trim() !== '' ||
-          source.secretRef?.name?.trim() !== ''
-      ),
+      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
     })
   }
 
@@ -295,11 +289,7 @@ export function EnvironmentEditor({
     })
     setEnvFromSources(newEnvFromSources)
     onUpdate({
-      envFrom: newEnvFromSources.filter(
-        (source) =>
-          source.configMapRef?.name?.trim() !== '' ||
-          source.secretRef?.name?.trim() !== ''
-      ),
+      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
     })
   }
 

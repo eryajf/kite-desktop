@@ -1685,7 +1685,14 @@
     "title": "关联资源",
     "kind": "类型",
     "name": "名称",
+    "reason": "关系",
+    "references": "引用",
+    "referencedBy": "被引用",
+    "referencesDescription": "当前资源直接使用或指向的资源。",
+    "referencedByDescription": "选择、拥有、路由、扩缩或消费当前资源的其它资源。",
     "empty": "未找到关联资源",
+    "emptyReferences": "暂无引用资源",
+    "emptyReferencedBy": "暂无资源引用当前对象",
     "openInNewTab": "在新标签页中打开资源"
   },
   "describe": {
@@ -2054,7 +2061,9 @@
     "cursorStyle": "光标样式",
     "block": "块状",
     "underline": "下划线",
-    "bar": "竖线"
+    "bar": "竖线",
+    "toggleFileTree": "切换 Pod 文件树",
+    "fileTreeUnavailable": "请选择 Pod 和容器后浏览文件。"
   },
   "floatingTerminal": {
     "fullscreen": "全屏",

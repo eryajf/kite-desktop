@@ -1,7 +1,10 @@
 package resources
 
 import (
+	"fmt"
 	"net/http"
+	"reflect"
+	"strings"
 
 	"github.com/eryajf/kite-desktop/pkg/cluster"
 	"github.com/gin-gonic/gin"
@@ -36,14 +39,14 @@ func (h *EventHandler) ListResourceEvents(c *gin.Context) {
 		return
 	}
 
-	objType, err := meta.TypeAccessor(target)
+	kind, err := eventResourceKind(resource, target)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to access object type info: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to resolve object kind: " + err.Error()})
 		return
 	}
 	obj := target.(metav1.Object)
 	events, err := cs.K8sClient.ClientSet.CoreV1().Events(obj.GetNamespace()).List(c.Request.Context(), metav1.ListOptions{
-		FieldSelector: "involvedObject.kind=" + objType.GetKind() +
+		FieldSelector: "involvedObject.kind=" + kind +
 			",involvedObject.name=" + name,
 	})
 
@@ -53,6 +56,30 @@ func (h *EventHandler) ListResourceEvents(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, events)
+}
+
+func eventResourceKind(resource string, target interface{}) (string, error) {
+	objType, err := meta.TypeAccessor(target)
+	if err != nil {
+		return "", err
+	}
+	if kind := objType.GetKind(); kind != "" {
+		return kind, nil
+	}
+
+	typ := reflect.TypeOf(target)
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
+	}
+	if typ.Name() != "" {
+		return typ.Name(), nil
+	}
+
+	kind := strings.TrimSuffix(resource, "s")
+	if kind == "" {
+		return "", fmt.Errorf("empty resource type")
+	}
+	return strings.ToUpper(kind[:1]) + kind[1:], nil
 }
 
 func (h *EventHandler) registerCustomRoutes(group *gin.RouterGroup) {

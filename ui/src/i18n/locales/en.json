@@ -1206,7 +1206,14 @@
     "title": "Related",
     "kind": "Kind",
     "name": "Name",
+    "reason": "Reason",
+    "references": "References",
+    "referencedBy": "Referenced by",
+    "referencesDescription": "Resources this object directly uses or points to.",
+    "referencedByDescription": "Resources that select, own, route to, scale, or consume this object.",
     "empty": "No related resources found",
+    "emptyReferences": "No referenced resources found",
+    "emptyReferencedBy": "No resources reference this object",
     "openInNewTab": "Open resource in new tab"
   },
   "describe": {
@@ -1762,7 +1769,9 @@
     "cursorStyle": "Cursor Style",
     "block": "Block",
     "underline": "Underline",
-    "bar": "Bar"
+    "bar": "Bar",
+    "toggleFileTree": "Toggle pod file tree",
+    "fileTreeUnavailable": "Select a pod and container to browse files."
   },
   "floatingTerminal": {
     "fullscreen": "Fullscreen",

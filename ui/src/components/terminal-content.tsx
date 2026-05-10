@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   IconClearAll,
+  IconFolder,
   IconMaximize,
   IconMinimize,
   IconPalette,
@@ -44,6 +45,7 @@ import {
 
 import { ConnectionIndicator } from './connection-indicator'
 import { NetworkSpeedIndicator } from './network-speed-indicator'
+import { PodTerminalFileTree } from './pod-terminal-file-tree'
 import { ContainerSelector } from './selector/container-selector'
 import { PodSelector } from './selector/pod-selector'
 
@@ -92,6 +94,7 @@ export function Terminal({
     }
   )
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showFileTree, setShowFileTree] = useState(false)
   const viewerPreferenceReadyRef = useRef(false)
   const lastPersistedViewerPreferenceRef = useRef<string | null>(null)
 
@@ -281,6 +284,8 @@ export function Terminal({
   const handlePodChange = useCallback((podName?: string) => {
     setSelectedPod(podName || '')
   }, [])
+
+  const canShowFileTree = type === 'pod' && Boolean(namespace)
 
   // Calculate network speed
   const updateNetworkStats = useCallback(
@@ -800,6 +805,18 @@ export function Terminal({
               </PopoverContent>
             </Popover>
 
+            {canShowFileTree && (
+              <Button
+                variant={showFileTree ? 'secondary' : 'outline'}
+                size="sm"
+                aria-label={t('terminalContent.toggleFileTree')}
+                title={t('terminalContent.toggleFileTree')}
+                onClick={() => setShowFileTree((value) => !value)}
+              >
+                <IconFolder className="h-4 w-4" />
+              </Button>
+            )}
+
             {/* Clear Terminal */}
             <Button variant="outline" size="sm" onClick={clearTerminal}>
               <IconClearAll className="h-4 w-4" />
@@ -816,7 +833,16 @@ export function Terminal({
         </div>
       </CardHeader>
 
-      <CardContent className="p-0 flex h-full min-h-0">
+      <CardContent className="flex h-full min-h-0 p-0">
+        {canShowFileTree && showFileTree ? (
+          <div className="h-full min-h-0 w-[360px] shrink-0 max-w-[45%]">
+            <PodTerminalFileTree
+              namespace={namespace}
+              podName={selectedPod}
+              containerName={selectedContainer}
+            />
+          </div>
+        ) : null}
         {terminalDiv}
       </CardContent>
     </Card>

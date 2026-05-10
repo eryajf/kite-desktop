@@ -52,7 +52,7 @@ export function ContainerSelector({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full min-w-0 justify-between md:w-auto md:max-w-[300px]"
+          className="w-full min-w-0 justify-between md:w-fit md:min-w-[14rem] md:max-w-[min(42rem,calc(100vw-2rem))]"
         >
           <span className="truncate">
             {selectedOption ? selectedOption.name : resolvedPlaceholder}
@@ -60,7 +60,7 @@ export function ContainerSelector({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[min(300px,calc(100vw-1rem))] p-0">
+      <PopoverContent className="w-max min-w-[var(--radix-popover-trigger-width)] max-w-[min(42rem,calc(100vw-1rem))] p-0">
         <Command>
           <CommandInput placeholder={t('selector.searchContainers')} />
           <CommandList>

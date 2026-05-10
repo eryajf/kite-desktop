@@ -99,7 +99,7 @@ func RegisterRoutes(group *gin.RouterGroup) {
 	}
 
 	// Register related resources route for supported resource types
-	supportedRelatedResourceTypes := []string{"pods", "deployments", "statefulsets", "daemonsets", "configmaps", "secrets", "persistentvolumeclaims", "httproutes", "horizontalpodautoscalers", "services", "ingresses"}
+	supportedRelatedResourceTypes := []string{"pods", "deployments", "replicasets", "statefulsets", "daemonsets", "jobs", "cronjobs", "services", "endpoints", "endpointslices", "configmaps", "secrets", "persistentvolumeclaims", "httproutes", "horizontalpodautoscalers", "ingresses"}
 	for _, resourceType := range supportedRelatedResourceTypes {
 		if handler, exists := handlers[resourceType]; exists && !handler.IsClusterScoped() {
 			g := group.Group("/" + resourceType)
