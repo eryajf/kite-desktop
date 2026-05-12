@@ -121,7 +121,7 @@ func (h *EventHandler) appendStatefulSetPodEvents(
 	}
 
 	sort.SliceStable(merged, func(i, j int) bool {
-		return eventTimestamp(merged[i]).Time.After(eventTimestamp(merged[j]).Time)
+		return eventTimestamp(merged[i]).After(eventTimestamp(merged[j]).Time)
 	})
 
 	return merged, nil
