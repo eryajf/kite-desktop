@@ -186,7 +186,6 @@ describe('StatefulSetListPage', () => {
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
       'edit-image',
-      'pause-orchestration',
       'rollout-restart',
       'rollback',
       'metadata-actions-separator',
@@ -194,7 +193,7 @@ describe('StatefulSetListPage', () => {
       'manage-annotations',
       'delete-statefulset',
     ])
-    expect(items[4].label).toBe('deploymentList.rollback')
+    expect(items[3].label).toBe('deploymentList.rollback')
 
     await items[0].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -207,28 +206,28 @@ describe('StatefulSetListPage', () => {
     expect(screen.getByText('container-edit-dialog')).toBeInTheDocument()
 
     await act(async () => {
-      await items[6].onSelect?.()
+      await items[5].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-labels')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[7].onSelect?.()
+      await items[6].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[8].onSelect?.()
+      await items[7].onSelect?.()
     })
     expect(
       screen.getByText('resource-delete-confirmation-dialog')
     ).toBeInTheDocument()
   })
 
-  it('keeps pause orchestration disabled and patches image edits from row actions', async () => {
+  it('patches statefulset image edits from row actions', async () => {
     vi.useRealTimers()
     mockPatchResource.mockResolvedValue(undefined)
 
@@ -237,7 +236,6 @@ describe('StatefulSetListPage', () => {
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
       getRowContextMenuItems: (statefulSet: StatefulSet) => {
         key: string
-        disabled?: boolean
         onSelect?: () => void | Promise<void>
       }[]
     }
@@ -263,9 +261,6 @@ describe('StatefulSetListPage', () => {
     } as StatefulSet
 
     const items = resourceTableProps.getRowContextMenuItems(statefulSet)
-
-    expect(items[2].key).toBe('pause-orchestration')
-    expect(items[2].disabled).toBe(true)
 
     await act(async () => {
       await items[1].onSelect?.()

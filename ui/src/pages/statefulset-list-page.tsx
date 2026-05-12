@@ -8,7 +8,6 @@ import {
   FileText,
   History,
   Image,
-  Pause,
   RefreshCcw,
   Tags,
   Trash2,
@@ -317,13 +316,6 @@ export function StatefulSetListPage() {
           label: t('deploymentList.editImage'),
           icon: <Image className="h-4 w-4" />,
           onSelect: () => setImageStatefulSetTarget(statefulSet),
-        },
-        {
-          key: 'pause-orchestration',
-          label: t('deploymentList.pauseOrchestration'),
-          icon: <Pause className="h-4 w-4" />,
-          disabled: true,
-          onSelect: () => undefined,
         },
         {
           key: 'rollout-restart',
