@@ -7,6 +7,8 @@ import {
   FileCode2,
   FileText,
   History,
+  Image,
+  Pause,
   RefreshCcw,
   Tags,
   Trash2,
@@ -21,6 +23,7 @@ import {
   formatRelativeTimeStrict,
   translateError,
 } from '@/lib/utils'
+import { WorkloadWithPodTemplate } from '@/hooks/use-deployment-container-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +34,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ContainerEditDialog } from '@/components/container-edit-dialog'
 import { ContainerImagesSummary } from '@/components/container-images-summary'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import {
@@ -59,6 +63,8 @@ export function StatefulSetListPage() {
   const [annotationsStatefulSet, setAnnotationsStatefulSet] =
     useState<StatefulSet | null>(null)
   const [restartStatefulSetTarget, setRestartStatefulSetTarget] =
+    useState<StatefulSet | null>(null)
+  const [imageStatefulSetTarget, setImageStatefulSetTarget] =
     useState<StatefulSet | null>(null)
   const [deleteStatefulSetTarget, setDeleteStatefulSetTarget] =
     useState<StatefulSet | null>(null)
@@ -270,6 +276,31 @@ export function StatefulSetListPage() {
     }
   }, [refreshStatefulSetList, restartStatefulSetTarget, t])
 
+  const handleContainerEditorSave = useCallback(
+    async (updatedWorkload: WorkloadWithPodTemplate) => {
+      if (
+        !imageStatefulSetTarget?.metadata?.name ||
+        !imageStatefulSetTarget.metadata?.namespace
+      ) {
+        return
+      }
+
+      await patchResource(
+        'statefulsets',
+        imageStatefulSetTarget.metadata.name,
+        imageStatefulSetTarget.metadata.namespace,
+        {
+          spec: {
+            template: updatedWorkload.spec?.template,
+          },
+        }
+      )
+      toast.success(t('deploymentList.imageUpdateInitiated'))
+      await refreshStatefulSetList()
+    },
+    [imageStatefulSetTarget, refreshStatefulSetList, t]
+  )
+
   const getRowContextMenuItems = useCallback(
     (statefulSet: StatefulSet): RowContextMenuItem<StatefulSet>[] => {
       const detailPath = getStatefulSetDetailPath(statefulSet)
@@ -282,14 +313,27 @@ export function StatefulSetListPage() {
           onSelect: () => navigate(`${detailPath}?tab=yaml`),
         },
         {
+          key: 'edit-image',
+          label: t('deploymentList.editImage'),
+          icon: <Image className="h-4 w-4" />,
+          onSelect: () => setImageStatefulSetTarget(statefulSet),
+        },
+        {
+          key: 'pause-orchestration',
+          label: t('deploymentList.pauseOrchestration'),
+          icon: <Pause className="h-4 w-4" />,
+          disabled: true,
+          onSelect: () => undefined,
+        },
+        {
           key: 'rollout-restart',
           label: t('deploymentList.rolloutRestart'),
           icon: <RefreshCcw className="h-4 w-4" />,
           onSelect: () => setRestartStatefulSetTarget(statefulSet),
         },
         {
-          key: 'history',
-          label: t('detail.tabs.history'),
+          key: 'rollback',
+          label: t('deploymentList.rollback'),
           icon: <History className="h-4 w-4" />,
           onSelect: () => navigate(`${detailPath}?tab=history`),
         },
@@ -389,6 +433,21 @@ export function StatefulSetListPage() {
         resource={annotationsStatefulSet}
         type="annotations"
       />
+
+      {imageStatefulSetTarget ? (
+        <ContainerEditDialog
+          open={Boolean(imageStatefulSetTarget)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setImageStatefulSetTarget(null)
+            }
+          }}
+          mode="deployment"
+          workload={imageStatefulSetTarget}
+          namespace={imageStatefulSetTarget.metadata?.namespace || ''}
+          onSaveWorkload={handleContainerEditorSave}
+        />
+      ) : null}
 
       <ResourceDeleteConfirmationDialog
         open={Boolean(deleteStatefulSetTarget)}

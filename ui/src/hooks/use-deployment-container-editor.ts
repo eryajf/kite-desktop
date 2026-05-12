@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Deployment } from 'kubernetes-types/apps/v1'
+import { Deployment, StatefulSet } from 'kubernetes-types/apps/v1'
 import {
   Container,
   ExecAction,
@@ -23,27 +23,29 @@ export type RemoveVolumeResult =
   | { ok: false; volumeName: string; referencedBy: string[] }
 
 type UseDeploymentContainerEditorOptions = {
-  deployment: Deployment
+  deployment: WorkloadWithPodTemplate
   open: boolean
   initialContainerName?: string
 }
+
+export type WorkloadWithPodTemplate = Deployment | StatefulSet
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T
 }
 
-function getContainers(deployment: Deployment): Container[] {
+function getContainers(deployment: WorkloadWithPodTemplate): Container[] {
   return deployment.spec?.template?.spec?.containers || []
 }
 
-function getAllContainers(deployment: Deployment): Container[] {
+function getAllContainers(deployment: WorkloadWithPodTemplate): Container[] {
   return [
     ...(deployment.spec?.template?.spec?.containers || []),
     ...(deployment.spec?.template?.spec?.initContainers || []),
   ]
 }
 
-function getVolumes(deployment: Deployment): Volume[] {
+function getVolumes(deployment: WorkloadWithPodTemplate): Volume[] {
   return deployment.spec?.template?.spec?.volumes || []
 }
 
@@ -208,7 +210,7 @@ function validateProbe(
 }
 
 export function validateDeploymentContainerDraft(
-  deployment: Deployment
+  deployment: WorkloadWithPodTemplate
 ): ValidationErrors {
   const errors: ValidationErrors = {}
   const containers = getContainers(deployment)
@@ -336,9 +338,8 @@ export function useDeploymentContainerEditor({
   open,
   initialContainerName,
 }: UseDeploymentContainerEditorOptions) {
-  const [draftDeployment, setDraftDeployment] = useState<Deployment>(() =>
-    clone(deployment)
-  )
+  const [draftDeployment, setDraftDeployment] =
+    useState<WorkloadWithPodTemplate>(() => clone(deployment))
   const [selectedContainerName, setSelectedContainerName] = useState(
     initialContainerName || getContainers(deployment)[0]?.name || ''
   )

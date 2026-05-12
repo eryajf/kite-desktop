@@ -5,7 +5,10 @@ import { Container } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 import { useParams } from 'react-router-dom'
 
-import { useDeploymentContainerEditor } from '@/hooks/use-deployment-container-editor'
+import {
+  useDeploymentContainerEditor,
+  WorkloadWithPodTemplate,
+} from '@/hooks/use-deployment-container-editor'
 
 import {
   EnvironmentEditor,
@@ -38,10 +41,14 @@ interface SimpleContainerEditDialogProps extends BaseContainerEditDialogProps {
 
 interface DeploymentContainerEditDialogProps extends BaseContainerEditDialogProps {
   mode: 'deployment'
-  deployment: Deployment
+  deployment?: Deployment
+  workload?: WorkloadWithPodTemplate
   namespace: string
   initialContainerName?: string
-  onSaveDeployment: (updatedDeployment: Deployment) => Promise<void> | void
+  onSaveDeployment?: (updatedDeployment: Deployment) => Promise<void> | void
+  onSaveWorkload?: (
+    updatedWorkload: WorkloadWithPodTemplate
+  ) => Promise<void> | void
 }
 
 type ContainerEditDialogProps =
@@ -153,12 +160,15 @@ function SimpleContainerEditDialogContent({
 
 function DeploymentContainerEditDialogContent({
   deployment,
+  workload,
   namespace,
   initialContainerName,
   onOpenChange,
   onSaveDeployment,
+  onSaveWorkload,
 }: Omit<DeploymentContainerEditDialogProps, 'open' | 'mode'>) {
   const { t } = useTranslation()
+  const editableWorkload = workload || deployment
   const [isSaving, setIsSaving] = useState(false)
   const {
     activeTab,
@@ -178,7 +188,7 @@ function DeploymentContainerEditDialogContent({
     validationErrors,
     volumes,
   } = useDeploymentContainerEditor({
-    deployment,
+    deployment: editableWorkload!,
     open: true,
     initialContainerName,
   })
@@ -212,7 +222,11 @@ function DeploymentContainerEditDialogContent({
 
     setIsSaving(true)
     try {
-      await onSaveDeployment(draftDeployment)
+      if (onSaveWorkload) {
+        await onSaveWorkload(draftDeployment)
+      } else if (onSaveDeployment) {
+        await onSaveDeployment(draftDeployment as Deployment)
+      }
       onOpenChange(false)
     } finally {
       setIsSaving(false)
@@ -222,7 +236,7 @@ function DeploymentContainerEditDialogContent({
   const tabClassName = (hasErrors: boolean) =>
     hasErrors ? 'border-destructive/50 text-destructive' : undefined
 
-  if (!selectedContainer) {
+  if (!editableWorkload || !selectedContainer) {
     return null
   }
 
