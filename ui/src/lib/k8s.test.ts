@@ -7,6 +7,7 @@ import type { CustomResource } from '@/types/api'
 import {
   aggregateContainerResources,
   buildDeploymentOverviewViewModel,
+  buildStatefulSetOverviewViewModel,
   filterPodsOwnedByController,
   filterPodsOwnedByDeployment,
   filterReplicaSetsOwnedByDeployment,
@@ -178,6 +179,96 @@ describe('deployment overview helpers', () => {
     expect(overview.serviceLinksEnabled).toBe(false)
     expect(overview.resourceRequests.memory).toBe('384Mi')
     expect(overview.resourceLimits.cpu).toBe('1500m')
+  })
+})
+
+describe('statefulset overview helpers', () => {
+  const statefulSet = {
+    apiVersion: 'apps/v1',
+    kind: 'StatefulSet',
+    metadata: {
+      name: 'db',
+      namespace: 'default',
+      creationTimestamp: '2026-04-15T12:00:00.000Z',
+      generation: 6,
+      labels: {
+        app: 'db',
+      },
+      annotations: {
+        note: 'critical',
+      },
+    },
+    spec: {
+      replicas: 3,
+      serviceName: 'db-headless',
+      podManagementPolicy: 'Parallel',
+      minReadySeconds: 15,
+      persistentVolumeClaimRetentionPolicy: {
+        whenDeleted: 'Retain',
+        whenScaled: 'Delete',
+      },
+      selector: {
+        matchLabels: {
+          app: 'db',
+        },
+      },
+      template: {
+        spec: {
+          hostNetwork: false,
+          schedulerName: 'storage-scheduler',
+          enableServiceLinks: false,
+          containers: [
+            {
+              name: 'db',
+              image: 'postgres:16',
+              resources: {
+                requests: {
+                  cpu: '500m',
+                  memory: '1Gi',
+                },
+                limits: {
+                  cpu: '1',
+                  memory: '2Gi',
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+    status: {
+      readyReplicas: 2,
+      updatedReplicas: 2,
+      availableReplicas: 2,
+      currentReplicas: 3,
+      replicas: 3,
+      observedGeneration: 5,
+      currentRevision: 'db-6d4f6f7f9',
+      updateRevision: 'db-78bd56fc9',
+    },
+  } as StatefulSet
+
+  it('builds the statefulset overview view model with rollout and pvc metadata', () => {
+    const overview = buildStatefulSetOverviewViewModel(statefulSet)
+
+    expect(overview.status).toBe('Progressing')
+    expect(overview.readyReplicas).toBe(2)
+    expect(overview.specReplicas).toBe(3)
+    expect(overview.currentReplicas).toBe(3)
+    expect(overview.observedGeneration).toBe(5)
+    expect(overview.generation).toBe(6)
+    expect(overview.isObserved).toBe(false)
+    expect(overview.serviceName).toBe('db-headless')
+    expect(overview.podManagementPolicy).toBe('Parallel')
+    expect(overview.minReadySeconds).toBe(15)
+    expect(overview.schedulerName).toBe('storage-scheduler')
+    expect(overview.currentRevision).toBe('db-6d4f6f7f9')
+    expect(overview.updateRevision).toBe('db-78bd56fc9')
+    expect(overview.pvcWhenDeleted).toBe('Retain')
+    expect(overview.pvcWhenScaled).toBe('Delete')
+    expect(overview.serviceLinksEnabled).toBe(false)
+    expect(overview.resourceRequests.memory).toBe('1Gi')
+    expect(overview.resourceLimits.cpu).toBe('1')
   })
 })
 

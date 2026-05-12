@@ -34,6 +34,8 @@
     "current": "Current",
     "viewDetails": "View details",
     "viewYaml": "View YAML",
+    "manageLabels": "Manage labels",
+    "manageAnnotations": "Manage annotations",
     "copyName": "Copy name",
     "copyImage": "Copy image",
     "available": "Available",
@@ -1488,6 +1490,16 @@
     "disabled": "Disabled",
     "editContainer": "Edit Container",
     "editContainers": "Edit Containers"
+  },
+  "statefulSetOverview": {
+    "currentStatus": "Current Status",
+    "replicaSummary": "Replicas (Ready / Desired / Current)",
+    "notSet": "Not set",
+    "age": "Age",
+    "currentRevision": "Current Revision",
+    "updateRevision": "Update Revision",
+    "pvcRetentionPolicy": "PVC Retention Policy",
+    "minReadySeconds": "Min Ready Seconds"
   },
   "containerEditor": {
     "title": "Edit Container: {{name}}",

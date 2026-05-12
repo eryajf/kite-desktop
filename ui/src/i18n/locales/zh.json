@@ -40,6 +40,8 @@
     "copied": "已复制到剪贴板",
     "viewDetails": "查看详情",
     "viewYaml": "查看 YAML",
+    "manageLabels": "管理标签",
+    "manageAnnotations": "管理注解",
     "copyName": "复制名称",
     "copyImage": "复制镜像",
     "desired": "期望",
@@ -1780,6 +1782,16 @@
     "disabled": "已禁用",
     "editContainer": "编辑容器",
     "editContainers": "编辑容器"
+  },
+  "statefulSetOverview": {
+    "currentStatus": "当前状态",
+    "replicaSummary": "副本数（Ready / Desired / Current）",
+    "notSet": "未指定",
+    "age": "运行时长",
+    "currentRevision": "当前修订版本",
+    "updateRevision": "目标修订版本",
+    "pvcRetentionPolicy": "PVC 保留策略",
+    "minReadySeconds": "最小就绪秒数"
   },
   "containerEditor": {
     "title": "编辑容器：{{name}}",

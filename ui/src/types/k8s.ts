@@ -55,6 +55,45 @@ export type DeploymentOverviewViewModel = {
   annotations: Record<string, string>
 }
 
+export type StatefulSetOverviewStatusType =
+  | 'Available'
+  | 'Progressing'
+  | 'Pending'
+  | 'Scaled Down'
+  | 'Not Available'
+  | 'Unknown'
+
+export type StatefulSetOverviewViewModel = {
+  status: StatefulSetOverviewStatusType
+  statusTone: DeploymentOverviewStatusTone
+  readyReplicas: number
+  specReplicas: number
+  currentReplicas: number
+  updatedReplicas: number
+  availableReplicas: number
+  observedGeneration?: number
+  generation?: number
+  isObserved: boolean
+  createdAt?: string
+  age?: string
+  serviceName?: string
+  updateStrategy: string
+  podManagementPolicy: string
+  minReadySeconds: number
+  hostNetwork: boolean
+  schedulerName?: string
+  resourceRequests: DeploymentResourceSummaryValue
+  resourceLimits: DeploymentResourceSummaryValue
+  selectorLabels: Record<string, string>
+  currentRevision?: string
+  updateRevision?: string
+  serviceLinksEnabled: boolean
+  pvcWhenDeleted?: string
+  pvcWhenScaled?: string
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 /**
  * @link https://kubernetes.io/docs/reference/node/node-status/#condition
  */

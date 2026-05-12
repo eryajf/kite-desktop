@@ -1,18 +1,69 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { IconCircleCheckFilled, IconLoader } from '@tabler/icons-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
 import { StatefulSet } from 'kubernetes-types/apps/v1'
+import {
+  FileCode2,
+  FileText,
+  History,
+  RefreshCcw,
+  Tags,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 
-import { formatDate } from '@/lib/utils'
+import { patchResource } from '@/lib/api'
+import {
+  formatDate,
+  formatRelativeTimeStrict,
+  translateError,
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ContainerImagesSummary } from '@/components/container-images-summary'
+import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
+import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
+import { ResourceLimitsSummary } from '@/components/resource-limits-summary'
 import { ResourceTable } from '@/components/resource-table'
+import { RowContextMenuItem } from '@/components/row-context-menu'
+
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
 
 export function StatefulSetListPage() {
   const { t } = useTranslation()
-  // Define column helper outside of any hooks
-  const columnHelper = createColumnHelper<StatefulSet>()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [labelsStatefulSet, setLabelsStatefulSet] =
+    useState<StatefulSet | null>(null)
+  const [annotationsStatefulSet, setAnnotationsStatefulSet] =
+    useState<StatefulSet | null>(null)
+  const [restartStatefulSetTarget, setRestartStatefulSetTarget] =
+    useState<StatefulSet | null>(null)
+  const [deleteStatefulSetTarget, setDeleteStatefulSetTarget] =
+    useState<StatefulSet | null>(null)
+  const [isRestarting, setIsRestarting] = useState(false)
+  const columnHelper = useMemo(() => createColumnHelper<StatefulSet>(), [])
 
   // Define columns for the statefulset table
   const columns = useMemo(
@@ -81,13 +132,64 @@ export function StatefulSetListPage() {
         header: t('detail.fields.serviceName'),
         cell: ({ getValue }) => getValue() || '-',
       }),
+      columnHelper.display({
+        id: 'labels',
+        header: t('detail.fields.labels'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="labels"
+            ariaLabel={t('common.manageLabels', 'Manage labels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
+            onClick={() => setLabelsStatefulSet(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'annotations',
+        header: t('detail.fields.annotations'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="annotations"
+            ariaLabel={t('common.manageAnnotations', 'Manage annotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
+            onClick={() => setAnnotationsStatefulSet(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'containers-and-images',
+        header: t('deploymentOverview.containersAndImages'),
+        cell: ({ row }) => (
+          <ContainerImagesSummary
+            containers={row.original.spec?.template?.spec?.containers}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'resource-limits',
+        header: t('deploymentOverview.resourceLimits'),
+        cell: ({ row }) => (
+          <ResourceLimitsSummary
+            containers={row.original.spec?.template?.spec?.containers}
+          />
+        ),
+      }),
       columnHelper.accessor('metadata.creationTimestamp', {
+        id: 'created',
         header: t('common.created'),
         cell: ({ getValue }) => {
-          const dateStr = formatDate(getValue() || '')
-
           return (
-            <span className="text-muted-foreground text-sm">{dateStr}</span>
+            <span className="text-muted-foreground text-sm">
+              {formatTimestampWithRelative(getValue())}
+            </span>
           )
         },
       }),
@@ -103,21 +205,203 @@ export function StatefulSetListPage() {
         (statefulSet.metadata!.namespace?.toLowerCase() || '').includes(
           query
         ) ||
-        (statefulSet.spec!.serviceName?.toLowerCase() || '').includes(query)
+        (statefulSet.spec!.serviceName?.toLowerCase() || '').includes(query) ||
+        Object.entries(statefulSet.metadata?.labels || {}).some(
+          ([key, value]) =>
+            key.toLowerCase().includes(query) ||
+            value.toLowerCase().includes(query)
+        ) ||
+        Object.entries(statefulSet.metadata?.annotations || {}).some(
+          ([key, value]) =>
+            key.toLowerCase().includes(query) ||
+            value.toLowerCase().includes(query)
+        ) ||
+        (statefulSet.spec?.template?.spec?.containers || []).some(
+          (container) =>
+            container.name.toLowerCase().includes(query) ||
+            (container.image || '').toLowerCase().includes(query)
+        )
       )
     },
     []
   )
 
+  const getStatefulSetDetailPath = useCallback((statefulSet: StatefulSet) => {
+    return `/statefulsets/${statefulSet.metadata!.namespace}/${statefulSet.metadata!.name}`
+  }, [])
+
+  const refreshStatefulSetList = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['statefulsets'] })
+  }, [queryClient])
+
+  const handleRestart = useCallback(async () => {
+    if (
+      !restartStatefulSetTarget?.metadata?.name ||
+      !restartStatefulSetTarget.metadata?.namespace
+    ) {
+      return
+    }
+
+    setIsRestarting(true)
+    try {
+      await patchResource(
+        'statefulsets',
+        restartStatefulSetTarget.metadata.name,
+        restartStatefulSetTarget.metadata.namespace,
+        {
+          spec: {
+            template: {
+              metadata: {
+                annotations: {
+                  'kite.kubernetes.io/restartedAt': new Date().toISOString(),
+                },
+              },
+            },
+          },
+        }
+      )
+      toast.success('StatefulSet restart initiated')
+      setRestartStatefulSetTarget(null)
+      await refreshStatefulSetList()
+    } catch (error) {
+      toast.error(translateError(error, t))
+    } finally {
+      setIsRestarting(false)
+    }
+  }, [refreshStatefulSetList, restartStatefulSetTarget, t])
+
+  const getRowContextMenuItems = useCallback(
+    (statefulSet: StatefulSet): RowContextMenuItem<StatefulSet>[] => {
+      const detailPath = getStatefulSetDetailPath(statefulSet)
+
+      return [
+        {
+          key: 'view-yaml',
+          label: t('common.viewYaml', 'View YAML'),
+          icon: <FileCode2 className="h-4 w-4" />,
+          onSelect: () => navigate(`${detailPath}?tab=yaml`),
+        },
+        {
+          key: 'rollout-restart',
+          label: t('deploymentList.rolloutRestart'),
+          icon: <RefreshCcw className="h-4 w-4" />,
+          onSelect: () => setRestartStatefulSetTarget(statefulSet),
+        },
+        {
+          key: 'history',
+          label: t('detail.tabs.history'),
+          icon: <History className="h-4 w-4" />,
+          onSelect: () => navigate(`${detailPath}?tab=history`),
+        },
+        { type: 'separator', key: 'metadata-actions-separator' },
+        {
+          key: 'manage-labels',
+          label: t('common.manageLabels', 'Manage labels'),
+          icon: <Tags className="h-4 w-4" />,
+          onSelect: () => setLabelsStatefulSet(statefulSet),
+        },
+        {
+          key: 'manage-annotations',
+          label: t('common.manageAnnotations', 'Manage annotations'),
+          icon: <FileText className="h-4 w-4" />,
+          onSelect: () => setAnnotationsStatefulSet(statefulSet),
+        },
+        {
+          key: 'delete-statefulset',
+          label: t('common.delete'),
+          icon: <Trash2 className="h-4 w-4" />,
+          variant: 'destructive',
+          onSelect: () => setDeleteStatefulSetTarget(statefulSet),
+        },
+      ]
+    },
+    [getStatefulSetDetailPath, navigate, t]
+  )
+
   return (
-    <ResourceTable
-      resourceName={'StatefulSets'}
-      resourceType="statefulsets"
-      columns={columns}
-      searchQueryFilter={statefulSetSearchFilter}
-      batchDeleteConfirmationValue={t(
-        'deleteConfirmation.confirmDeleteKeyword'
-      )}
-    />
+    <>
+      <ResourceTable
+        resourceName={'StatefulSets'}
+        resourceType="statefulsets"
+        columns={columns}
+        searchQueryFilter={statefulSetSearchFilter}
+        getRowContextMenuItems={getRowContextMenuItems}
+        batchDeleteConfirmationValue={t(
+          'deleteConfirmation.confirmDeleteKeyword'
+        )}
+      />
+
+      <Dialog
+        open={Boolean(restartStatefulSetTarget)}
+        onOpenChange={(open) => {
+          if (!open && !isRestarting) {
+            setRestartStatefulSetTarget(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {t('aiChat.action.restart', {
+                target:
+                  restartStatefulSetTarget?.metadata?.name || 'StatefulSet',
+              })}
+            </DialogTitle>
+            <DialogDescription>
+              {t('detail.dialogs.restartDeployment.description')}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRestartStatefulSetTarget(null)}
+              disabled={isRestarting}
+            >
+              {t('detail.buttons.cancel')}
+            </Button>
+            <Button onClick={handleRestart} disabled={isRestarting}>
+              {t('detail.dialogs.restartDeployment.restartButton')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ResourceMetadataDialog
+        open={Boolean(labelsStatefulSet)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setLabelsStatefulSet(null)
+          }
+        }}
+        resourceType="statefulsets"
+        resource={labelsStatefulSet}
+        type="labels"
+      />
+
+      <ResourceMetadataDialog
+        open={Boolean(annotationsStatefulSet)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAnnotationsStatefulSet(null)
+          }
+        }}
+        resourceType="statefulsets"
+        resource={annotationsStatefulSet}
+        type="annotations"
+      />
+
+      <ResourceDeleteConfirmationDialog
+        open={Boolean(deleteStatefulSetTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteStatefulSetTarget(null)
+          }
+        }}
+        resourceName={deleteStatefulSetTarget?.metadata?.name || ''}
+        resourceType="statefulsets"
+        namespace={deleteStatefulSetTarget?.metadata?.namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
+      />
+    </>
   )
 }

@@ -20,6 +20,8 @@ import {
   DeploymentStatusType,
   PodStatus,
   SimpleContainer,
+  StatefulSetOverviewStatusType,
+  StatefulSetOverviewViewModel,
 } from '@/types/k8s'
 
 import { getAge } from './utils'
@@ -624,6 +626,113 @@ export function buildDeploymentOverviewViewModel(
       deployment.spec?.template?.spec?.enableServiceLinks !== false,
     labels: deployment.metadata?.labels || {},
     annotations: deployment.metadata?.annotations || {},
+  }
+}
+
+function getStatefulSetOverviewStatus(
+  statefulSet: StatefulSet
+): StatefulSetOverviewStatusType {
+  const desiredReplicas = statefulSet.spec?.replicas || 0
+  const actualReplicas = statefulSet.status?.replicas || 0
+  const readyReplicas = statefulSet.status?.readyReplicas || 0
+  const currentReplicas = statefulSet.status?.currentReplicas || 0
+  const updatedReplicas = statefulSet.status?.updatedReplicas || 0
+  const availableReplicas = statefulSet.status?.availableReplicas || 0
+
+  if (desiredReplicas === 0) {
+    return 'Scaled Down'
+  }
+
+  if (currentReplicas < desiredReplicas) {
+    return 'Pending'
+  }
+
+  if (
+    readyReplicas === desiredReplicas &&
+    updatedReplicas === desiredReplicas &&
+    availableReplicas === desiredReplicas
+  ) {
+    return 'Available'
+  }
+
+  if (
+    actualReplicas > 0 &&
+    (updatedReplicas < desiredReplicas || readyReplicas < desiredReplicas)
+  ) {
+    return 'Progressing'
+  }
+
+  if (actualReplicas === 0 && desiredReplicas > 0) {
+    return 'Not Available'
+  }
+
+  return 'Unknown'
+}
+
+function getStatefulSetStatusTone(
+  status: StatefulSetOverviewStatusType
+): DeploymentOverviewStatusTone {
+  switch (status) {
+    case 'Available':
+      return 'success'
+    case 'Progressing':
+    case 'Pending':
+      return 'warning'
+    case 'Not Available':
+      return 'danger'
+    case 'Scaled Down':
+    case 'Unknown':
+    default:
+      return 'muted'
+  }
+}
+
+export function buildStatefulSetOverviewViewModel(
+  statefulSet: StatefulSet
+): StatefulSetOverviewViewModel {
+  const status = getStatefulSetOverviewStatus(statefulSet)
+  const containers = statefulSet.spec?.template?.spec?.containers
+  const resources = aggregateContainerResources(containers)
+  const generation = statefulSet.metadata?.generation
+  const observedGeneration = statefulSet.status?.observedGeneration
+  const createdAt = statefulSet.metadata?.creationTimestamp
+  const pvcRetentionPolicy =
+    statefulSet.spec?.persistentVolumeClaimRetentionPolicy
+
+  return {
+    status,
+    statusTone: getStatefulSetStatusTone(status),
+    readyReplicas: statefulSet.status?.readyReplicas || 0,
+    specReplicas: statefulSet.spec?.replicas || 0,
+    currentReplicas: statefulSet.status?.currentReplicas || 0,
+    updatedReplicas: statefulSet.status?.updatedReplicas || 0,
+    availableReplicas: statefulSet.status?.availableReplicas || 0,
+    observedGeneration,
+    generation,
+    isObserved:
+      generation === undefined ||
+      observedGeneration === undefined ||
+      observedGeneration >= generation,
+    createdAt,
+    age: createdAt ? getAge(createdAt) : undefined,
+    serviceName: statefulSet.spec?.serviceName,
+    updateStrategy: statefulSet.spec?.updateStrategy?.type || 'RollingUpdate',
+    podManagementPolicy:
+      statefulSet.spec?.podManagementPolicy || 'OrderedReady',
+    minReadySeconds: statefulSet.spec?.minReadySeconds || 0,
+    hostNetwork: statefulSet.spec?.template?.spec?.hostNetwork === true,
+    schedulerName: statefulSet.spec?.template?.spec?.schedulerName,
+    resourceRequests: resources.requests,
+    resourceLimits: resources.limits,
+    selectorLabels: statefulSet.spec?.selector?.matchLabels || {},
+    currentRevision: statefulSet.status?.currentRevision,
+    updateRevision: statefulSet.status?.updateRevision,
+    serviceLinksEnabled:
+      statefulSet.spec?.template?.spec?.enableServiceLinks !== false,
+    pvcWhenDeleted: pvcRetentionPolicy?.whenDeleted,
+    pvcWhenScaled: pvcRetentionPolicy?.whenScaled,
+    labels: statefulSet.metadata?.labels || {},
+    annotations: statefulSet.metadata?.annotations || {},
   }
 }
 

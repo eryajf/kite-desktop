@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
-  IconCircleCheckFilled,
-  IconExclamationCircle,
   IconLoader,
   IconReload,
   IconScale,
@@ -13,10 +11,14 @@ import { Container } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
 import { trackResourceAction } from '@/lib/analytics'
-import { filterPodsOwnedByController } from '@/lib/k8s'
-import { formatDate, translateError } from '@/lib/utils'
+import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
+import {
+  buildStatefulSetOverviewViewModel,
+  filterPodsOwnedByController,
+  toSimpleContainer,
+} from '@/lib/k8s'
+import { translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,18 +30,18 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
-import { RefreshButton } from '@/components/refresh-button'
 import { ContainerTable } from '@/components/container-table'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
-import { LabelsAnno } from '@/components/lables-anno'
 import { LogViewer } from '@/components/log-viewer'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
+import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
+import { StatefulSetOverviewInfoCard } from '@/components/statefulset-overview-info-card'
 import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
 import { YamlEditor } from '@/components/yaml-editor'
@@ -303,13 +305,7 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
   }
 
   const { metadata, spec, status } = statefulset
-  const readyReplicas = status?.readyReplicas || 0
-  const replicas = status?.replicas || 0
-  const currentReplicas = status?.currentReplicas || 0
-  const updatedReplicas = status?.updatedReplicas || 0
-
-  const isAvailable = readyReplicas === replicas && replicas > 0
-  const isPending = currentReplicas < replicas
+  const overview = buildStatefulSetOverviewViewModel(statefulset)
 
   return (
     <div className="space-y-2">
@@ -436,118 +432,16 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-6">
-                {/* Status Overview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          {isPending ? (
-                            <IconExclamationCircle className="w-4 h-4 fill-gray-500" />
-                          ) : isAvailable ? (
-                            <IconCircleCheckFilled className="w-4 h-4 fill-green-500" />
-                          ) : (
-                            <IconLoader className="w-4 h-4 animate-spin fill-amber-500" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t('common.status')}
-                          </p>
-                          <p className="text-sm font-medium">
-                            {isPending
-                              ? 'Pending'
-                              : isAvailable
-                                ? t('deployments.available')
-                                : t('detail.status.inProgress')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.readyReplicas')}
-                        </p>
-                        <p className="text-sm font-medium">
-                          {readyReplicas} / {replicas}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.currentReplicas')}
-                        </p>
-                        <p className="text-sm font-medium">{currentReplicas}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.updatedReplicas')}
-                        </p>
-                        <p className="text-sm font-medium">{updatedReplicas}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* StatefulSet Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      {t('detail.sections.statefulSetInformation')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-sm font-medium">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(metadata?.creationTimestamp || '')}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">
-                          {t('detail.fields.serviceName')}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {spec?.serviceName || 'N/A'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">
-                          {t('detail.fields.updateStrategy')}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {spec?.updateStrategy?.type || 'RollingUpdate'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-sm font-medium">
-                          {t('detail.fields.podManagementPolicy')}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {spec?.podManagementPolicy || 'OrderedReady'}
-                        </p>
-                      </div>
-                    </div>
-                    <LabelsAnno
-                      labels={metadata?.labels || {}}
-                      annotations={metadata?.annotations || {}}
-                    />
-                  </CardContent>
-                </Card>
+                <StatefulSetOverviewInfoCard overview={overview} />
 
                 {/* Init Containers */}
-                {spec?.template?.spec?.initContainers && (
+                {spec?.template?.spec?.initContainers &&
+                spec.template.spec.initContainers.length > 0 ? (
                   <Card>
                     <CardHeader>
                       <CardTitle>
-                        {t('detail.sections.initContainers')}
+                        {t('detail.sections.initContainers')} (
+                        {spec.template.spec.initContainers.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -567,13 +461,16 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
 
                 {/* Containers */}
-                {spec?.template?.spec?.containers && (
+                {spec?.template?.spec?.containers ? (
                   <Card>
                     <CardHeader>
-                      <CardTitle>{t('detail.sections.containers')}</CardTitle>
+                      <CardTitle>
+                        {t('detail.sections.containers')} (
+                        {spec.template.spec.containers.length})
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -589,7 +486,50 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
+
+                {relatedPods ? (
+                  <PodTable
+                    pods={relatedPods}
+                    isLoading={isLoadingPods}
+                    labelSelector={labelSelector}
+                    title={
+                      <>
+                        Pods{' '}
+                        <Badge variant="secondary">{relatedPods.length}</Badge>
+                      </>
+                    }
+                  />
+                ) : null}
+
+                {status?.conditions && status.conditions.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('detail.sections.conditions')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {status.conditions.map((condition, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 rounded border p-2"
+                          >
+                            <Badge
+                              variant={
+                                condition.status === 'True'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
+                            >
+                              {condition.type}
+                            </Badge>
+                            <span className="text-sm">{condition.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             ),
           },
@@ -611,24 +551,6 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
           },
           ...(relatedPods
             ? [
-                {
-                  value: 'pods',
-                  label: (
-                    <>
-                      Pods{' '}
-                      {relatedPods && (
-                        <Badge variant="secondary">{relatedPods.length}</Badge>
-                      )}
-                    </>
-                  ),
-                  content: (
-                    <PodTable
-                      pods={relatedPods}
-                      isLoading={isLoadingPods}
-                      labelSelector={labelSelector}
-                    />
-                  ),
-                },
                 {
                   value: 'logs',
                   label: t('detail.tabs.logs'),
@@ -681,7 +603,10 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
                       <VolumeTable
                         namespace={namespace}
                         volumes={spec.template.spec?.volumes}
-                        containers={spec.template.spec?.containers}
+                        containers={toSimpleContainer(
+                          spec.template.spec?.initContainers,
+                          spec.template.spec?.containers
+                        )}
                         isLoading={isLoadingStatefulSet}
                       />
                     </div>
