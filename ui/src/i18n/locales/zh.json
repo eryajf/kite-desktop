@@ -1793,6 +1793,20 @@
     "pvcRetentionPolicy": "PVC 保留策略",
     "minReadySeconds": "最小就绪秒数"
   },
+  "daemonSetOverview": {
+    "currentStatus": "当前状态",
+    "scheduledSummary": "调度数（Ready / Desired / Current）",
+    "notSet": "未指定",
+    "age": "运行时长",
+    "rolloutPendingDescription": "控制器当前观察到的 generation 为 {{observed}}，期望 generation 为 {{generation}}。",
+    "rollingUpdatePolicy": "滚动更新策略",
+    "minReadySeconds": "最小就绪秒数",
+    "updatedScheduled": "已更新调度数",
+    "availableScheduled": "可用调度数",
+    "misscheduled": "错误调度数",
+    "revisionHistoryLimit": "修订历史保留数",
+    "collisionCount": "碰撞次数"
+  },
   "containerEditor": {
     "title": "编辑容器：{{name}}",
     "description": "更复杂的变更可通过修改 YAML 完成。",

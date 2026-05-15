@@ -1,40 +1,37 @@
 import { useEffect, useMemo, useState } from 'react'
-import {
-  IconCircleCheckFilled,
-  IconExclamationCircle,
-  IconLoader,
-  IconReload,
-  IconTrash,
-} from '@tabler/icons-react'
+import { IconLoader, IconReload, IconTrash } from '@tabler/icons-react'
 import * as yaml from 'js-yaml'
 import { DaemonSet } from 'kubernetes-types/apps/v1'
 import { Container } from 'kubernetes-types/core/v1'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
-import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
 import { trackResourceAction } from '@/lib/analytics'
-import { filterPodsOwnedByController } from '@/lib/k8s'
-import { formatDate, translateError } from '@/lib/utils'
+import { updateResource, useResource, useResourcesWatch } from '@/lib/api'
+import {
+  buildDaemonSetOverviewViewModel,
+  filterPodsOwnedByController,
+  toSimpleContainer,
+} from '@/lib/k8s'
+import { translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
-import { RefreshButton } from '@/components/refresh-button'
 import { ContainerTable } from '@/components/container-table'
+import { DaemonSetOverviewInfoCard } from '@/components/daemonset-overview-info-card'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
-import { LabelsAnno } from '@/components/lables-anno'
 import { LogViewer } from '@/components/log-viewer'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
+import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
@@ -255,13 +252,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
   }
 
   const { metadata, spec, status } = daemonset
-  const readyReplicas = status?.numberReady || 0
-  const desiredReplicas = status?.desiredNumberScheduled || 0
-  const currentReplicas = status?.currentNumberScheduled || 0
-  const availableReplicas = status?.numberAvailable || 0
-
-  const isAvailable = availableReplicas > 0
-  const isPending = currentReplicas < desiredReplicas
+  const overview = buildDaemonSetOverviewViewModel(daemonset)
 
   return (
     <div className="space-y-2">
@@ -342,102 +333,17 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             value: 'overview',
             label: t('detail.tabs.overview'),
             content: (
-              <div className="space-y-6">
-                {/* Status Overview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          {isPending ? (
-                            <IconExclamationCircle className="w-4 h-4 fill-gray-500" />
-                          ) : isAvailable ? (
-                            <IconCircleCheckFilled className="w-4 h-4 fill-green-500" />
-                          ) : (
-                            <IconLoader className="w-4 h-4 animate-spin fill-amber-500" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t('common.status')}
-                          </p>
-                          <p className="text-sm font-medium">
-                            {isPending
-                              ? 'Pending'
-                              : isAvailable
-                                ? t('deployments.available')
-                                : t('detail.status.inProgress')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.readyReplicas')}
-                        </p>
-                        <p className="text-sm font-medium">
-                          {readyReplicas} / {desiredReplicas}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.currentScheduled')}
-                        </p>
-                        <p className="text-sm font-medium">{currentReplicas}</p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.desiredScheduled')}
-                        </p>
-                        <p className="text-sm font-medium">{desiredReplicas}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* DaemonSet Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>
-                      {t('detail.sections.daemonSetInformation')}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm">
-                          {formatDate(metadata?.creationTimestamp || '', true)}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.strategy')}
-                        </Label>
-                        <p className="text-sm">
-                          {spec?.updateStrategy?.type || 'RollingUpdate'}
-                        </p>
-                      </div>
-                    </div>
-                    <LabelsAnno
-                      labels={metadata?.labels || {}}
-                      annotations={metadata?.annotations || {}}
-                    />
-                  </CardContent>
-                </Card>
+              <div className="space-y-4">
+                <DaemonSetOverviewInfoCard overview={overview} />
 
                 {/* Init Containers */}
-                {spec?.template?.spec?.initContainers && (
+                {spec?.template?.spec?.initContainers &&
+                spec.template.spec.initContainers.length > 0 ? (
                   <Card>
                     <CardHeader>
                       <CardTitle>
-                        {t('detail.sections.initContainers')}
+                        {t('detail.sections.initContainers')} (
+                        {spec.template.spec.initContainers.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -455,13 +361,16 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
 
                 {/* Containers */}
-                {spec?.template?.spec?.containers && (
+                {spec?.template?.spec?.containers ? (
                   <Card>
                     <CardHeader>
-                      <CardTitle>{t('detail.sections.containers')}</CardTitle>
+                      <CardTitle>
+                        {t('detail.sections.containers')} (
+                        {spec.template.spec.containers.length})
+                      </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
@@ -477,7 +386,50 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                       </div>
                     </CardContent>
                   </Card>
-                )}
+                ) : null}
+
+                <PodTable
+                  pods={relatedPods}
+                  isLoading={isLoadingPods}
+                  labelSelector={labelSelector}
+                  title={
+                    <>
+                      Pods{' '}
+                      <Badge variant="secondary">
+                        {relatedPods?.length || 0}
+                      </Badge>
+                    </>
+                  }
+                />
+
+                {status?.conditions && status.conditions.length > 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t('detail.sections.conditions')}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        {status.conditions.map((condition, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center gap-3 rounded border p-2"
+                          >
+                            <Badge
+                              variant={
+                                condition.status === 'True'
+                                  ? 'default'
+                                  : 'secondary'
+                              }
+                            >
+                              {condition.type}
+                            </Badge>
+                            <span className="text-sm">{condition.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
               </div>
             ),
           },
@@ -499,24 +451,6 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
           },
           ...(relatedPods
             ? [
-                {
-                  value: 'pods',
-                  label: (
-                    <>
-                      Pods{' '}
-                      {relatedPods && (
-                        <Badge variant="secondary">{relatedPods.length}</Badge>
-                      )}
-                    </>
-                  ),
-                  content: (
-                    <PodTable
-                      pods={relatedPods}
-                      isLoading={isLoadingPods}
-                      labelSelector={labelSelector}
-                    />
-                  ),
-                },
                 {
                   value: 'logs',
                   label: t('detail.tabs.logs'),
@@ -569,7 +503,10 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
                       <VolumeTable
                         namespace={namespace}
                         volumes={spec.template.spec?.volumes}
-                        containers={spec.template.spec?.containers}
+                        containers={toSimpleContainer(
+                          spec.template.spec?.initContainers,
+                          spec.template.spec?.containers
+                        )}
                         isLoading={isLoadingDaemonSet}
                       />
                     </div>

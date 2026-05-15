@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Deployment, StatefulSet } from 'kubernetes-types/apps/v1'
+import { DaemonSet, Deployment, StatefulSet } from 'kubernetes-types/apps/v1'
 import {
   Container,
   ExecAction,
@@ -28,7 +28,7 @@ type UseDeploymentContainerEditorOptions = {
   initialContainerName?: string
 }
 
-export type WorkloadWithPodTemplate = Deployment | StatefulSet
+export type WorkloadWithPodTemplate = Deployment | StatefulSet | DaemonSet
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T

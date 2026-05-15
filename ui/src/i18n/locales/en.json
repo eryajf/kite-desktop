@@ -1501,6 +1501,20 @@
     "pvcRetentionPolicy": "PVC Retention Policy",
     "minReadySeconds": "Min Ready Seconds"
   },
+  "daemonSetOverview": {
+    "currentStatus": "Current Status",
+    "scheduledSummary": "Scheduled (Ready / Desired / Current)",
+    "notSet": "Not set",
+    "age": "Age",
+    "rolloutPendingDescription": "The controller has observed generation {{observed}}, but the latest generation is {{generation}}.",
+    "rollingUpdatePolicy": "Rolling Update Policy",
+    "minReadySeconds": "Min Ready Seconds",
+    "updatedScheduled": "Updated Scheduled",
+    "availableScheduled": "Available Scheduled",
+    "misscheduled": "Misscheduled",
+    "revisionHistoryLimit": "Revision History Limit",
+    "collisionCount": "Collision Count"
+  },
   "containerEditor": {
     "title": "Edit Container: {{name}}",
     "description": "More complex changes can be made by modifying YAML.",

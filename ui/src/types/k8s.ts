@@ -94,6 +94,43 @@ export type StatefulSetOverviewViewModel = {
   annotations: Record<string, string>
 }
 
+export type DaemonSetOverviewStatusType =
+  | 'Available'
+  | 'Progressing'
+  | 'Pending'
+  | 'Not Available'
+  | 'Unknown'
+
+export type DaemonSetOverviewViewModel = {
+  status: DaemonSetOverviewStatusType
+  statusTone: DeploymentOverviewStatusTone
+  readyScheduled: number
+  desiredScheduled: number
+  currentScheduled: number
+  updatedScheduled: number
+  availableScheduled: number
+  misscheduled: number
+  observedGeneration?: number
+  generation?: number
+  isObserved: boolean
+  createdAt?: string
+  age?: string
+  updateStrategy: string
+  maxUnavailable?: string | number
+  maxSurge?: string | number
+  minReadySeconds: number
+  revisionHistoryLimit?: number
+  collisionCount?: number
+  hostNetwork: boolean
+  schedulerName?: string
+  resourceRequests: DeploymentResourceSummaryValue
+  resourceLimits: DeploymentResourceSummaryValue
+  selectorLabels: Record<string, string>
+  serviceLinksEnabled: boolean
+  labels: Record<string, string>
+  annotations: Record<string, string>
+}
+
 /**
  * @link https://kubernetes.io/docs/reference/node/node-status/#condition
  */

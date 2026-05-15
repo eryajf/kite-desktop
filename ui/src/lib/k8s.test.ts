@@ -6,6 +6,7 @@ import type { CustomResource } from '@/types/api'
 
 import {
   aggregateContainerResources,
+  buildDaemonSetOverviewViewModel,
   buildDeploymentOverviewViewModel,
   buildStatefulSetOverviewViewModel,
   filterPodsOwnedByController,
@@ -269,6 +270,99 @@ describe('statefulset overview helpers', () => {
     expect(overview.serviceLinksEnabled).toBe(false)
     expect(overview.resourceRequests.memory).toBe('1Gi')
     expect(overview.resourceLimits.cpu).toBe('1')
+  })
+})
+
+describe('daemonset overview helpers', () => {
+  const daemonSet = {
+    apiVersion: 'apps/v1',
+    kind: 'DaemonSet',
+    metadata: {
+      name: 'node-agent',
+      namespace: 'default',
+      creationTimestamp: '2026-04-15T12:00:00.000Z',
+      generation: 9,
+      labels: {
+        app: 'node-agent',
+      },
+      annotations: {
+        owner: 'platform',
+      },
+    },
+    spec: {
+      minReadySeconds: 10,
+      revisionHistoryLimit: 4,
+      updateStrategy: {
+        type: 'RollingUpdate',
+        rollingUpdate: {
+          maxUnavailable: '25%',
+          maxSurge: 1,
+        },
+      },
+      selector: {
+        matchLabels: {
+          app: 'node-agent',
+        },
+      },
+      template: {
+        spec: {
+          hostNetwork: true,
+          schedulerName: 'daemon-scheduler',
+          enableServiceLinks: false,
+          containers: [
+            {
+              name: 'agent',
+              image: 'agent:v1',
+              resources: {
+                requests: {
+                  cpu: '100m',
+                  memory: '128Mi',
+                },
+                limits: {
+                  cpu: '500m',
+                  memory: '256Mi',
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+    status: {
+      desiredNumberScheduled: 5,
+      currentNumberScheduled: 5,
+      updatedNumberScheduled: 3,
+      numberReady: 4,
+      numberAvailable: 4,
+      numberMisscheduled: 1,
+      observedGeneration: 8,
+      collisionCount: 2,
+    },
+  } as DaemonSet
+
+  it('builds the daemonset overview view model with scheduling and rollout metadata', () => {
+    const overview = buildDaemonSetOverviewViewModel(daemonSet)
+
+    expect(overview.status).toBe('Pending')
+    expect(overview.readyScheduled).toBe(4)
+    expect(overview.desiredScheduled).toBe(5)
+    expect(overview.currentScheduled).toBe(5)
+    expect(overview.updatedScheduled).toBe(3)
+    expect(overview.availableScheduled).toBe(4)
+    expect(overview.misscheduled).toBe(1)
+    expect(overview.observedGeneration).toBe(8)
+    expect(overview.generation).toBe(9)
+    expect(overview.isObserved).toBe(false)
+    expect(overview.maxUnavailable).toBe('25%')
+    expect(overview.maxSurge).toBe(1)
+    expect(overview.minReadySeconds).toBe(10)
+    expect(overview.revisionHistoryLimit).toBe(4)
+    expect(overview.collisionCount).toBe(2)
+    expect(overview.hostNetwork).toBe(true)
+    expect(overview.schedulerName).toBe('daemon-scheduler')
+    expect(overview.serviceLinksEnabled).toBe(false)
+    expect(overview.resourceRequests.memory).toBe('128Mi')
+    expect(overview.resourceLimits.cpu).toBe('500m')
   })
 })
 
