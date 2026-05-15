@@ -101,6 +101,40 @@ func GetPodMetrics(metricsMap map[string]metricsv1.PodMetrics, pod *corev1.Pod) 
 	}
 }
 
+func reducePodForList(pod *corev1.Pod) *corev1.Pod {
+	reduced := pod.DeepCopy()
+	reduced.ObjectMeta = metav1.ObjectMeta{
+		Name:              pod.Name,
+		Namespace:         pod.Namespace,
+		CreationTimestamp: pod.CreationTimestamp,
+		DeletionTimestamp: pod.DeletionTimestamp,
+		GenerateName:      pod.GenerateName,
+		Labels:            pod.Labels,
+		Annotations:       pod.Annotations,
+	}
+	reduced.Spec = corev1.PodSpec{
+		NodeName: pod.Spec.NodeName,
+		InitContainers: lo.Map(pod.Spec.InitContainers, func(c corev1.Container, _ int) corev1.Container {
+			return corev1.Container{
+				Name:          c.Name,
+				Image:         c.Image,
+				RestartPolicy: c.RestartPolicy,
+				Resources:     c.Resources,
+			}
+		}),
+		Containers: lo.Map(pod.Spec.Containers, func(c corev1.Container, _ int) corev1.Container {
+			return corev1.Container{
+				Name:          c.Name,
+				Image:         c.Image,
+				RestartPolicy: c.RestartPolicy,
+				Resources:     c.Resources,
+			}
+		}),
+	}
+
+	return reduced
+}
+
 func (h *PodHandler) ListMetrics(c *gin.Context) (map[string]metricsv1.PodMetrics, error) {
 	cs := c.MustGet("cluster").(*cluster.ClientSet)
 	var metricsList metricsv1.PodMetricsList
@@ -155,22 +189,7 @@ func (h *PodHandler) List(c *gin.Context) {
 		}
 		item.Metrics = GetPodMetrics(metricsMap, &objlist.Items[i])
 		if reduce {
-			// remove unnecessary fields to reduce response size
-			item.ObjectMeta = metav1.ObjectMeta{
-				Name:              item.Name,
-				Namespace:         item.Namespace,
-				CreationTimestamp: item.CreationTimestamp,
-				DeletionTimestamp: item.DeletionTimestamp,
-			}
-			item.Spec = corev1.PodSpec{
-				NodeName: objlist.Items[i].Spec.NodeName,
-				InitContainers: lo.Map(objlist.Items[i].Spec.InitContainers, func(c corev1.Container, _ int) corev1.Container {
-					return corev1.Container{Name: c.Name, Image: c.Image, RestartPolicy: c.RestartPolicy}
-				}),
-				Containers: lo.Map(objlist.Items[i].Spec.Containers, func(c corev1.Container, _ int) corev1.Container {
-					return corev1.Container{Name: c.Name, Image: c.Image, RestartPolicy: c.RestartPolicy}
-				}),
-			}
+			item.Pod = reducePodForList(&objlist.Items[i])
 		}
 		result.Items[i] = item
 	}
@@ -581,23 +600,7 @@ func (h *PodHandler) Watch(c *gin.Context) {
 
 			obj := &PodWithMetrics{Pod: pod}
 			if reduce {
-				obj.Pod = pod.DeepCopy()
-				obj.ObjectMeta = metav1.ObjectMeta{
-					Name:              pod.Name,
-					Namespace:         pod.Namespace,
-					CreationTimestamp: pod.CreationTimestamp,
-					DeletionTimestamp: pod.DeletionTimestamp,
-					GenerateName:      pod.GenerateName,
-				}
-				obj.Spec = corev1.PodSpec{
-					NodeName: pod.Spec.NodeName,
-					InitContainers: lo.Map(pod.Spec.InitContainers, func(c corev1.Container, _ int) corev1.Container {
-						return corev1.Container{Name: c.Name, Image: c.Image, RestartPolicy: c.RestartPolicy}
-					}),
-					Containers: lo.Map(pod.Spec.Containers, func(c corev1.Container, _ int) corev1.Container {
-						return corev1.Container{Name: c.Name, Image: c.Image, RestartPolicy: c.RestartPolicy}
-					}),
-				}
+				obj.Pod = reducePodForList(pod)
 			}
 			obj.Metrics = GetPodMetrics(metricsMap, pod)
 			switch event.Type {

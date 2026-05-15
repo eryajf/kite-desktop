@@ -1,32 +1,48 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Pod } from 'kubernetes-types/core/v1'
-import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
+import {
+  FileCode2,
+  FileText,
+  Logs,
+  Tags,
+  TerminalSquare,
+  Trash2,
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 
 import { PodWithMetrics } from '@/types/api'
-import { copyTextToClipboard } from '@/lib/desktop'
 import { getPodStatus } from '@/lib/k8s'
-import { formatDate, getAge } from '@/lib/utils'
+import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
+import { ContainerImagesSummary } from '@/components/container-images-summary'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
-import { Badge } from '@/components/ui/badge'
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
+import { Badge } from '@/components/ui/badge'
 import { MetricCell } from '@/components/metrics-cell'
 import { PodStatusIcon } from '@/components/pod-status-icon'
+import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
+import { ResourceLimitsSummary } from '@/components/resource-limits-summary'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
+
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
 
 export function PodListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [labelsPod, setLabelsPod] = useState<Pod | null>(null)
   const [annotationsPod, setAnnotationsPod] = useState<Pod | null>(null)
+  const [deletePodTarget, setDeletePodTarget] = useState<Pod | null>(null)
   const columnHelper = useMemo(() => createColumnHelper<PodWithMetrics>(), [])
 
   // Define columns for the pod table - moved outside render cycle for better performance
@@ -126,20 +142,60 @@ export function PodListPage() {
           return '-'
         },
       }),
+      columnHelper.display({
+        id: 'labels',
+        header: t('detail.fields.labels'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="labels"
+            ariaLabel={t('common.manageLabels', 'Manage labels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
+            onClick={() => setLabelsPod(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'annotations',
+        header: t('detail.fields.annotations'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="annotations"
+            ariaLabel={t('common.manageAnnotations', 'Manage annotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
+            onClick={() => setAnnotationsPod(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'containers-and-images',
+        header: t('deploymentOverview.containersAndImages'),
+        cell: ({ row }) => (
+          <ContainerImagesSummary containers={row.original.spec?.containers} />
+        ),
+      }),
+      columnHelper.display({
+        id: 'resource-limits',
+        header: t('deploymentOverview.resourceLimits'),
+        cell: ({ row }) => (
+          <ResourceLimitsSummary containers={row.original.spec?.containers} />
+        ),
+      }),
       columnHelper.accessor((row) => row.metadata?.creationTimestamp, {
         id: 'creationTimestamp',
         header: t('common.created'),
         cell: ({ getValue }) => {
-          const dateStr = formatDate(getValue() || '')
           return (
-            <Tooltip>
-              <TooltipTrigger>
-                <span className="text-muted-foreground text-sm">
-                  {getAge(getValue() || '')}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>{dateStr}</TooltipContent>
-            </Tooltip>
+            <span className="text-muted-foreground text-sm">
+              {formatTimestampWithRelative(getValue())}
+            </span>
           )
         },
       }),
@@ -152,7 +208,18 @@ export function PodListPage() {
     return (
       pod.metadata?.name?.toLowerCase().includes(query) ||
       (pod.spec?.nodeName?.toLowerCase() || '').includes(query) ||
-      (pod.status?.podIP?.toLowerCase() || '').includes(query)
+      (pod.status?.podIP?.toLowerCase() || '').includes(query) ||
+      Object.entries(pod.metadata?.labels || {}).some(([key, value]) =>
+        `${key}=${value}`.toLowerCase().includes(query)
+      ) ||
+      Object.entries(pod.metadata?.annotations || {}).some(([key, value]) =>
+        `${key}=${value}`.toLowerCase().includes(query)
+      ) ||
+      (pod.spec?.containers || []).some(
+        (container) =>
+          container.name.toLowerCase().includes(query) ||
+          (container.image || '').toLowerCase().includes(query)
+      )
     )
   }, [])
 
@@ -160,44 +227,28 @@ export function PodListPage() {
     return `/pods/${pod.metadata!.namespace}/${pod.metadata!.name}`
   }, [])
 
-  const handleCopy = useCallback(
-    async (value: string) => {
-      await copyTextToClipboard(value)
-      toast.success(t('keyValueDataViewer.copiedToClipboard'))
-    },
-    [t]
-  )
-
   const getRowContextMenuItems = useCallback(
     (pod: Pod): RowContextMenuItem<Pod>[] => {
-      const podIP = pod.status?.podIP
+      const detailPath = getPodDetailPath(pod)
 
       return [
         {
           key: 'view-yaml',
           label: t('common.viewYaml', 'View YAML'),
           icon: <FileCode2 className="h-4 w-4" />,
-          onSelect: () => navigate(`${getPodDetailPath(pod)}?tab=yaml`),
-        },
-        { type: 'separator', key: 'primary-actions-separator' },
-        {
-          key: 'copy-name',
-          label: t('common.copyName', 'Copy name'),
-          icon: <Copy className="h-4 w-4" />,
-          onSelect: () => handleCopy(pod.metadata?.name || ''),
+          onSelect: () => navigate(`${detailPath}?tab=yaml`),
         },
         {
-          key: 'copy-namespace',
-          label: t('common.copyNamespace', 'Copy namespace'),
-          icon: <Copy className="h-4 w-4" />,
-          onSelect: () => handleCopy(pod.metadata?.namespace || ''),
+          key: 'open-terminal',
+          label: t('detail.tabs.terminal'),
+          icon: <TerminalSquare className="h-4 w-4" />,
+          onSelect: () => navigate(`${detailPath}?tab=terminal`),
         },
         {
-          key: 'copy-pod-ip',
-          label: t('pods.copyPodIP', 'Copy Pod IP'),
-          icon: <Copy className="h-4 w-4" />,
-          disabled: !podIP,
-          onSelect: () => handleCopy(podIP || ''),
+          key: 'view-logs',
+          label: t('detail.tabs.logs'),
+          icon: <Logs className="h-4 w-4" />,
+          onSelect: () => navigate(`${detailPath}?tab=logs`),
         },
         { type: 'separator', key: 'metadata-actions-separator' },
         {
@@ -212,9 +263,16 @@ export function PodListPage() {
           icon: <FileText className="h-4 w-4" />,
           onSelect: () => setAnnotationsPod(pod),
         },
+        {
+          key: 'delete-pod',
+          label: t('common.delete'),
+          icon: <Trash2 className="h-4 w-4" />,
+          variant: 'destructive',
+          onSelect: () => setDeletePodTarget(pod),
+        },
       ]
     },
-    [getPodDetailPath, handleCopy, navigate, t]
+    [getPodDetailPath, navigate, t]
   )
 
   return (
@@ -252,6 +310,19 @@ export function PodListPage() {
         resourceType="pods"
         resource={annotationsPod}
         type="annotations"
+      />
+
+      <ResourceDeleteConfirmationDialog
+        open={Boolean(deletePodTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeletePodTarget(null)
+          }
+        }}
+        resourceName={deletePodTarget?.metadata?.name || ''}
+        resourceType="pods"
+        namespace={deletePodTarget?.metadata?.namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </>
   )

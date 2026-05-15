@@ -110,6 +110,63 @@ func TestGetPodMetricsMissingMetrics(t *testing.T) {
 	}
 }
 
+func TestReducePodForListKeepsListColumns(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:         "demo",
+			Namespace:    "default",
+			GenerateName: "demo-",
+			Labels: map[string]string{
+				"app": "checkout",
+			},
+			Annotations: map[string]string{
+				"owner": "platform",
+			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: "node-a",
+			Containers: []corev1.Container{
+				{
+					Name:  "app",
+					Image: "ghcr.io/acme/checkout:v1",
+					Resources: corev1.ResourceRequirements{
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("500m"),
+							corev1.ResourceMemory: resource.MustParse("256Mi"),
+						},
+					},
+					Env: []corev1.EnvVar{{Name: "SHOULD_BE_REMOVED", Value: "true"}},
+				},
+			},
+		},
+	}
+
+	got := reducePodForList(pod)
+
+	if got.Labels["app"] != "checkout" {
+		t.Fatalf("expected labels to be preserved, got %#v", got.Labels)
+	}
+	if got.Annotations["owner"] != "platform" {
+		t.Fatalf("expected annotations to be preserved, got %#v", got.Annotations)
+	}
+	if got.Spec.NodeName != "node-a" {
+		t.Fatalf("expected node name to be preserved, got %q", got.Spec.NodeName)
+	}
+	if len(got.Spec.Containers) != 1 {
+		t.Fatalf("expected one container, got %d", len(got.Spec.Containers))
+	}
+	container := got.Spec.Containers[0]
+	if container.Name != "app" || container.Image != "ghcr.io/acme/checkout:v1" {
+		t.Fatalf("expected container identity to be preserved, got %#v", container)
+	}
+	if container.Resources.Limits.Cpu().MilliValue() != 500 {
+		t.Fatalf("expected CPU limits to be preserved, got %#v", container.Resources.Limits)
+	}
+	if len(container.Env) != 0 {
+		t.Fatalf("expected heavy container fields to be removed, got env %#v", container.Env)
+	}
+}
+
 func TestParseKubeSemverAndResizeSupport(t *testing.T) {
 	tests := []struct {
 		name       string

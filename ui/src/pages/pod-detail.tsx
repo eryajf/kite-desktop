@@ -13,13 +13,28 @@ import { toast } from 'sonner'
 
 import { trackResourceAction } from '@/lib/analytics'
 import { resizePod, updateResource, useResource } from '@/lib/api'
-import { getOwnerInfo, getPodErrorMessage, getPodStatus } from '@/lib/k8s'
+import {
+  aggregateContainerResources,
+  getOwnerInfo,
+  getPodErrorMessage,
+  getPodStatus,
+} from '@/lib/k8s'
 import { withSubPath } from '@/lib/subpath'
-import { formatDate, translateError, translatePodStatus } from '@/lib/utils'
+import {
+  formatDate,
+  formatRelativeTimeStrict,
+  translateError,
+  translatePodStatus,
+} from '@/lib/utils'
 import { useCluster } from '@/hooks/use-cluster'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -36,7 +51,6 @@ import { DescribeDialog } from '@/components/describe-dialog'
 import { ResourceEditor } from '@/components/editors/resource-editor'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
-import { LabelsAnno } from '@/components/lables-anno'
 import { LogViewer } from '@/components/log-viewer'
 import { PodFileBrowser } from '@/components/pod-file-browser'
 import { PodMonitoring } from '@/components/pod-monitoring'
@@ -48,6 +62,67 @@ import { ContainerSelector } from '@/components/selector/container-selector'
 import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
 import { YamlEditor } from '@/components/yaml-editor'
+
+function InfoItem(props: {
+  label: string
+  value: React.ReactNode
+  className?: string
+}) {
+  const { label, value, className } = props
+
+  return (
+    <div className={className}>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="mt-1 text-sm font-medium break-words">{value}</div>
+    </div>
+  )
+}
+
+function BadgeGroup(props: {
+  items: Record<string, string>
+  emptyText: string
+  variant?: 'secondary' | 'outline'
+}) {
+  const { items, emptyText, variant = 'secondary' } = props
+
+  if (Object.keys(items).length === 0) {
+    return <span className="text-sm text-muted-foreground">{emptyText}</span>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {Object.entries(items).map(([key, value]) => (
+        <Badge
+          key={key}
+          variant={variant}
+          className="max-w-full text-xs font-normal break-all"
+        >
+          {key}: {value}
+        </Badge>
+      ))}
+    </div>
+  )
+}
+
+function ResourceBadges(props: {
+  value: { cpu?: string; memory?: string }
+  emptyText: string
+}) {
+  const { value, emptyText } = props
+
+  if (!value.cpu && !value.memory) {
+    return <span className="text-sm text-muted-foreground">{emptyText}</span>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {value.cpu ? <Badge variant="secondary">CPU: {value.cpu}</Badge> : null}
+      {value.memory ? (
+        <Badge variant="secondary">Memory: {value.memory}</Badge>
+      ) : null}
+    </div>
+  )
+}
 
 export function PodDetail(props: { namespace: string; name: string }) {
   const { namespace, name } = props
@@ -167,6 +242,12 @@ export function PodDetail(props: { namespace: string; name: string }) {
   const podStatus = useMemo(() => {
     return getPodStatus(pod)
   }, [pod])
+  const podResources = useMemo(
+    () => aggregateContainerResources(pod?.spec?.containers),
+    [pod]
+  )
+  const ownerInfo = useMemo(() => getOwnerInfo(pod?.metadata), [pod])
+  const notSetText = t('deploymentOverview.notSet')
 
   const clusterVersion = useMemo(
     () => clusters.find((cluster) => cluster.name === currentCluster)?.version,
@@ -260,58 +341,60 @@ export function PodDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.overview'),
             content: (
               <div className="space-y-4">
-                {/* Status Overview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
+                <Card className="gap-0">
+                  <CardHeader className="border-b pb-4">
+                    <CardTitle>{t('detail.sections.podInformation')}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
+                  <CardContent className="space-y-5 pt-5">
+                    <div className="grid gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">
+                          {t('deploymentOverview.currentStatus')}
+                        </Label>
+                        <div className="mt-1 flex items-center gap-2 text-sm font-medium">
                           <PodStatusIcon
-                            status={podStatus?.reason}
-                            className="w-4 h-4"
+                            status={podStatus.reason}
+                            className="h-4 w-4"
                           />
+                          <span>{translatePodStatus(podStatus.reason, t)}</span>
                         </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">
-                            {t('detail.fields.phase')}
-                          </p>
-                          <p className="text-sm font-medium">
-                            {translatePodStatus(podStatus.reason, t)}
-                          </p>
-                          <p className="text-xs text-red-500">
+                        {getPodErrorMessage(pod) ? (
+                          <p className="mt-1 text-xs text-red-500">
                             {getPodErrorMessage(pod)}
                           </p>
-                        </div>
+                        ) : null}
                       </div>
+                      <InfoItem
+                        label={t('detail.fields.readyContainers')}
+                        value={`${podStatus.readyContainers} / ${podStatus.totalContainers}`}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.restartCount')}
+                        value={podStatus.restartString}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.created')}
+                        value={
+                          pod.metadata?.creationTimestamp
+                            ? `${formatDate(pod.metadata.creationTimestamp)} (${formatRelativeTimeStrict(pod.metadata.creationTimestamp)})`
+                            : notSetText
+                        }
+                      />
+                    </div>
 
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.readyContainers')}
-                        </p>
-                        <p className="text-sm font-medium">
-                          {podStatus.readyContainers} /{' '}
-                          {podStatus.totalContainers}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.restartCount')}
-                        </p>
-                        <p className="text-sm font-medium">
-                          {podStatus.restartString}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs text-muted-foreground">
-                          {t('detail.fields.node')}
-                        </p>
-                        <p className="text-sm font-medium truncate">
-                          {pod.spec?.nodeName ? (
+                    <div className="grid gap-x-8 gap-y-5 border-t pt-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('detail.fields.started')}
+                        value={
+                          pod.status?.startTime
+                            ? formatDate(pod.status.startTime)
+                            : t('detail.fields.notStarted')
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.node')}
+                        value={
+                          pod.spec?.nodeName ? (
                             <Link
                               to={`/nodes/${pod.spec.nodeName}`}
                               className="app-link"
@@ -320,116 +403,155 @@ export function PodDetail(props: { namespace: string; name: string }) {
                             </Link>
                           ) : (
                             t('detail.fields.notAssigned')
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                {/* Pod Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('detail.sections.podInformation')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm">
-                          {formatDate(
-                            pod.metadata?.creationTimestamp || '',
-                            true
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.started')}
-                        </Label>
-                        <p className="text-sm">
-                          {pod.status?.startTime
-                            ? formatDate(pod.status.startTime)
-                            : t('detail.fields.notStarted')}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.podIP')}
-                        </Label>
-                        <p className="text-sm font-mono">
-                          {pod.status?.podIP || t('detail.fields.notAssigned')}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.hostIP')}
-                        </Label>
-                        <p className="text-sm font-mono">
-                          {pod.status?.hostIP || t('detail.fields.notAssigned')}
-                        </p>
-                      </div>
-                      {getOwnerInfo(pod.metadata) && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            {t('detail.fields.owner')}
-                          </Label>
-                          <p className="text-sm">
-                            {(() => {
-                              const ownerInfo = getOwnerInfo(pod.metadata)
-                              if (!ownerInfo) {
-                                return t('detail.fields.noOwner')
-                              }
-                              return (
-                                <Link to={ownerInfo.path} className="app-link">
-                                  {ownerInfo.kind}/{ownerInfo.name}
-                                </Link>
-                              )
-                            })()}
-                          </p>
-                        </div>
-                      )}
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.ports')}
-                        </Label>
-                        <div className="flex flex-wrap items-center gap-1">
-                          {pod.spec?.containers
-                            .flatMap((c) => c.ports || [])
-                            .map((port, index, array) => (
-                              <span
-                                key={`${port.containerPort}-${port.protocol}`}
-                              >
-                                <a
-                                  href={withSubPath(
-                                    `/api/v1/namespaces/${namespace}/pods/${name}:${port.containerPort}/proxy/`
-                                  )}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-mono app-link inline-flex items-center gap-1"
+                          )
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.owner')}
+                        value={
+                          ownerInfo ? (
+                            <Link to={ownerInfo.path} className="app-link">
+                              {ownerInfo.kind}/{ownerInfo.name}
+                            </Link>
+                          ) : (
+                            t('detail.fields.noOwner')
+                          )
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.podIP')}
+                        value={
+                          <span className="font-mono">
+                            {pod.status?.podIP ||
+                              t('detail.fields.notAssigned')}
+                          </span>
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.hostIP')}
+                        value={
+                          <span className="font-mono">
+                            {pod.status?.hostIP ||
+                              t('detail.fields.notAssigned')}
+                          </span>
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.podIPs')}
+                        value={
+                          pod.status?.podIPs?.length ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {pod.status.podIPs.map((podIP) => (
+                                <Badge
+                                  key={podIP.ip}
+                                  variant="secondary"
+                                  className="font-mono"
                                 >
-                                  {port.name && `${port.name}:`}
-                                  {port.containerPort}
-                                  <IconExternalLink className="w-3 h-3" />
-                                </a>
-                                {index < array.length - 1 && ', '}
-                              </span>
-                            ))}
-                          {(!pod.spec?.containers ||
-                            pod.spec.containers.length === 0 ||
-                            pod.spec.containers.every(
-                              (c) => !c.ports || c.ports.length === 0
-                            )) && (
-                            <span>{t('detail.fields.noPortsDefined')}</span>
-                          )}
-                        </div>
-                      </div>
+                                  {podIP.ip}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            t('detail.fields.notAssigned')
+                          )
+                        }
+                      />
                     </div>
-                    <LabelsAnno
-                      labels={pod.metadata?.labels || {}}
-                      annotations={pod.metadata?.annotations || {}}
-                    />
+
+                    <div className="grid gap-x-8 gap-y-5 border-t pt-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('deploymentOverview.hostNetwork')}
+                        value={
+                          pod.spec?.hostNetwork
+                            ? t('deploymentOverview.enabled')
+                            : t('deploymentOverview.disabled')
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.scheduler')}
+                        value={pod.spec?.schedulerName || notSetText}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.serviceAccount')}
+                        value={pod.spec?.serviceAccountName || notSetText}
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceRequests')}
+                        value={
+                          <ResourceBadges
+                            value={podResources.requests}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceLimits')}
+                        value={
+                          <ResourceBadges
+                            value={podResources.limits}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.ports')}
+                        value={
+                          <div className="flex flex-wrap items-center gap-1">
+                            {pod.spec?.containers
+                              .flatMap((c) => c.ports || [])
+                              .map((port, index, array) => (
+                                <span
+                                  key={`${port.containerPort}-${port.protocol}`}
+                                >
+                                  <a
+                                    href={withSubPath(
+                                      `/api/v1/namespaces/${namespace}/pods/${name}:${port.containerPort}/proxy/`
+                                    )}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-mono app-link inline-flex items-center gap-1"
+                                  >
+                                    {port.name && `${port.name}:`}
+                                    {port.containerPort}
+                                    <IconExternalLink className="w-3 h-3" />
+                                  </a>
+                                  {index < array.length - 1 && ', '}
+                                </span>
+                              ))}
+                            {(!pod.spec?.containers ||
+                              pod.spec.containers.length === 0 ||
+                              pod.spec.containers.every(
+                                (c) => !c.ports || c.ports.length === 0
+                              )) && (
+                              <span>{t('detail.fields.noPortsDefined')}</span>
+                            )}
+                          </div>
+                        }
+                      />
+                    </div>
+
+                    <div className="grid gap-x-8 gap-y-5 border-t pt-5 md:grid-cols-2">
+                      <InfoItem
+                        label={t('detail.fields.labels')}
+                        value={
+                          <BadgeGroup
+                            items={pod.metadata?.labels || {}}
+                            emptyText={notSetText}
+                            variant="outline"
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.annotations')}
+                        value={
+                          <BadgeGroup
+                            items={pod.metadata?.annotations || {}}
+                            emptyText={notSetText}
+                            variant="outline"
+                          />
+                        }
+                      />
+                    </div>
                   </CardContent>
                 </Card>
 
