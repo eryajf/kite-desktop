@@ -31,6 +31,12 @@ function createStorage() {
 const localStorageMock = createStorage()
 const sessionStorageMock = createStorage()
 
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
 function installGlobals() {
   Object.defineProperty(globalThis, 'localStorage', {
     configurable: true,
@@ -54,6 +60,18 @@ function installGlobals() {
       removeListener: vi.fn(),
       dispatchEvent: vi.fn(),
     })),
+  })
+
+  Object.defineProperty(globalThis, 'ResizeObserver', {
+    configurable: true,
+    writable: true,
+    value: ResizeObserverMock,
+  })
+
+  Object.defineProperty(window, 'ResizeObserver', {
+    configurable: true,
+    writable: true,
+    value: ResizeObserverMock,
   })
 }
 
