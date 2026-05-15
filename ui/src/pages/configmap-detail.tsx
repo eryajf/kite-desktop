@@ -6,8 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { updateResource, useResource } from '@/lib/api'
 import { trackResourceAction } from '@/lib/analytics'
+import { updateResource, useResource } from '@/lib/api'
 import { getOwnerInfo } from '@/lib/k8s'
 import { formatDate, translateError } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -16,11 +16,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
 import { DescribeDialog } from '@/components/describe-dialog'
-import { RefreshButton } from '@/components/refresh-button'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { KeyValueDataViewer } from '@/components/key-value-data-viewer'
 import { LabelsAnno } from '@/components/lables-anno'
+import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
@@ -58,11 +58,13 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
       })
       toast.success(t('detail.status.yamlSaved'))
       await handleRefresh()
+      return true
     } catch (error) {
       trackResourceAction('configmaps', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }
@@ -113,7 +115,11 @@ export function ConfigMapDetail(props: { namespace: string; name: string }) {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
-          <RefreshButton variant="outline" size="sm" onClick={handleManualRefresh}>
+          <RefreshButton
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+          >
             {t('detail.buttons.refresh')}
           </RefreshButton>
           <DescribeDialog

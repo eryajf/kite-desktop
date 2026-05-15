@@ -79,7 +79,11 @@ export function GlobalSearchProvider({ children }: GlobalSearchProviderProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Command+Shift+K or Ctrl+Shift+K to open cluster switcher
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'k') {
+      if (
+        (e.metaKey || e.ctrlKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === 'k'
+      ) {
         e.preventDefault()
         openSearch('cluster', 'shortcut')
         return
@@ -98,8 +102,8 @@ export function GlobalSearchProvider({ children }: GlobalSearchProviderProps) {
       }
     }
 
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', handleKeyDown, true)
+    return () => document.removeEventListener('keydown', handleKeyDown, true)
   }, [closeSearch, isOpen, openSearch])
 
   const value = {

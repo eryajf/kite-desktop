@@ -1721,6 +1721,11 @@
     "save": "保存",
     "cancel": "取消",
     "edit": "编辑",
+    "saving": "保存中...",
+    "diffTitle": "确认 YAML 变更",
+    "diffDescription": "保存前，请先确认当前资源 YAML 与本次编辑内容之间的差异。",
+    "continueEditing": "继续编辑",
+    "confirmSave": "确认保存",
     "invalidYaml": "YAML 格式无效",
     "loadingEditor": "正在加载编辑器..."
   },

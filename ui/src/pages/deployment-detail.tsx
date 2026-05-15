@@ -208,12 +208,14 @@ export function DeploymentDetail(props: { namespace: string; name: string }) {
       })
       toast.success('YAML saved successfully')
       setRefreshInterval(1000)
+      return true
     } catch (error) {
       console.error('Failed to save YAML:', error)
       trackResourceAction('deployments', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }

@@ -11,8 +11,8 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
-import { resizePod, updateResource, useResource } from '@/lib/api'
 import { trackResourceAction } from '@/lib/analytics'
+import { resizePod, updateResource, useResource } from '@/lib/api'
 import { getOwnerInfo, getPodErrorMessage, getPodStatus } from '@/lib/k8s'
 import { withSubPath } from '@/lib/subpath'
 import { formatDate, translateError, translatePodStatus } from '@/lib/utils'
@@ -37,11 +37,11 @@ import { ResourceEditor } from '@/components/editors/resource-editor'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LabelsAnno } from '@/components/lables-anno'
-import { RefreshButton } from '@/components/refresh-button'
 import { LogViewer } from '@/components/log-viewer'
 import { PodFileBrowser } from '@/components/pod-file-browser'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodStatusIcon } from '@/components/pod-status-icon'
+import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ContainerSelector } from '@/components/selector/container-selector'
@@ -109,11 +109,13 @@ export function PodDetail(props: { namespace: string; name: string }) {
       toast.success(t('detail.status.yamlSaved'))
       // Refresh data after successful save
       await handleRefresh()
+      return true
     } catch (error) {
       trackResourceAction('pods', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }
@@ -218,7 +220,11 @@ export function PodDetail(props: { namespace: string; name: string }) {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 md:w-auto md:justify-end">
-          <RefreshButton variant="outline" size="sm" onClick={handleManualRefresh}>
+          <RefreshButton
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+          >
             {t('detail.buttons.refresh')}
           </RefreshButton>
           <DescribeDialog

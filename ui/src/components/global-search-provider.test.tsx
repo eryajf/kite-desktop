@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
+import { GlobalSearchProvider, useGlobalSearch } from './global-search-provider'
+
 const { trackDesktopEvent } = vi.hoisted(() => ({
   trackDesktopEvent: vi.fn(),
 }))
@@ -8,8 +10,6 @@ const { trackDesktopEvent } = vi.hoisted(() => ({
 vi.mock('@/lib/analytics', () => ({
   trackDesktopEvent,
 }))
-
-import { GlobalSearchProvider, useGlobalSearch } from './global-search-provider'
 
 function createStorage() {
   let store: Record<string, string> = {}
@@ -51,6 +51,10 @@ function GlobalSearchConsumer() {
       <button type="button" onClick={closeSearch}>
         close
       </button>
+      <textarea
+        aria-label="event-trap"
+        onKeyDown={(event) => event.stopPropagation()}
+      />
     </div>
   )
 }
@@ -94,6 +98,28 @@ describe('GlobalSearchProvider', () => {
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('closed')
       expect(screen.getByTestId('mode')).toHaveTextContent('all')
+    })
+  })
+
+  it('opens global search before focused content can stop keydown bubbling', async () => {
+    trackDesktopEvent.mockReset()
+    render(
+      <GlobalSearchProvider>
+        <GlobalSearchConsumer />
+      </GlobalSearchProvider>
+    )
+
+    const trappedInput = screen.getByLabelText('event-trap')
+    trappedInput.focus()
+    fireEvent.keyDown(trappedInput, { key: 'k', metaKey: true })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('state')).toHaveTextContent('open')
+      expect(screen.getByTestId('mode')).toHaveTextContent('all')
+    })
+    expect(trackDesktopEvent).toHaveBeenCalledWith('global_search_open', {
+      mode: 'all',
+      entry: 'shortcut',
     })
   })
 })

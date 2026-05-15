@@ -1242,6 +1242,11 @@
     "save": "Save",
     "cancel": "Cancel",
     "edit": "Edit",
+    "saving": "Saving...",
+    "diffTitle": "Review YAML changes",
+    "diffDescription": "Review the differences between the current resource YAML and your edits before saving.",
+    "continueEditing": "Continue editing",
+    "confirmSave": "Confirm save",
     "invalidYaml": "Invalid YAML",
     "loadingEditor": "Loading editor..."
   },

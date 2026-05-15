@@ -206,12 +206,14 @@ export function NodeDetail(props: { name: string }) {
         result: 'success',
       })
       toast.success('YAML saved successfully')
+      return true
     } catch (error) {
       console.error('Failed to save YAML:', error)
       trackResourceAction('nodes', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }

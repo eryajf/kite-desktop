@@ -110,23 +110,24 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
     [daemonset, watchedPods]
   )
 
-  const handleSaveYaml = async () => {
+  const handleSaveYaml = async (content: DaemonSet) => {
     setIsSavingYaml(true)
     try {
-      const parsedYaml = yaml.load(yamlContent) as DaemonSet
-      await updateResource('daemonsets', name, namespace, parsedYaml)
+      await updateResource('daemonsets', name, namespace, content)
       trackResourceAction('daemonsets', 'yaml_save', {
         result: 'success',
       })
       toast.success('DaemonSet YAML saved successfully')
       setRefreshInterval(1000) // Set a short refresh interval to see changes
       await refetchDaemonSet()
+      return true
     } catch (error) {
       console.error('Failed to save YAML:', error)
       trackResourceAction('daemonsets', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }
@@ -438,7 +439,7 @@ export function DaemonSetDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
-                <YamlEditor
+                <YamlEditor<'daemonsets'>
                   key={refreshKey}
                   value={yamlContent}
                   title={t('yamlEditor.daemonSetTitle')}

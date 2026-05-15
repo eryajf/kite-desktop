@@ -125,22 +125,23 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
     refetchStatefulSet()
   }
 
-  const handleSaveYaml = async () => {
+  const handleSaveYaml = async (content: StatefulSet) => {
     setIsSavingYaml(true)
     try {
-      const parsedYaml = yaml.load(yamlContent) as StatefulSet
-      await updateResource('statefulsets', name, namespace, parsedYaml)
+      await updateResource('statefulsets', name, namespace, content)
       trackResourceAction('statefulsets', 'yaml_save', {
         result: 'success',
       })
       toast.success('StatefulSet YAML saved successfully')
       setRefreshInterval(1000)
+      return true
     } catch (error) {
       console.error('Failed to save YAML:', error)
       trackResourceAction('statefulsets', 'yaml_save', {
         result: 'error',
       })
       toast.error(translateError(error, t))
+      return false
     } finally {
       setIsSavingYaml(false)
     }
@@ -538,7 +539,7 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
             label: t('detail.tabs.yaml'),
             content: (
               <div className="space-y-4">
-                <YamlEditor
+                <YamlEditor<'statefulsets'>
                   key={refreshKey}
                   value={yamlContent}
                   title={t('yamlEditor.statefulSetTitle')}
