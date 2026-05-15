@@ -14,6 +14,8 @@ import {
   ResourceType,
 } from '@/types/api'
 import {
+  DaemonSetOverviewStatusType,
+  DaemonSetOverviewViewModel,
   DeploymentOverviewStatusTone,
   DeploymentOverviewViewModel,
   DeploymentResourceSummaryValue,
@@ -733,6 +735,109 @@ export function buildStatefulSetOverviewViewModel(
     pvcWhenScaled: pvcRetentionPolicy?.whenScaled,
     labels: statefulSet.metadata?.labels || {},
     annotations: statefulSet.metadata?.annotations || {},
+  }
+}
+
+function getDaemonSetOverviewStatus(
+  daemonSet: DaemonSet
+): DaemonSetOverviewStatusType {
+  const desiredScheduled = daemonSet.status?.desiredNumberScheduled || 0
+  const currentScheduled = daemonSet.status?.currentNumberScheduled || 0
+  const readyScheduled = daemonSet.status?.numberReady || 0
+  const updatedScheduled = daemonSet.status?.updatedNumberScheduled || 0
+  const availableScheduled = daemonSet.status?.numberAvailable || 0
+  const misscheduled = daemonSet.status?.numberMisscheduled || 0
+
+  if (desiredScheduled === 0) {
+    return 'Pending'
+  }
+
+  if (currentScheduled < desiredScheduled || misscheduled > 0) {
+    return 'Pending'
+  }
+
+  if (
+    readyScheduled === desiredScheduled &&
+    updatedScheduled === desiredScheduled &&
+    availableScheduled === desiredScheduled
+  ) {
+    return 'Available'
+  }
+
+  if (
+    currentScheduled > 0 &&
+    (updatedScheduled < desiredScheduled || readyScheduled < desiredScheduled)
+  ) {
+    return 'Progressing'
+  }
+
+  if (currentScheduled === 0 && desiredScheduled > 0) {
+    return 'Not Available'
+  }
+
+  return 'Unknown'
+}
+
+function getDaemonSetStatusTone(
+  status: DaemonSetOverviewStatusType
+): DeploymentOverviewStatusTone {
+  switch (status) {
+    case 'Available':
+      return 'success'
+    case 'Progressing':
+    case 'Pending':
+      return 'warning'
+    case 'Not Available':
+      return 'danger'
+    case 'Unknown':
+    default:
+      return 'muted'
+  }
+}
+
+export function buildDaemonSetOverviewViewModel(
+  daemonSet: DaemonSet
+): DaemonSetOverviewViewModel {
+  const status = getDaemonSetOverviewStatus(daemonSet)
+  const containers = daemonSet.spec?.template?.spec?.containers
+  const resources = aggregateContainerResources(containers)
+  const generation = daemonSet.metadata?.generation
+  const observedGeneration = daemonSet.status?.observedGeneration
+  const createdAt = daemonSet.metadata?.creationTimestamp
+  const rollingUpdate = daemonSet.spec?.updateStrategy?.rollingUpdate
+
+  return {
+    status,
+    statusTone: getDaemonSetStatusTone(status),
+    readyScheduled: daemonSet.status?.numberReady || 0,
+    desiredScheduled: daemonSet.status?.desiredNumberScheduled || 0,
+    currentScheduled: daemonSet.status?.currentNumberScheduled || 0,
+    updatedScheduled: daemonSet.status?.updatedNumberScheduled || 0,
+    availableScheduled: daemonSet.status?.numberAvailable || 0,
+    misscheduled: daemonSet.status?.numberMisscheduled || 0,
+    observedGeneration,
+    generation,
+    isObserved:
+      generation === undefined ||
+      observedGeneration === undefined ||
+      observedGeneration >= generation,
+    createdAt,
+    age: createdAt ? getAge(createdAt) : undefined,
+    updateStrategy: daemonSet.spec?.updateStrategy?.type || 'RollingUpdate',
+    maxUnavailable: rollingUpdate?.maxUnavailable,
+    maxSurge: rollingUpdate?.maxSurge,
+    minReadySeconds: daemonSet.spec?.minReadySeconds || 0,
+    revisionHistoryLimit: daemonSet.spec?.revisionHistoryLimit,
+    collisionCount: daemonSet.status?.collisionCount,
+    hostNetwork: daemonSet.spec?.template?.spec?.hostNetwork === true,
+    schedulerName: daemonSet.spec?.template?.spec?.schedulerName,
+    resourceRequests: resources.requests,
+    resourceLimits: resources.limits,
+    selectorLabels: daemonSet.spec?.selector?.matchLabels || {},
+    serviceLinksEnabled:
+      daemonSet.spec?.template?.spec?.enableServiceLinks !== false,
+    labels: daemonSet.metadata?.labels || {},
+    annotations: daemonSet.metadata?.annotations || {},
   }
 }
 
