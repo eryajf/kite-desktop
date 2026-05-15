@@ -19,12 +19,18 @@ import {
   useResource,
   useResources,
 } from '@/lib/api'
-import { formatDate, translateError } from '@/lib/utils'
+import { aggregateContainerResources } from '@/lib/k8s'
+import {
+  formatDate,
+  formatRelativeTimeStrict,
+  translateError,
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
+import { ContainerImagesSummary } from '@/components/container-images-summary'
 import { ContainerTable } from '@/components/container-table'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
@@ -41,6 +47,49 @@ import { YamlEditor } from '@/components/yaml-editor'
 interface JobStatusBadge {
   label: string
   variant: 'default' | 'secondary' | 'destructive' | 'outline'
+}
+
+function InfoItem(props: { label: string; value: React.ReactNode }) {
+  const { label, value } = props
+
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="mt-1 text-sm font-medium break-words">{value}</div>
+    </div>
+  )
+}
+
+function ResourceBadges(props: {
+  value: ReturnType<typeof aggregateContainerResources>['requests']
+  emptyText: string
+}) {
+  const { value, emptyText } = props
+
+  if (!value.cpu && !value.memory) {
+    return <span className="text-sm text-muted-foreground">{emptyText}</span>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {value.cpu ? <Badge variant="secondary">CPU: {value.cpu}</Badge> : null}
+      {value.memory ? (
+        <Badge variant="secondary">Memory: {value.memory}</Badge>
+      ) : null}
+    </div>
+  )
+}
+
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
+
+function formatSeconds(value?: number) {
+  return value === undefined ? undefined : `${value} seconds`
 }
 
 function getJobStatusBadge(job: Job): JobStatusBadge {
@@ -367,6 +416,8 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
   const initContainers = templateSpec?.initContainers || []
   const containers = templateSpec?.containers || []
   const volumes = templateSpec?.volumes
+  const resources = aggregateContainerResources(containers)
+  const notSetText = t('detail.status.notSet')
 
   return (
     <div className="space-y-2">
@@ -436,42 +487,53 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                   <CardHeader>
                     <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Status
-                        </Label>
-                        <Badge variant={cronJobStatus.variant}>
-                          {cronJobStatus.label}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Schedule
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {cronjob.spec?.schedule || '-'}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.activeJobs')}
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {cronjob.status?.active?.length || 0}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.lastSchedule')}
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {cronjob.status?.lastScheduleTime
-                            ? formatDate(cronjob.status.lastScheduleTime, true)
-                            : '-'}
-                        </p>
-                      </div>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                      <InfoItem
+                        label={t('deploymentOverview.currentStatus')}
+                        value={
+                          <Badge variant={cronJobStatus.variant}>
+                            {cronJobStatus.label}
+                          </Badge>
+                        }
+                      />
+                      <InfoItem
+                        label={t('cronjobs.schedule')}
+                        value={cronjob.spec?.schedule || '-'}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.activeJobs')}
+                        value={String(cronjob.status?.active?.length || 0)}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.lastSchedule')}
+                        value={formatTimestampWithRelative(
+                          cronjob.status?.lastScheduleTime
+                        )}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 border-t pt-5 md:grid-cols-2 xl:grid-cols-4">
+                      <InfoItem
+                        label={t('cronjobs.lastSuccess')}
+                        value={formatTimestampWithRelative(
+                          cronjob.status?.lastSuccessfulTime
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.concurrencyPolicy')}
+                        value={cronjob.spec?.concurrencyPolicy || 'Allow'}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.timeZone')}
+                        value={cronjob.spec?.timeZone || notSetText}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.created')}
+                        value={formatTimestampWithRelative(
+                          cronjob.metadata?.creationTimestamp
+                        )}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -482,65 +544,127 @@ export function CronJobDetail(props: { namespace: string; name: string }) {
                       {t('detail.sections.cronJobInformation')}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm">
-                          {formatDate(
-                            cronjob.metadata?.creationTimestamp || '',
-                            true
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.concurrencyPolicy')}
-                        </Label>
-                        <p className="text-sm">
-                          {cronjob.spec?.concurrencyPolicy || 'Allow'}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.startingDeadline')}
-                        </Label>
-                        <p className="text-sm">
-                          {cronjob.spec?.startingDeadlineSeconds
-                            ? `${cronjob.spec.startingDeadlineSeconds} seconds`
-                            : t('detail.status.notSet')}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.successfulJobsHistory')}
-                        </Label>
-                        <p className="text-sm">
-                          {cronjob.spec?.successfulJobsHistoryLimit ?? 3}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.failedJobsHistory')}
-                        </Label>
-                        <p className="text-sm">
-                          {cronjob.spec?.failedJobsHistoryLimit ?? 1}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.timeZone')}
-                        </Label>
-                        <p className="text-sm">
-                          {cronjob.spec?.timeZone || t('detail.status.notSet')}
-                        </p>
-                      </div>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('detail.fields.startingDeadline')}
+                        value={
+                          formatSeconds(
+                            cronjob.spec?.startingDeadlineSeconds
+                          ) || notSetText
+                        }
+                      />
+                      <InfoItem
+                        label={t('detail.fields.successfulJobsHistory')}
+                        value={String(
+                          cronjob.spec?.successfulJobsHistoryLimit ?? 3
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.failedJobsHistory')}
+                        value={String(
+                          cronjob.spec?.failedJobsHistoryLimit ?? 1
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.parallelism')}
+                        value={String(
+                          cronjob.spec?.jobTemplate?.spec?.parallelism ?? 1
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.backoffLimit')}
+                        value={String(
+                          cronjob.spec?.jobTemplate?.spec?.backoffLimit ?? 6
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.ttlAfterFinished')}
+                        value={
+                          formatSeconds(
+                            cronjob.spec?.jobTemplate?.spec
+                              ?.ttlSecondsAfterFinished
+                          ) || notSetText
+                        }
+                      />
                     </div>
                     <LabelsAnno
                       labels={cronjob.metadata?.labels || {}}
                       annotations={cronjob.metadata?.annotations || {}}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Job Template</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <LabelsAnno
+                      labels={cronjob.spec?.jobTemplate?.metadata?.labels || {}}
+                      annotations={
+                        cronjob.spec?.jobTemplate?.metadata?.annotations || {}
+                      }
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pod Template</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('deploymentOverview.containersAndImages')}
+                        value={
+                          <ContainerImagesSummary containers={containers} />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceRequests')}
+                        value={
+                          <ResourceBadges
+                            value={resources.requests}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceLimits')}
+                        value={
+                          <ResourceBadges
+                            value={resources.limits}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.scheduler')}
+                        value={templateSpec?.schedulerName || notSetText}
+                      />
+                      <InfoItem
+                        label="Restart Policy"
+                        value={templateSpec?.restartPolicy || notSetText}
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.serviceLinks')}
+                        value={
+                          templateSpec?.enableServiceLinks === false
+                            ? t('deploymentOverview.disabled')
+                            : t('deploymentOverview.enabled')
+                        }
+                      />
+                    </div>
+                    <LabelsAnno
+                      labels={
+                        cronjob.spec?.jobTemplate?.spec?.template?.metadata
+                          ?.labels || {}
+                      }
+                      annotations={
+                        cronjob.spec?.jobTemplate?.spec?.template?.metadata
+                          ?.annotations || {}
+                      }
                     />
                   </CardContent>
                 </Card>

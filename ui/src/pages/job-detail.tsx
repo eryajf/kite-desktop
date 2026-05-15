@@ -9,13 +9,18 @@ import { toast } from 'sonner'
 
 import { trackResourceAction } from '@/lib/analytics'
 import { updateResource, useResource, useResources } from '@/lib/api'
-import { getOwnerInfo } from '@/lib/k8s'
-import { formatDate, translateError } from '@/lib/utils'
+import { aggregateContainerResources, getOwnerInfo } from '@/lib/k8s'
+import {
+  formatDate,
+  formatRelativeTimeStrict,
+  translateError,
+} from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { ResponsiveTabs } from '@/components/ui/responsive-tabs'
+import { ContainerImagesSummary } from '@/components/container-images-summary'
 import { ContainerTable } from '@/components/container-table'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
@@ -35,6 +40,49 @@ import { YamlEditor } from '@/components/yaml-editor'
 interface JobStatusBadge {
   label: string
   variant: 'default' | 'secondary' | 'destructive' | 'outline'
+}
+
+function InfoItem(props: { label: string; value: React.ReactNode }) {
+  const { label, value } = props
+
+  return (
+    <div>
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <div className="mt-1 text-sm font-medium break-words">{value}</div>
+    </div>
+  )
+}
+
+function ResourceBadges(props: {
+  value: ReturnType<typeof aggregateContainerResources>['requests']
+  emptyText: string
+}) {
+  const { value, emptyText } = props
+
+  if (!value.cpu && !value.memory) {
+    return <span className="text-sm text-muted-foreground">{emptyText}</span>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {value.cpu ? <Badge variant="secondary">CPU: {value.cpu}</Badge> : null}
+      {value.memory ? (
+        <Badge variant="secondary">Memory: {value.memory}</Badge>
+      ) : null}
+    </div>
+  )
+}
+
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
+
+function formatSeconds(value?: number) {
+  return value === undefined ? undefined : `${value} seconds`
 }
 
 function getJobStatusBadge(job?: Job | null): JobStatusBadge {
@@ -171,6 +219,8 @@ export function JobDetail(props: { namespace: string; name: string }) {
   const initContainers = templateSpec?.initContainers || []
   const containers = templateSpec?.containers || []
   const volumes = templateSpec?.volumes
+  const resources = aggregateContainerResources(containers)
+  const notSetText = t('detail.status.notSet')
 
   return (
     <div className="space-y-2">
@@ -217,44 +267,53 @@ export function JobDetail(props: { namespace: string; name: string }) {
                   <CardHeader>
                     <CardTitle>{t('detail.sections.statusOverview')}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Status
-                        </Label>
-                        <Badge variant={jobStatus.variant}>
-                          {jobStatus.label}
-                        </Badge>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Completions
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          Start Time
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {job.status?.startTime
-                            ? formatDate(job.status.startTime, false)
-                            : '-'}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {t('detail.fields.completionTime')}
-                        </Label>
-                        <p className="text-sm font-medium">
-                          {job.status?.completionTime
-                            ? `${formatDate(job.status.completionTime, false)} (duration: ${getJobDuration(job)})`
-                            : '-'}
-                        </p>
-                      </div>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+                      <InfoItem
+                        label={t('deploymentOverview.currentStatus')}
+                        value={
+                          <Badge variant={jobStatus.variant}>
+                            {jobStatus.label}
+                          </Badge>
+                        }
+                      />
+                      <InfoItem
+                        label={t('jobs.completions')}
+                        value={`${job.status?.succeeded || 0}/${job.spec?.completions || 1}`}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.started')}
+                        value={formatTimestampWithRelative(
+                          job.status?.startTime
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.completionTime')}
+                        value={
+                          job.status?.completionTime
+                            ? `${formatTimestampWithRelative(job.status.completionTime)} (${getJobDuration(job)})`
+                            : '-'
+                        }
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 border-t pt-5 md:grid-cols-4">
+                      <InfoItem
+                        label="Active"
+                        value={String(job.status?.active || 0)}
+                      />
+                      <InfoItem
+                        label="Ready"
+                        value={String(job.status?.ready || 0)}
+                      />
+                      <InfoItem
+                        label={t('status.failed')}
+                        value={String(job.status?.failed || 0)}
+                      />
+                      <InfoItem
+                        label="Terminating"
+                        value={String(job.status?.terminating || 0)}
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -263,75 +322,112 @@ export function JobDetail(props: { namespace: string; name: string }) {
                   <CardHeader>
                     <CardTitle>{t('detail.sections.jobInformation')}</CardTitle>
                   </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <Label className="text-xs text-muted-foreground ">
-                          {t('detail.fields.created')}
-                        </Label>
-                        <p className="text-sm">
-                          {formatDate(
-                            job.metadata?.creationTimestamp || '',
-                            true
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.parallelism')}
-                        </Label>
-                        <p className="text-sm">{job.spec?.parallelism ?? 1}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.backoffLimit')}
-                        </Label>
-                        <p className="text-sm">{job.spec?.backoffLimit ?? 6}</p>
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.activeDeadlineSeconds')}
-                        </Label>
-                        <p className="text-sm">
-                          {job.spec?.activeDeadlineSeconds
-                            ? `${job.spec.activeDeadlineSeconds} seconds`
-                            : t('detail.status.notSet')}
-                        </p>
-                      </div>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('detail.fields.created')}
+                        value={formatTimestampWithRelative(
+                          job.metadata?.creationTimestamp
+                        )}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.parallelism')}
+                        value={String(job.spec?.parallelism ?? 1)}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.backoffLimit')}
+                        value={String(job.spec?.backoffLimit ?? 6)}
+                      />
+                      <InfoItem
+                        label={t('detail.fields.activeDeadlineSeconds')}
+                        value={
+                          formatSeconds(job.spec?.activeDeadlineSeconds) ||
+                          notSetText
+                        }
+                      />
                       {getOwnerInfo(job.metadata) && (
-                        <div>
-                          <Label className="text-xs text-muted-foreground">
-                            {t('detail.fields.owner')}
-                          </Label>
-                          <p className="text-sm">
-                            {(() => {
-                              const ownerInfo = getOwnerInfo(job.metadata)
-                              if (!ownerInfo) {
-                                return t('detail.fields.noOwner')
-                              }
-                              return (
-                                <Link to={ownerInfo.path} className="app-link">
-                                  {ownerInfo.kind}/{ownerInfo.name}
-                                </Link>
-                              )
-                            })()}
-                          </p>
-                        </div>
+                        <InfoItem
+                          label={t('detail.fields.owner')}
+                          value={(() => {
+                            const ownerInfo = getOwnerInfo(job.metadata)
+                            if (!ownerInfo) {
+                              return t('detail.fields.noOwner')
+                            }
+                            return (
+                              <Link to={ownerInfo.path} className="app-link">
+                                {ownerInfo.kind}/{ownerInfo.name}
+                              </Link>
+                            )
+                          })()}
+                        />
                       )}
-                      <div>
-                        <Label className="text-xs text-muted-foreground">
-                          {t('detail.fields.ttlAfterFinished')}
-                        </Label>
-                        <p className="text-sm">
-                          {job.spec?.ttlSecondsAfterFinished
-                            ? `${job.spec.ttlSecondsAfterFinished} seconds`
-                            : t('detail.status.notSet')}
-                        </p>
-                      </div>
+                      <InfoItem
+                        label={t('detail.fields.ttlAfterFinished')}
+                        value={
+                          formatSeconds(job.spec?.ttlSecondsAfterFinished) ||
+                          notSetText
+                        }
+                      />
                     </div>
                     <LabelsAnno
                       labels={job.metadata?.labels || {}}
                       annotations={job.metadata?.annotations || {}}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pod Template</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="grid grid-cols-1 gap-x-8 gap-y-5 md:grid-cols-2 xl:grid-cols-3">
+                      <InfoItem
+                        label={t('deploymentOverview.containersAndImages')}
+                        value={
+                          <ContainerImagesSummary containers={containers} />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceRequests')}
+                        value={
+                          <ResourceBadges
+                            value={resources.requests}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.resourceLimits')}
+                        value={
+                          <ResourceBadges
+                            value={resources.limits}
+                            emptyText={notSetText}
+                          />
+                        }
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.scheduler')}
+                        value={templateSpec?.schedulerName || notSetText}
+                      />
+                      <InfoItem
+                        label="Restart Policy"
+                        value={templateSpec?.restartPolicy || notSetText}
+                      />
+                      <InfoItem
+                        label={t('deploymentOverview.serviceLinks')}
+                        value={
+                          templateSpec?.enableServiceLinks === false
+                            ? t('deploymentOverview.disabled')
+                            : t('deploymentOverview.enabled')
+                        }
+                      />
+                    </div>
+                    <LabelsAnno
+                      labels={job.spec?.template?.metadata?.labels || {}}
+                      annotations={
+                        job.spec?.template?.metadata?.annotations || {}
+                      }
                     />
                   </CardContent>
                 </Card>
