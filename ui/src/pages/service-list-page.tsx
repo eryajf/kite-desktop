@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react'
 import { createColumnHelper } from '@tanstack/react-table'
 import { Service } from 'kubernetes-types/core/v1'
-import { Copy, FileCode2, FileText, Tags, Workflow } from 'lucide-react'
+import { Copy, FileCode2, FileText, Tags, Trash2, Workflow } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { copyTextToClipboard } from '@/lib/desktop'
-import { getServiceExternalIP } from '@/lib/k8s'
 import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
 import {
@@ -16,7 +15,13 @@ import {
   renderMetadataTooltipContent,
 } from '@/components/metadata-action-button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { ResourceTable } from '@/components/resource-table'
+import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { RowContextMenuItem } from '@/components/row-context-menu'
 
 function formatTimestampWithRelative(timestamp?: string) {
@@ -40,6 +45,94 @@ function includesRecordText(
 
 const serviceColumnHelper = createColumnHelper<Service>()
 
+function getServiceExternalIPItems(service: Service): string[] {
+  const spec = service.spec
+
+  switch (spec?.type || 'ClusterIP') {
+    case 'LoadBalancer': {
+      const ingress = service.status?.loadBalancer?.ingress || []
+      const addresses = ingress
+        .map((item) => item.ip || item.hostname)
+        .filter((item): item is string => Boolean(item))
+      return addresses.length > 0 ? addresses : ['<pending>']
+    }
+    case 'ExternalName':
+      return [spec?.externalName || '-']
+    case 'NodePort':
+    case 'ClusterIP':
+      return spec?.externalIPs?.length ? spec.externalIPs : ['-']
+    default:
+      return ['-']
+  }
+}
+
+function getServicePortItems(
+  ports: NonNullable<Service['spec']>['ports']
+): string[] {
+  return (ports || []).map((port) => {
+    const protocol = port.protocol || 'TCP'
+    if (port.nodePort) {
+      return `${port.port}:${port.nodePort}/${protocol}`
+    }
+    return `${port.port}/${protocol}`
+  })
+}
+
+function CompactStackList({
+  items,
+  moreLabel,
+}: {
+  items: string[]
+  moreLabel: string
+}) {
+  const [firstItem, ...hiddenItems] = items
+
+  if (!firstItem) {
+    return <span className="text-sm text-muted-foreground">-</span>
+  }
+
+  if (hiddenItems.length === 0) {
+    return (
+      <span className="font-mono text-sm text-muted-foreground">
+        {firstItem}
+      </span>
+    )
+  }
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div className="inline-flex max-w-[220px] flex-col items-start">
+          <span className="max-w-full truncate font-mono text-sm text-muted-foreground">
+            {firstItem}
+          </span>
+          <span className="mt-0.5 text-xs font-medium text-muted-foreground/60">
+            + {hiddenItems.length} {moreLabel}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent
+        side="bottom"
+        align="start"
+        sideOffset={8}
+        className="max-w-[360px] bg-muted px-4 py-3 text-foreground shadow-lg"
+      >
+        <ul className="space-y-1.5 text-sm leading-relaxed">
+          {items.map((item, index) => (
+            <li
+              key={`${item}-${index}`}
+              className="flex min-w-0 items-start gap-2 font-mono"
+            >
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-foreground" />
+              <span className="min-w-0 break-all">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
 export function ServiceListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -47,6 +140,8 @@ export function ServiceListPage() {
   const [annotationsService, setAnnotationsService] = useState<Service | null>(
     null
   )
+  const [deleteServiceTarget, setDeleteServiceTarget] =
+    useState<Service | null>(null)
   // Define columns for the service table
   const columns = useMemo(
     () => [
@@ -86,34 +181,32 @@ export function ServiceListPage() {
       serviceColumnHelper.accessor('status.loadBalancer.ingress', {
         header: t('services.externalIP'),
         cell: ({ row }) => {
-          const val = getServiceExternalIP(row.original)
-          return (
-            <span className="font-mono text-sm text-muted-foreground">
-              {val}
-            </span>
-          )
+          const items = getServiceExternalIPItems(row.original)
+          return <CompactStackList items={items} moreLabel={t('common.more')} />
         },
       }),
       serviceColumnHelper.accessor('spec.ports', {
         header: t('services.ports'),
         cell: ({ getValue }) => {
-          const ports = getValue() || []
-          if (ports.length === 0) return '-'
-          const text = ports
-            .map((port) => {
-              const protocol = port.protocol || 'TCP'
-              if (port.nodePort) {
-                return `${port.port}:${port.nodePort}/${protocol}`
-              }
-              return `${port.port}/${protocol}`
-            })
-            .join(', ')
-          return (
-            <span className="font-mono text-sm text-muted-foreground">
-              {text}
-            </span>
-          )
+          const items = getServicePortItems(getValue())
+          return <CompactStackList items={items} moreLabel={t('common.more')} />
         },
+      }),
+      serviceColumnHelper.display({
+        id: 'selector',
+        header: t('detail.fields.selector'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataSummaryButton
+            ariaLabel={t('serviceList.viewSelector')}
+            count={Object.keys(row.original.spec?.selector || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.spec?.selector
+            )}
+          >
+            <Workflow className="h-4 w-4" />
+          </MetadataSummaryButton>
+        ),
       }),
       serviceColumnHelper.display({
         id: 'labels',
@@ -145,22 +238,6 @@ export function ServiceListPage() {
             )}
             onClick={() => setAnnotationsService(row.original)}
           />
-        ),
-      }),
-      serviceColumnHelper.display({
-        id: 'selector',
-        header: t('detail.fields.selector'),
-        meta: { align: 'left' },
-        cell: ({ row }) => (
-          <MetadataSummaryButton
-            ariaLabel={t('serviceList.viewSelector')}
-            count={Object.keys(row.original.spec?.selector || {}).length}
-            tooltipContent={renderMetadataTooltipContent(
-              row.original.spec?.selector
-            )}
-          >
-            <Workflow className="h-4 w-4" />
-          </MetadataSummaryButton>
         ),
       }),
       serviceColumnHelper.accessor('metadata.creationTimestamp', {
@@ -205,6 +282,15 @@ export function ServiceListPage() {
   const getRowContextMenuItems = useCallback(
     (service: Service): RowContextMenuItem<Service>[] => {
       const clusterIP = service.spec?.clusterIP
+      const externalIPs = getServiceExternalIPItems(service).filter(
+        (item) => item !== '-' && item !== '<pending>'
+      )
+      const serviceIPs = externalIPs.length > 0 ? externalIPs : clusterIP ? [clusterIP] : []
+      const ports = getServicePortItems(service.spec?.ports)
+      const selectorEntries = Object.entries(service.spec?.selector || {})
+      const selectorText = selectorEntries
+        .map(([key, value]) => `${key}=${value}`)
+        .join(', ')
 
       return [
         {
@@ -221,17 +307,27 @@ export function ServiceListPage() {
           onSelect: () => handleCopy(service.metadata?.name || ''),
         },
         {
-          key: 'copy-namespace',
-          label: t('common.copyNamespace', 'Copy namespace'),
+          key: 'copy-ip',
+          label: t('services.copyIP', 'Copy IP'),
           icon: <Copy className="h-4 w-4" />,
-          onSelect: () => handleCopy(service.metadata?.namespace || ''),
+          disabled:
+            serviceIPs.length === 0 ||
+            serviceIPs.every((item) => item === 'None'),
+          onSelect: () => handleCopy(serviceIPs.join(', ')),
         },
         {
-          key: 'copy-cluster-ip',
-          label: t('services.copyClusterIP', 'Copy ClusterIP'),
+          key: 'copy-ports',
+          label: t('services.copyPorts', 'Copy ports'),
           icon: <Copy className="h-4 w-4" />,
-          disabled: !clusterIP || clusterIP === 'None',
-          onSelect: () => handleCopy(clusterIP || ''),
+          disabled: ports.length === 0,
+          onSelect: () => handleCopy(ports.join(', ')),
+        },
+        {
+          key: 'copy-selector',
+          label: t('services.copySelector', 'Copy selector'),
+          icon: <Copy className="h-4 w-4" />,
+          disabled: selectorEntries.length === 0,
+          onSelect: () => handleCopy(selectorText),
         },
         { type: 'separator', key: 'metadata-actions-separator' },
         {
@@ -245,6 +341,13 @@ export function ServiceListPage() {
           label: t('common.manageAnnotations', 'Manage annotations'),
           icon: <FileText className="h-4 w-4" />,
           onSelect: () => setAnnotationsService(service),
+        },
+        {
+          key: 'delete-service',
+          label: t('common.delete'),
+          icon: <Trash2 className="h-4 w-4" />,
+          variant: 'destructive',
+          onSelect: () => setDeleteServiceTarget(service),
         },
       ]
     },
@@ -286,6 +389,19 @@ export function ServiceListPage() {
         resourceType="services"
         resource={annotationsService}
         type="annotations"
+      />
+
+      <ResourceDeleteConfirmationDialog
+        open={Boolean(deleteServiceTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteServiceTarget(null)
+          }
+        }}
+        resourceName={deleteServiceTarget?.metadata?.name || ''}
+        resourceType="services"
+        namespace={deleteServiceTarget?.metadata?.namespace}
+        confirmationValue={t('deleteConfirmation.confirmDeleteKeyword')}
       />
     </>
   )
