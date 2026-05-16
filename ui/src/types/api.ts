@@ -46,6 +46,8 @@ import {
 import { EndpointSlice, EndpointSliceList } from 'kubernetes-types/discovery/v1'
 import {
   Ingress,
+  IngressClass,
+  IngressClassList,
   IngressList,
   NetworkPolicy,
   NetworkPolicyList,
@@ -111,6 +113,7 @@ export type ResourceType =
   | 'configmaps'
   | 'secrets'
   | 'ingresses'
+  | 'ingressclasses'
   | 'networkpolicies'
   | 'gateways'
   | 'httproutes'
@@ -137,6 +140,7 @@ export const clusterScopeResources: ResourceType[] = [
   'persistentvolumes',
   'nodes',
   'storageclasses',
+  'ingressclasses',
   'clusterroles',
   'clusterrolebindings',
 ]
@@ -165,6 +169,7 @@ export interface ResourcesTypeMap {
   secrets: SecretList
   persistentvolumeclaims: PersistentVolumeClaimList
   ingresses: IngressList
+  ingressclasses: IngressClassList
   networkpolicies: NetworkPolicyList
   gateways: {
     items: Gateway[]
@@ -253,6 +258,7 @@ export interface ResourceTypeMap {
   secrets: Secret
   persistentvolumeclaims: PersistentVolumeClaim
   ingresses: Ingress
+  ingressclasses: IngressClass
   networkpolicies: NetworkPolicy
   gateways: Gateway
   httproutes: HTTPRoute

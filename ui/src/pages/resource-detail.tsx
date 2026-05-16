@@ -8,6 +8,7 @@ import { ConfigMapDetail } from './configmap-detail'
 import { CronJobDetail } from './cronjob-detail'
 import { DaemonSetDetail } from './daemonset-detail'
 import { DeploymentDetail } from './deployment-detail'
+import { IngressDetail } from './ingress-detail'
 import { JobDetail } from './job-detail'
 import { NodeDetail } from './node-detail'
 import { PodDetail } from './pod-detail'
@@ -75,6 +76,8 @@ export function ResourceDetail() {
       return <NodeDetail name={name} />
     case 'services':
       return <ServiceDetail namespace={namespace!} name={name} />
+    case 'ingresses':
+      return <IngressDetail namespace={namespace!} name={name} />
     default:
       return (
         <SimpleResourceDetail

@@ -858,6 +858,7 @@ export function isStandardK8sResource(kind: string): boolean {
     'persistentvolumeclaims',
     'persistentvolumes',
     'ingresses',
+    'ingressclasses',
     'networkpolicies',
     'namespaces',
     'nodes',
