@@ -72,6 +72,26 @@ vi.mock('@/components/editors/resource-metadata-dialog', () => ({
     ) : null,
 }))
 
+vi.mock('@/components/resource-delete-confirmation-dialog', () => ({
+  ResourceDeleteConfirmationDialog: ({
+    open,
+    resourceName,
+    resourceType,
+    namespace,
+  }: {
+    open: boolean
+    resourceName: string
+    resourceType: string
+    namespace?: string
+  }) =>
+    open ? (
+      <div>
+        <span>resource-delete-confirmation-dialog</span>
+        <span>{`${resourceType}/${namespace}/${resourceName}`}</span>
+      </div>
+    ) : null,
+}))
+
 describe('ServiceListPage', () => {
   beforeEach(() => {
     vi.useFakeTimers()
@@ -88,9 +108,9 @@ describe('ServiceListPage', () => {
       columns: ReturnType<typeof createColumnHelper<Service>>[]
     }
 
-    expect(resourceTableProps.columns[5].id).toBe('labels')
-    expect(resourceTableProps.columns[6].id).toBe('annotations')
-    expect(resourceTableProps.columns[7].id).toBe('selector')
+    expect(resourceTableProps.columns[5].id).toBe('selector')
+    expect(resourceTableProps.columns[6].id).toBe('labels')
+    expect(resourceTableProps.columns[7].id).toBe('annotations')
     expect(resourceTableProps.columns[8].id).toBe('created')
 
     const service = {
@@ -133,14 +153,14 @@ describe('ServiceListPage', () => {
     )
 
     expect(
+      screen.getByRole('button', { name: 'serviceList.viewSelector' })
+    ).toHaveTextContent('3')
+    expect(
       screen.getByRole('button', { name: 'serviceList.manageLabels' })
     ).toHaveTextContent('2')
     expect(
       screen.getByRole('button', { name: 'serviceList.manageAnnotations' })
     ).toHaveTextContent('2')
-    expect(
-      screen.getByRole('button', { name: 'serviceList.viewSelector' })
-    ).toHaveTextContent('3')
     expect(renderedRow.container).toHaveTextContent(
       `${formatDate(service.metadata!.creationTimestamp!)} (${formatRelativeTimeStrict(
         service.metadata!.creationTimestamp!
@@ -166,6 +186,64 @@ describe('ServiceListPage', () => {
     ).toBeInTheDocument()
   })
 
+  it('stacks service external IPs and ports with a compact more indicator', () => {
+    render(<ServiceListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      columns: ReturnType<typeof createColumnHelper<Service>>[]
+    }
+
+    const service = {
+      metadata: {
+        name: 'web',
+        namespace: 'default',
+      },
+      spec: {
+        type: 'LoadBalancer',
+        ports: [
+          {
+            port: 80,
+            nodePort: 30080,
+            protocol: 'TCP',
+          },
+          {
+            port: 443,
+            protocol: 'TCP',
+          },
+        ],
+      },
+      status: {
+        loadBalancer: {
+          ingress: [
+            {
+              ip: '192.0.2.10',
+            },
+            {
+              hostname: 'web.example.com',
+            },
+          ],
+        },
+      },
+    } as Service
+
+    const row = {
+      original: service,
+    }
+
+    const renderedRow = render(
+      <div>
+        {flexRender(resourceTableProps.columns[3].cell!, { row })}
+        {flexRender(resourceTableProps.columns[4].cell!, {
+          getValue: () => service.spec?.ports,
+        })}
+      </div>
+    )
+
+    expect(renderedRow.container).toHaveTextContent('192.0.2.10')
+    expect(renderedRow.container).toHaveTextContent('80:30080/TCP')
+    expect(screen.getAllByText('+ 1 common.more')).toHaveLength(2)
+  })
+
   it('keeps service table columns stable when metadata dialogs open', () => {
     render(<ServiceListPage />)
 
@@ -188,7 +266,7 @@ describe('ServiceListPage', () => {
       original: service,
     }
 
-    render(<div>{flexRender(initialColumns[5].cell!, { row })}</div>)
+    render(<div>{flexRender(initialColumns[6].cell!, { row })}</div>)
 
     act(() => {
       screen
@@ -254,6 +332,17 @@ describe('ServiceListPage', () => {
       },
       spec: {
         clusterIP: '10.0.0.7',
+        externalIPs: ['203.0.113.7'],
+        ports: [
+          {
+            port: 80,
+            nodePort: 30080,
+            protocol: 'TCP',
+          },
+        ],
+        selector: {
+          app: 'web',
+        },
       },
     } as Service
 
@@ -263,11 +352,13 @@ describe('ServiceListPage', () => {
       'view-yaml',
       'primary-actions-separator',
       'copy-name',
-      'copy-namespace',
-      'copy-cluster-ip',
+      'copy-ip',
+      'copy-ports',
+      'copy-selector',
       'metadata-actions-separator',
       'manage-labels',
       'manage-annotations',
+      'delete-service',
     ])
 
     await items[0].onSelect?.()
@@ -277,23 +368,63 @@ describe('ServiceListPage', () => {
     expect(mockCopyTextToClipboard).toHaveBeenCalledWith('web')
 
     await items[3].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('default')
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('203.0.113.7')
 
     await items[4].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('10.0.0.7')
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('80:30080/TCP')
+
+    await items[5].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('app=web')
 
     await act(async () => {
-      await items[6].onSelect?.()
+      await items[7].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-labels')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[7].onSelect?.()
+      await items[8].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
+
+    await act(async () => {
+      await items[9].onSelect?.()
+    })
+    expect(
+      screen.getByText('resource-delete-confirmation-dialog')
+    ).toBeInTheDocument()
+    expect(screen.getByText('services/default/web')).toBeInTheDocument()
+  })
+
+  it('falls back to Cluster IP when the service has no external IP', async () => {
+    render(<ServiceListPage />)
+
+    const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
+      getRowContextMenuItems: (service: Service) => {
+        key: string
+        onSelect?: () => void | Promise<void>
+      }[]
+    }
+
+    const service = {
+      metadata: {
+        name: 'internal-api',
+        namespace: 'default',
+      },
+      spec: {
+        type: 'ClusterIP',
+        clusterIP: '10.0.0.23',
+      },
+    } as Service
+
+    const items = resourceTableProps.getRowContextMenuItems(service)
+    const copyIPItem = items.find((item) => item.key === 'copy-ip')
+
+    await copyIPItem?.onSelect?.()
+
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('10.0.0.23')
   })
 })
