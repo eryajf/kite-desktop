@@ -1,8 +1,13 @@
 import './App.css'
 
-import { lazy, ReactNode, Suspense, useEffect } from 'react'
+import { lazy, ReactNode, Suspense, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Outlet, useLocation, useSearchParams } from 'react-router-dom'
+import {
+  Outlet,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom'
 
 import { AIChatbox, StandaloneAIChatbox } from './components/ai-chat/ai-chatbox'
 import { AppSidebar } from './components/app-sidebar'
@@ -25,6 +30,7 @@ import { useCluster } from './hooks/use-cluster'
 import { apiClient } from './lib/api-client'
 import { installAnalyticsErrorTracking, trackPage } from './lib/analytics'
 import { getAnalyticsPageKey } from './lib/analytics-route'
+import { getClusterSwitchRedirectPath } from './lib/cluster-switch-navigation'
 import { prefetchMonaco } from './lib/monaco-runtime'
 
 const FloatingTerminal = lazy(async () => {
@@ -35,12 +41,33 @@ const FloatingTerminal = lazy(async () => {
 function ClusterGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   const { currentCluster, isLoading, error } = useCluster()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const previousClusterRef = useRef<string | null>(currentCluster)
 
   useEffect(() => {
     apiClient.setClusterProvider(() => {
       return currentCluster || localStorage.getItem('current-cluster')
     })
   }, [currentCluster])
+
+  useEffect(() => {
+    const previousCluster = previousClusterRef.current
+
+    if (!currentCluster) {
+      previousClusterRef.current = currentCluster
+      return
+    }
+
+    if (previousCluster && previousCluster !== currentCluster) {
+      const redirectPath = getClusterSwitchRedirectPath(location.pathname)
+      if (redirectPath && redirectPath !== location.pathname) {
+        navigate(redirectPath, { replace: true })
+      }
+    }
+
+    previousClusterRef.current = currentCluster
+  }, [currentCluster, location.pathname, navigate])
 
   if (shouldShowClusterLoading(isLoading, currentCluster)) {
     return (
