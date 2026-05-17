@@ -52,6 +52,31 @@ func TestDiscoverIngressServices(t *testing.T) {
 	}
 }
 
+func TestFilterExistingRelatedServices(t *testing.T) {
+	related := []common.RelatedResource{
+		{Type: "services", Namespace: "default", Name: "svc-a", APIVersion: corev1.SchemeGroupVersion.String(), Direction: common.RelatedDirectionReferences, Reason: "ingress backend service"},
+		{Type: "services", Namespace: "default", Name: "missing", APIVersion: corev1.SchemeGroupVersion.String(), Direction: common.RelatedDirectionReferences, Reason: "ingress backend service"},
+	}
+	k8sClient := &kube.K8sClient{
+		Client: fake.NewClientBuilder().
+			WithScheme(newTestScheme(t)).
+			WithObjects(&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: "svc-a", Namespace: "default"}}).
+			Build(),
+	}
+
+	got, err := filterExistingRelatedServices(context.Background(), k8sClient, related)
+	if err != nil {
+		t.Fatalf("filterExistingRelatedServices() error = %v", err)
+	}
+
+	want := []common.RelatedResource{
+		{Type: "services", Namespace: "default", Name: "svc-a", APIVersion: corev1.SchemeGroupVersion.String(), Direction: common.RelatedDirectionReferences, Reason: "ingress backend service"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("filterExistingRelatedServices() = %#v, want %#v", got, want)
+	}
+}
+
 func TestDiscoverConfigs(t *testing.T) {
 	podSpec := &corev1.PodTemplateSpec{
 		Spec: corev1.PodSpec{

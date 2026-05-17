@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
+import { Link } from 'react-router-dom'
 import { IconLoader, IconTrash } from '@tabler/icons-react'
 import type { Secret, Service, ServicePort } from 'kubernetes-types/core/v1'
 import type {
@@ -7,12 +15,13 @@ import type {
   IngressClass,
 } from 'kubernetes-types/networking/v1'
 import * as yaml from 'js-yaml'
-import { Pencil, Plus, Save, Trash2 } from 'lucide-react'
+import { CircleHelp, ExternalLink, Pencil, Plus, Save, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 import { trackResourceAction } from '@/lib/analytics'
 import { updateResource, useResource, useResources } from '@/lib/api'
+import { openURL } from '@/lib/desktop'
 import { cn, formatDate, translateError } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,6 +62,11 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
@@ -67,7 +81,10 @@ interface IngressRouteRow {
   id: string
   path: string
   pathType: string
-  backend: string
+  serviceName: string
+  servicePort: string
+  serviceLink?: string
+  url?: string
 }
 
 interface IngressHostRouteGroup {
@@ -83,7 +100,13 @@ interface EditableIngressRoute {
   pathType: string
   serviceName: string
   servicePort: string
+  isNew?: boolean
 }
+
+type EditableIngressRouteField = keyof Pick<
+  EditableIngressRoute,
+  'path' | 'pathType' | 'serviceName' | 'servicePort'
+>
 
 interface EditableIngressHostGroup {
   id: string
@@ -119,14 +142,29 @@ function nextEditItemId(prefix: string) {
 }
 
 function formatServiceBackend(backend?: IngressBackend) {
+  const serviceParts = getBackendServiceParts(backend)
+  return serviceParts.servicePort === '-'
+    ? serviceParts.serviceName
+    : `${serviceParts.serviceName}:${serviceParts.servicePort}`
+}
+
+function getBackendServiceParts(backend?: IngressBackend) {
   const service = backend?.service
 
   if (!service) {
-    return backend?.resource?.name || '-'
+    return {
+      serviceName: backend?.resource?.name || '-',
+      servicePort: '-',
+      isService: false,
+    }
   }
 
   const port = service.port?.number ?? service.port?.name ?? '-'
-  return `${service.name}:${port}`
+  return {
+    serviceName: service.name || '-',
+    servicePort: String(port),
+    isService: Boolean(service.name),
+  }
 }
 
 function formatDefaultBackend(ingress: Ingress) {
@@ -148,13 +186,14 @@ function parseServicePort(port?: string) {
   return { name: trimmed }
 }
 
-function createEmptyRoute(): EditableIngressRoute {
+function createEmptyRoute(isNew = true): EditableIngressRoute {
   return {
     id: nextEditItemId('route'),
     path: '/',
     pathType: 'Prefix',
     serviceName: '',
     servicePort: '',
+    isNew,
   }
 }
 
@@ -209,10 +248,7 @@ function editableTlsItemsFromIngress(ingress: Ingress): EditableIngressTlsItem[]
   })
 }
 
-function editableGroupsFromIngress(
-  ingress: Ingress,
-  focusHost?: string | null
-): EditableIngressHostGroup[] {
+function editableGroupsFromIngress(ingress: Ingress): EditableIngressHostGroup[] {
   const groups = (ingress.spec?.rules || []).map((rule) => ({
     id: nextEditItemId('host'),
     host: rule.host || '',
@@ -228,20 +264,12 @@ function editableGroupsFromIngress(
           pathType: path.pathType || 'Prefix',
           serviceName: service?.name || path.backend.resource?.name || '',
           servicePort: String(servicePort),
+          isNew: false,
         }
-      }) || [createEmptyRoute()],
+      }) || [createEmptyRoute(false)],
   }))
 
-  const nextGroups = groups.length > 0 ? groups : [createEmptyHostGroup()]
-  if (!focusHost) {
-    return nextGroups
-  }
-
-  return [...nextGroups].sort((a, b) => {
-    if (a.host === focusHost) return -1
-    if (b.host === focusHost) return 1
-    return 0
-  })
+  return groups.length > 0 ? groups : [createEmptyHostGroup()]
 }
 
 function getLoadBalancerAddresses(ingress: Ingress) {
@@ -262,9 +290,27 @@ function buildTlsSecretByHost(ingress: Ingress) {
   return tlsSecretByHost
 }
 
-function buildIngressRouteGroups(ingress: Ingress): IngressHostRouteGroup[] {
+function buildIngressRouteUrl(
+  host: string,
+  path: string,
+  tlsSecretByHost: Map<string, string>
+) {
+  if (!host || host === '*' || host.includes('*') || path === '-') {
+    return undefined
+  }
+
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  const protocol = tlsSecretByHost.has(host) ? 'https' : 'http'
+  return `${protocol}://${host}${normalizedPath}`
+}
+
+function buildIngressRouteGroups(
+  ingress: Ingress,
+  existingServiceNames: Set<string>
+): IngressHostRouteGroup[] {
   const tlsSecretByHost = buildTlsSecretByHost(ingress)
   const groups: IngressHostRouteGroup[] = []
+  const namespace = ingress.metadata?.namespace
 
   for (const rule of ingress.spec?.rules || []) {
     const host = rule.host || '*'
@@ -276,15 +322,25 @@ function buildIngressRouteGroups(ingress: Ingress): IngressHostRouteGroup[] {
         id: `${host}-empty`,
         path: '-',
         pathType: '-',
-        backend: '-',
+        serviceName: '-',
+        servicePort: '-',
       })
     } else {
       paths.forEach((path, index) => {
+        const backendService = getBackendServiceParts(path.backend)
         routes.push({
           id: `${host}-${path.path || '/'}-${index}`,
           path: path.path || '/',
           pathType: path.pathType || '-',
-          backend: formatServiceBackend(path.backend),
+          serviceName: backendService.serviceName,
+          servicePort: backendService.servicePort,
+          serviceLink:
+            namespace &&
+            backendService.isService &&
+            existingServiceNames.has(backendService.serviceName)
+              ? `/services/${namespace}/${backendService.serviceName}`
+              : undefined,
+          url: buildIngressRouteUrl(host, path.path || '/', tlsSecretByHost),
         })
       })
     }
@@ -300,10 +356,16 @@ function buildIngressRouteGroups(ingress: Ingress): IngressHostRouteGroup[] {
   return groups
 }
 
-function buildDefaultBackendGroup(ingress: Ingress): IngressHostRouteGroup | null {
+function buildDefaultBackendGroup(
+  ingress: Ingress,
+  existingServiceNames: Set<string>
+): IngressHostRouteGroup | null {
   if (!ingress.spec?.defaultBackend) {
     return null
   }
+
+  const backendService = getBackendServiceParts(ingress.spec.defaultBackend)
+  const namespace = ingress.metadata?.namespace
 
   return {
     host: '*',
@@ -314,7 +376,14 @@ function buildDefaultBackendGroup(ingress: Ingress): IngressHostRouteGroup | nul
         id: 'default-backend',
         path: '/',
         pathType: '-',
-        backend: formatDefaultBackend(ingress),
+        serviceName: backendService.serviceName,
+        servicePort: backendService.servicePort,
+        serviceLink:
+          namespace &&
+          backendService.isService &&
+          existingServiceNames.has(backendService.serviceName)
+            ? `/services/${namespace}/${backendService.serviceName}`
+            : undefined,
       },
     ],
   }
@@ -391,6 +460,55 @@ function toComboboxOptions<T>(
   )
 }
 
+function FieldHelp({
+  label,
+  children,
+}: {
+  label: string
+  children: ReactNode
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <CircleHelp className="h-3.5 w-3.5" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent
+        side="top"
+        align="start"
+        sideOffset={6}
+        className="max-w-80 bg-muted px-3 py-2 text-left text-foreground shadow-lg"
+      >
+        <div className="text-xs leading-relaxed">{children}</div>
+      </TooltipContent>
+    </Tooltip>
+  )
+}
+
+function FieldLabel({
+  children,
+  help,
+  helpLabel,
+}: {
+  children: ReactNode
+  help?: ReactNode
+  helpLabel?: string
+}) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <Label>{children}</Label>
+      {help ? (
+        <FieldHelp label={helpLabel || String(children)}>{help}</FieldHelp>
+      ) : null}
+    </div>
+  )
+}
+
 function HostRouteGroup({
   group,
   onEditHost,
@@ -399,6 +517,9 @@ function HostRouteGroup({
   onEditHost?: (host: string) => void
 }) {
   const { t } = useTranslation()
+  const handleOpenRoute = (url: string) => {
+    void openURL(url)
+  }
 
   return (
     <div className="rounded-md border">
@@ -435,18 +556,46 @@ function HostRouteGroup({
             <TableRow>
               <TableHead>{t('ingresses.path', 'Path')}</TableHead>
               <TableHead>{t('ingresses.pathType', 'Path type')}</TableHead>
-              <TableHead>{t('ingresses.backend', 'Backend')}</TableHead>
+              <TableHead>{t('ingresses.serviceName', 'Service name')}</TableHead>
+              <TableHead>{t('ingresses.servicePort', 'Service port')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {group.routes.map((route) => (
               <TableRow key={route.id}>
                 <TableCell className="font-mono text-sm">
-                  {route.path}
+                  {route.url ? (
+                    <button
+                      type="button"
+                      className="inline-flex max-w-[320px] items-center gap-1.5 text-left text-primary hover:underline"
+                      title={route.url}
+                      onClick={() => handleOpenRoute(route.url!)}
+                    >
+                      <span className="truncate">{route.path}</span>
+                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      <span className="sr-only">
+                        {t('ingresses.openRoute', 'Open route')}
+                      </span>
+                    </button>
+                  ) : (
+                    route.path
+                  )}
                 </TableCell>
                 <TableCell>{route.pathType}</TableCell>
                 <TableCell className="font-mono text-sm">
-                  {route.backend}
+                  {route.serviceLink ? (
+                    <Link
+                      to={route.serviceLink}
+                      className="app-link inline-flex max-w-[280px]"
+                    >
+                      <span className="truncate">{route.serviceName}</span>
+                    </Link>
+                  ) : (
+                    route.serviceName
+                  )}
+                </TableCell>
+                <TableCell className="font-mono text-sm">
+                  {route.servicePort}
                 </TableCell>
               </TableRow>
             ))}
@@ -460,17 +609,22 @@ function HostRouteGroup({
 function IngressRoutesTable({
   ingress,
   onEditHost,
+  existingServiceNames,
 }: {
   ingress: Ingress
   onEditHost?: (host: string) => void
+  existingServiceNames: Set<string>
 }) {
   const { t } = useTranslation()
   const groups = useMemo(() => {
-    const routeGroups = buildIngressRouteGroups(ingress)
-    const defaultBackendGroup = buildDefaultBackendGroup(ingress)
+    const routeGroups = buildIngressRouteGroups(ingress, existingServiceNames)
+    const defaultBackendGroup = buildDefaultBackendGroup(
+      ingress,
+      existingServiceNames
+    )
 
     return defaultBackendGroup ? [...routeGroups, defaultBackendGroup] : routeGroups
-  }, [ingress])
+  }, [existingServiceNames, ingress])
 
   return (
     <Card>
@@ -764,8 +918,10 @@ function IngressConfigEditor({
     ingress.spec?.ingressClassName || ''
   )
   const [hostGroups, setHostGroups] = useState<EditableIngressHostGroup[]>(() =>
-    editableGroupsFromIngress(ingress, focusHost)
+    editableGroupsFromIngress(ingress)
   )
+  const hostGroupRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const lastScrolledFocusHostRef = useRef<string | null>(null)
   const [tlsItems, setTlsItems] = useState<EditableIngressTlsItem[]>(() =>
     editableTlsItemsFromIngress(ingress)
   )
@@ -781,11 +937,32 @@ function IngressConfigEditor({
   useEffect(() => {
     setActiveTab('rules')
     setIngressClassName(ingress.spec?.ingressClassName || '')
-    setHostGroups(editableGroupsFromIngress(ingress, focusHost))
+    setHostGroups(editableGroupsFromIngress(ingress))
     setTlsItems(editableTlsItemsFromIngress(ingress))
     setLabels(keyValueItemsFromRecord(ingress.metadata?.labels))
     setAnnotations(keyValueItemsFromRecord(ingress.metadata?.annotations))
+    lastScrolledFocusHostRef.current = null
   }, [focusHost, ingress])
+
+  useEffect(() => {
+    if (
+      !focusHost ||
+      activeTab !== 'rules' ||
+      lastScrolledFocusHostRef.current === focusHost
+    ) {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      hostGroupRefs.current[focusHost]?.scrollIntoView({
+        block: 'center',
+        behavior: 'smooth',
+      })
+      lastScrolledFocusHostRef.current = focusHost
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [activeTab, focusHost, hostGroups])
 
   const updateHostGroup = (
     groupId: string,
@@ -799,7 +976,7 @@ function IngressConfigEditor({
   const updateRoute = (
     groupId: string,
     routeId: string,
-    field: keyof Omit<EditableIngressRoute, 'id'>,
+    field: EditableIngressRouteField,
     value: string
   ) => {
     updateHostGroup(groupId, (group) => ({
@@ -978,9 +1155,16 @@ function IngressConfigEditor({
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           <TabsContent value="rules" className="mt-0 space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold">
-                {t('ingresses.hostGroups', 'Host groups')}
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-semibold">
+                  {t('ingresses.hostGroups', 'Host groups')}
+                </h3>
+                <FieldHelp
+                  label={t('ingresses.hostGroupsHelpLabel')}
+                >
+                  {t('ingresses.hostGroupsHelp')}
+                </FieldHelp>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -997,6 +1181,11 @@ function IngressConfigEditor({
             {hostGroups.map((group) => (
               <div
                 key={group.id}
+                ref={(node) => {
+                  if (group.host) {
+                    hostGroupRefs.current[group.host] = node
+                  }
+                }}
                 className={cn(
                   'space-y-4 rounded-md border p-4',
                   focusHost === group.host && 'border-primary bg-primary/5'
@@ -1057,65 +1246,110 @@ function IngressConfigEditor({
                       key={route.id}
                       className="grid gap-2 md:grid-cols-[1fr_140px_1fr_120px_auto]"
                     >
-                      <Input
-                        aria-label={t('ingresses.path', 'Path')}
-                        value={route.path}
-                        onChange={(event) =>
-                          updateRoute(
-                            group.id,
-                            route.id,
-                            'path',
-                            event.target.value
-                          )
-                        }
-                      />
-                      <Select
-                        value={route.pathType}
-                        onValueChange={(value) =>
-                          updateRoute(group.id, route.id, 'pathType', value)
-                        }
-                      >
-                        <SelectTrigger
-                          aria-label={t('ingresses.pathType', 'Path type')}
-                          className="w-full"
+                      <div className="space-y-1.5">
+                        <FieldLabel
+                          help={route.isNew ? t('ingresses.pathHelp') : undefined}
+                          helpLabel={t('ingresses.pathHelpLabel')}
                         >
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Prefix">Prefix</SelectItem>
-                          <SelectItem value="Exact">Exact</SelectItem>
-                          <SelectItem value="ImplementationSpecific">
-                            ImplementationSpecific
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <SearchableFreeformInput
-                        label={t('ingresses.serviceName', 'Service name')}
-                        value={route.serviceName}
-                        placeholder={t('ingresses.serviceName', 'Service name')}
-                        options={serviceOptions}
-                        onChange={(value) =>
-                          selectServiceForRoute(group.id, route, value)
-                        }
-                      />
-                      <SearchableFreeformInput
-                        label={t('ingresses.servicePort', 'Service port')}
-                        value={route.servicePort}
-                        placeholder={t('ingresses.servicePort', 'Service port')}
-                        options={getServicePortOptions(route.serviceName)}
-                        onChange={(event) =>
-                          updateRoute(
-                            group.id,
-                            route.id,
-                            'servicePort',
-                            event
-                          )
-                        }
-                      />
+                          {t('ingresses.path', 'Path')}
+                        </FieldLabel>
+                        <Input
+                          aria-label={t('ingresses.path', 'Path')}
+                          value={route.path}
+                          onChange={(event) =>
+                            updateRoute(
+                              group.id,
+                              route.id,
+                              'path',
+                              event.target.value
+                            )
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <FieldLabel
+                          help={
+                            route.isNew
+                              ? t('ingresses.pathTypeHelp')
+                              : undefined
+                          }
+                          helpLabel={t('ingresses.pathTypeHelpLabel')}
+                        >
+                          {t('ingresses.pathType', 'Path type')}
+                        </FieldLabel>
+                        <Select
+                          value={route.pathType}
+                          onValueChange={(value) =>
+                            updateRoute(group.id, route.id, 'pathType', value)
+                          }
+                        >
+                          <SelectTrigger
+                            aria-label={t('ingresses.pathType', 'Path type')}
+                            className="w-full"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Prefix">Prefix</SelectItem>
+                            <SelectItem value="Exact">Exact</SelectItem>
+                            <SelectItem value="ImplementationSpecific">
+                              ImplementationSpecific
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <FieldLabel
+                          help={
+                            route.isNew
+                              ? t('ingresses.serviceNameHelp')
+                              : undefined
+                          }
+                          helpLabel={t('ingresses.serviceNameHelpLabel')}
+                        >
+                          {t('ingresses.serviceName', 'Service name')}
+                        </FieldLabel>
+                        <SearchableFreeformInput
+                          label={t('ingresses.serviceName', 'Service name')}
+                          value={route.serviceName}
+                          placeholder={t('ingresses.serviceName', 'Service name')}
+                          options={serviceOptions}
+                          onChange={(value) =>
+                            selectServiceForRoute(group.id, route, value)
+                          }
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <FieldLabel
+                          help={
+                            route.isNew
+                              ? t('ingresses.servicePortHelp')
+                              : undefined
+                          }
+                          helpLabel={t('ingresses.servicePortHelpLabel')}
+                        >
+                          {t('ingresses.servicePort', 'Service port')}
+                        </FieldLabel>
+                        <SearchableFreeformInput
+                          label={t('ingresses.servicePort', 'Service port')}
+                          value={route.servicePort}
+                          placeholder={t('ingresses.servicePort', 'Service port')}
+                          options={getServicePortOptions(route.serviceName)}
+                          onChange={(event) =>
+                            updateRoute(
+                              group.id,
+                              route.id,
+                              'servicePort',
+                              event
+                            )
+                          }
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
+                        className="self-end"
                         aria-label={t('ingresses.removeRoute', 'Remove route')}
                         onClick={() =>
                           updateHostGroup(group.id, (current) => ({
@@ -1137,9 +1371,16 @@ function IngressConfigEditor({
 
           <TabsContent value="tls" className="mt-0 space-y-4">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold">
-                {t('ingresses.tlsSettings', 'TLS settings')}
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-semibold">
+                  {t('ingresses.tlsSettings', 'TLS settings')}
+                </h3>
+                <FieldHelp
+                  label={t('ingresses.tlsSettingsHelpLabel')}
+                >
+                  {t('ingresses.tlsSettingsHelp')}
+                </FieldHelp>
+              </div>
               <Button
                 type="button"
                 variant="outline"
@@ -1164,7 +1405,12 @@ function IngressConfigEditor({
                   className="grid gap-3 rounded-md border p-4 md:grid-cols-[1fr_1fr_auto]"
                 >
                   <div className="space-y-2">
-                    <Label>{t('ingresses.host', 'Host')}</Label>
+                    <FieldLabel
+                      help={t('ingresses.tlsHostHelp')}
+                      helpLabel={t('ingresses.tlsHostHelpLabel')}
+                    >
+                      {t('ingresses.host', 'Host')}
+                    </FieldLabel>
                     <Input
                       aria-label={t('ingresses.host', 'Host')}
                       value={tls.host}
@@ -1174,7 +1420,12 @@ function IngressConfigEditor({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>{t('ingresses.tlsSecret', 'TLS secret')}</Label>
+                    <FieldLabel
+                      help={t('ingresses.tlsSecretHelp')}
+                      helpLabel={t('ingresses.tlsSecretHelpLabel')}
+                    >
+                      {t('ingresses.tlsSecret', 'TLS secret')}
+                    </FieldLabel>
                     <SearchableFreeformInput
                       label={t('ingresses.tlsSecret', 'TLS secret')}
                       value={tls.secretName}
@@ -1212,7 +1463,14 @@ function IngressConfigEditor({
               <div className="grid gap-4 rounded-md border bg-muted/20 p-4 md:grid-cols-[minmax(0,1fr)_minmax(20rem,28rem)] md:items-center">
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold">
-                    {t('ingresses.ingressClass')}
+                    <span className="inline-flex items-center gap-1.5">
+                      {t('ingresses.ingressClass')}
+                      <FieldHelp
+                        label={t('ingresses.ingressClassHelpLabel')}
+                      >
+                        {t('ingresses.ingressClassHelp')}
+                      </FieldHelp>
+                    </span>
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {ingressClassOptions.length > 0
@@ -1325,6 +1583,15 @@ export function IngressDetail(props: { name: string; namespace?: string }) {
   const { data: services = [] } = useResources('services', namespace)
   const { data: secrets = [] } = useResources('secrets', namespace)
   const { data: ingressClasses = [] } = useResources('ingressclasses', undefined)
+  const existingServiceNames = useMemo(
+    () =>
+      new Set(
+        services
+          .map((service) => service.metadata?.name)
+          .filter((serviceName): serviceName is string => Boolean(serviceName))
+      ),
+    [services]
+  )
 
   useEffect(() => {
     if (data) {
@@ -1530,7 +1797,11 @@ export function IngressDetail(props: { name: string; namespace?: string }) {
                     />
                   </CardContent>
                 </Card>
-                <IngressRoutesTable ingress={data} onEditHost={openEditDialog} />
+                <IngressRoutesTable
+                  ingress={data}
+                  onEditHost={openEditDialog}
+                  existingServiceNames={existingServiceNames}
+                />
               </div>
             ),
           },

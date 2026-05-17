@@ -267,8 +267,8 @@ function getEndpointRows(
   }
 
   return endpointSlices.flatMap((slice) =>
-    slice.endpoints.flatMap((endpoint, endpointIndex) =>
-      endpoint.addresses.map((address, addressIndex) => ({
+    (slice.endpoints || []).flatMap((endpoint, endpointIndex) =>
+      (endpoint.addresses || []).map((address, addressIndex) => ({
         key: `slice-${slice.metadata?.uid || slice.metadata?.name}-${endpointIndex}-${addressIndex}`,
         ip: address,
         nodeName: endpoint.nodeName || '-',

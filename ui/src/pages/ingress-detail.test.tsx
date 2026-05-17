@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { Ingress } from 'kubernetes-types/networking/v1'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { IngressDetail } from './ingress-detail'
@@ -9,7 +10,16 @@ const mockUseResource = vi.fn()
 const mockUseResources = vi.fn()
 const mockUpdateResource = vi.fn()
 const mockResourceHistoryTable = vi.fn()
+const mockOpenURL = vi.fn()
 const mockT = (key: string) => key
+
+function renderIngressDetail() {
+  return render(
+    <MemoryRouter>
+      <IngressDetail namespace="default" name="gateway" />
+    </MemoryRouter>
+  )
+}
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -26,6 +36,10 @@ vi.mock('@/lib/api', () => ({
   useResource: (...args: unknown[]) => mockUseResource(...args),
   useResources: (...args: unknown[]) => mockUseResources(...args),
   updateResource: (...args: unknown[]) => mockUpdateResource(...args),
+}))
+
+vi.mock('@/lib/desktop', () => ({
+  openURL: (url: string) => mockOpenURL(url),
 }))
 
 vi.mock('@/components/ui/responsive-tabs', () => ({
@@ -75,6 +89,8 @@ describe('IngressDetail', () => {
     mockUseResource.mockReset()
     mockUseResources.mockReset()
     mockResourceHistoryTable.mockReset()
+    mockOpenURL.mockReset()
+    mockOpenURL.mockResolvedValue(undefined)
     mockUseResources.mockReturnValue({
       data: [],
       isLoading: false,
@@ -177,19 +193,62 @@ describe('IngressDetail', () => {
       error: null,
       refetch: vi.fn(),
     })
+    mockUseResources.mockImplementation((resource: string) => {
+      if (resource === 'services') {
+        return {
+          data: [
+            { metadata: { name: 'web' } },
+            { metadata: { name: 'api' } },
+            { metadata: { name: 'api-v1' } },
+          ],
+          isLoading: false,
+        }
+      }
 
-    render(<IngressDetail namespace="default" name="gateway" />)
+      return {
+        data: [],
+        isLoading: false,
+      }
+    })
+
+    renderIngressDetail()
 
     expect(screen.getAllByText('app.example.com')).toHaveLength(1)
     expect(screen.getAllByText('api.example.com')).toHaveLength(1)
     expect(screen.getAllByText('/')).toHaveLength(2)
     expect(screen.getByText('/api')).toBeInTheDocument()
     expect(screen.getByText('/v1')).toBeInTheDocument()
-    expect(screen.getByText('web:80')).toBeInTheDocument()
-    expect(screen.getByText('api:http')).toBeInTheDocument()
-    expect(screen.getByText('api-v1:8080')).toBeInTheDocument()
+    expect(
+      screen.getAllByRole('columnheader', { name: 'ingresses.serviceName' })
+        .length
+    ).toBeGreaterThan(0)
+    expect(
+      screen.getAllByRole('columnheader', { name: 'ingresses.servicePort' })
+        .length
+    ).toBeGreaterThan(0)
+    expect(screen.getByText('web')).toBeInTheDocument()
+    expect(screen.getByText('api')).toBeInTheDocument()
+    expect(screen.getByText('api-v1')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'web' })).toHaveAttribute(
+      'href',
+      '/services/default/web'
+    )
+    expect(screen.getByRole('link', { name: 'api' })).toHaveAttribute(
+      'href',
+      '/services/default/api'
+    )
+    expect(screen.getByRole('link', { name: 'api-v1' })).toHaveAttribute(
+      'href',
+      '/services/default/api-v1'
+    )
+    expect(screen.getAllByText('80').length).toBeGreaterThan(0)
+    expect(screen.getByText('http')).toBeInTheDocument()
+    expect(screen.getByText('8080')).toBeInTheDocument()
+    expect(screen.queryByText('web:80')).not.toBeInTheDocument()
+    expect(screen.queryByText('api:http')).not.toBeInTheDocument()
+    expect(screen.queryByText('api-v1:8080')).not.toBeInTheDocument()
     expect(screen.getAllByText('app-tls')).toHaveLength(1)
-    expect(screen.getAllByText('fallback:80')).toHaveLength(2)
+    expect(screen.getByText('fallback:80')).toBeInTheDocument()
     expect(mockResourceHistoryTable).toHaveBeenCalledWith(
       expect.objectContaining({
         resourceType: 'ingresses',
@@ -198,6 +257,217 @@ describe('IngressDetail', () => {
         currentResource: ingress,
       })
     )
+  })
+
+  it('does not link missing backend services', () => {
+    const ingress = {
+      metadata: {
+        name: 'gateway',
+        namespace: 'default',
+        creationTimestamp: '2026-05-10T13:53:27.000Z',
+      },
+      spec: {
+        rules: [
+          {
+            host: 'app.example.com',
+            http: {
+              paths: [
+                {
+                  path: '/',
+                  pathType: 'Prefix',
+                  backend: {
+                    service: {
+                      name: 'missing-service',
+                      port: {
+                        number: 80,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    } as Ingress
+
+    mockUseResource.mockReturnValue({
+      data: ingress,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+    mockUseResources.mockImplementation((resource: string) => {
+      if (resource === 'services') {
+        return {
+          data: [{ metadata: { name: 'other-service' } }],
+          isLoading: false,
+        }
+      }
+
+      return {
+        data: [],
+        isLoading: false,
+      }
+    })
+
+    renderIngressDetail()
+
+    expect(screen.getByText('missing-service')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'missing-service' })
+    ).not.toBeInTheDocument()
+  })
+
+  it('opens ingress route links with inferred protocol', async () => {
+    const user = userEvent.setup()
+    const ingress = {
+      metadata: {
+        name: 'gateway',
+        namespace: 'default',
+        creationTimestamp: '2026-05-10T13:53:27.000Z',
+      },
+      spec: {
+        tls: [
+          {
+            hosts: ['app.example.com'],
+            secretName: 'app-tls',
+          },
+        ],
+        rules: [
+          {
+            host: 'app.example.com',
+            http: {
+              paths: [
+                {
+                  path: '/api',
+                  pathType: 'Prefix',
+                  backend: {
+                    service: {
+                      name: 'api',
+                      port: {
+                        number: 80,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            host: 'plain.example.com',
+            http: {
+              paths: [
+                {
+                  path: '/health',
+                  pathType: 'Exact',
+                  backend: {
+                    service: {
+                      name: 'web',
+                      port: {
+                        number: 8080,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    } as Ingress
+
+    mockUseResource.mockReturnValue({
+      data: ingress,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+
+    renderIngressDetail()
+
+    await user.click(screen.getByRole('button', { name: /\/api/ }))
+    expect(mockOpenURL).toHaveBeenCalledWith('https://app.example.com/api')
+
+    await user.click(screen.getByRole('button', { name: /\/health/ }))
+    expect(mockOpenURL).toHaveBeenCalledWith('http://plain.example.com/health')
+  })
+
+  it('keeps original host rule order when editing a single host', async () => {
+    const user = userEvent.setup()
+    const ingress = {
+      metadata: {
+        name: 'gateway',
+        namespace: 'default',
+        creationTimestamp: '2026-05-10T13:53:27.000Z',
+      },
+      spec: {
+        rules: [
+          {
+            host: 'app.example.com',
+            http: {
+              paths: [
+                {
+                  path: '/',
+                  pathType: 'Prefix',
+                  backend: {
+                    service: {
+                      name: 'web',
+                      port: {
+                        number: 80,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+          {
+            host: 'api.example.com',
+            http: {
+              paths: [
+                {
+                  path: '/v1',
+                  pathType: 'Prefix',
+                  backend: {
+                    service: {
+                      name: 'api',
+                      port: {
+                        number: 8080,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    } as Ingress
+
+    mockUseResource.mockReturnValue({
+      data: ingress,
+      isLoading: false,
+      isError: false,
+      error: null,
+      refetch: vi.fn(),
+    })
+
+    renderIngressDetail()
+
+    await user.click(
+      screen.getAllByRole('button', { name: 'ingresses.editHostRoutes' })[1]
+    )
+
+    const editForm = within(screen.getByRole('dialog')).getByTestId(
+      'ingress-edit-form'
+    )
+    const hostInputs = within(editForm).getAllByLabelText('ingresses.host')
+
+    expect(hostInputs[0]).toHaveValue('app.example.com')
+    expect(hostInputs[1]).toHaveValue('api.example.com')
   })
 
   it('edits ingress routes, tls, labels, and annotations by host group', async () => {
@@ -283,7 +553,7 @@ describe('IngressDetail', () => {
       }
     })
 
-    render(<IngressDetail namespace="default" name="gateway" />)
+    renderIngressDetail()
 
     await user.click(
       screen.getByRole('button', { name: 'ingresses.editConfig' })
