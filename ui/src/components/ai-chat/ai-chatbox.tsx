@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
+  Clipboard,
+  ClipboardCheck,
   ExternalLink,
   Loader2,
   MessageSquarePlus,
@@ -21,7 +23,7 @@ import ReactMarkdown from 'react-markdown'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import remarkGfm from 'remark-gfm'
 
-import { openURL } from '@/lib/desktop'
+import { copyTextToClipboard, openURL } from '@/lib/desktop'
 import { withSubPath } from '@/lib/subpath'
 import { ChatMessage, ChatSession, useAIChat } from '@/hooks/use-ai-chat'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -225,6 +227,72 @@ function buildInputDefaults(
     values[field.name] = field.defaultValue || ''
   }
   return values
+}
+
+function getPlainTextFromNode(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node)
+  }
+  if (Array.isArray(node)) {
+    return node.map(getPlainTextFromNode).join('')
+  }
+  if (node && typeof node === 'object' && 'props' in node) {
+    return getPlainTextFromNode(
+      (node as React.ReactElement<{ children?: React.ReactNode }>).props
+        .children
+    )
+  }
+  return ''
+}
+
+function MarkdownCodeBlock({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<'code'>) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+  const code = getPlainTextFromNode(children).replace(/\n$/, '')
+
+  const handleCopy = async () => {
+    if (!code) return
+    await copyTextToClipboard(code)
+    setCopied(true)
+    window.setTimeout(() => setCopied(false), 1200)
+  }
+
+  return (
+    <div className="group relative my-2">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-1.5 top-1.5 z-10 h-7 w-7 bg-background/80 text-muted-foreground opacity-80 shadow-sm hover:bg-background hover:text-foreground group-hover:opacity-100"
+        aria-label={
+          copied
+            ? t('aiChat.code.copied', { defaultValue: 'Copied' })
+            : t('aiChat.code.copy', { defaultValue: 'Copy code' })
+        }
+        title={
+          copied
+            ? t('aiChat.code.copied', { defaultValue: 'Copied' })
+            : t('aiChat.code.copy', { defaultValue: 'Copy code' })
+        }
+        onClick={handleCopy}
+      >
+        {copied ? (
+          <ClipboardCheck className="h-3.5 w-3.5" />
+        ) : (
+          <Clipboard className="h-3.5 w-3.5" />
+        )}
+      </Button>
+      <pre className="overflow-x-auto rounded-md bg-background p-3 pr-10 text-xs">
+        <code className={className} {...props}>
+          {children}
+        </code>
+      </pre>
+    </div>
+  )
 }
 
 function ToolCallMessage({
@@ -604,7 +672,27 @@ function MessageBubble({
             )}
             {hasContent && (
               <div className="ai-markdown">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    pre: ({ children }) => <>{children}</>,
+                    code: ({ children, className, ...props }) => {
+                      const isBlock = /language-/.test(className || '')
+                      if (!isBlock) {
+                        return (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        )
+                      }
+                      return (
+                        <MarkdownCodeBlock className={className} {...props}>
+                          {children}
+                        </MarkdownCodeBlock>
+                      )
+                    },
+                  }}
+                >
                   {formatMarkdownWithSoftBreaks(message.content)}
                 </ReactMarkdown>
               </div>
@@ -1408,7 +1496,6 @@ export function AIChatbox({
               autoComplete="off"
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              disabled={isLoading}
             />
             {isLoading ? (
               <Button

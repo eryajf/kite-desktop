@@ -1375,6 +1375,10 @@
     "composer": {
       "placeholder": "Ask about your cluster..."
     },
+    "code": {
+      "copy": "Copy code",
+      "copied": "Copied"
+    },
     "message": {
       "thinking": "Thinking"
     },
