@@ -9,6 +9,7 @@ import (
 	"github.com/eryajf/kite-desktop/pkg/kube"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -36,6 +37,9 @@ func newRelatedResourcesTestScheme(t *testing.T) *runtime.Scheme {
 		t.Fatal(err)
 	}
 	if err := autoscalingv2.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	if err := batchv1.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
 	}
 	if err := gatewayapiv1.Install(scheme); err != nil {
@@ -163,6 +167,9 @@ func TestCheckInUsedConfigs(t *testing.T) {
 			Volumes: []corev1.Volume{
 				{VolumeSource: corev1.VolumeSource{PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "pvc-vol"}}},
 			},
+			ImagePullSecrets: []corev1.LocalObjectReference{
+				{Name: "pull-secret"},
+			},
 		},
 	}
 
@@ -175,6 +182,7 @@ func TestCheckInUsedConfigs(t *testing.T) {
 		{name: "configmap from init env", resourceType: "configmaps", resourceName: "cm-init", want: true},
 		{name: "configmap from envFrom", resourceType: "configmaps", resourceName: "cm-from", want: true},
 		{name: "secret from env", resourceType: "secrets", resourceName: "sec-env", want: true},
+		{name: "secret from image pull secret", resourceType: "secrets", resourceName: "pull-secret", want: true},
 		{name: "pvc from volume", resourceType: "persistentvolumeclaims", resourceName: "pvc-vol", want: true},
 		{name: "missing configmap", resourceType: "configmaps", resourceName: "missing", want: false},
 		{name: "nil spec", resourceType: "secrets", resourceName: "sec-env", want: false},
@@ -190,6 +198,129 @@ func TestCheckInUsedConfigs(t *testing.T) {
 				t.Fatalf("checkInUsedConfigs() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDiscoveryWorkloadsFindsDirectPodJobAndCronJobSecretReferences(t *testing.T) {
+	scheme := newRelatedResourcesTestScheme(t)
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name: "app",
+						Env: []corev1.EnvVar{
+							{ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: "app-secret"}, Key: "password"}}},
+						},
+					}},
+				},
+			},
+		},
+	}
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "debug", Namespace: "default"},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{Name: "debug", Image: "busybox"}},
+			ImagePullSecrets: []corev1.LocalObjectReference{
+				{Name: "app-secret"},
+			},
+		},
+	}
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: "migrate", Namespace: "default"},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name: "migrate",
+						EnvFrom: []corev1.EnvFromSource{
+							{SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: "app-secret"}}},
+						},
+					}},
+				},
+			},
+		},
+	}
+	cronJob := &batchv1.CronJob{
+		ObjectMeta: metav1.ObjectMeta{Name: "sync", Namespace: "default"},
+		Spec: batchv1.CronJobSpec{
+			JobTemplate: batchv1.JobTemplateSpec{
+				Spec: batchv1.JobSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Containers: []corev1.Container{{
+								Name: "sync",
+								VolumeMounts: []corev1.VolumeMount{
+									{Name: "secret", MountPath: "/secret"},
+								},
+							}},
+							Volumes: []corev1.Volume{
+								{VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "app-secret"}}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	client := &kube.K8sClient{
+		Client: fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(deployment, pod, job, cronJob).
+			Build(),
+	}
+
+	got, err := discoveryWorkloads(context.Background(), client, "default", "app-secret", "secrets")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []common.RelatedResource{
+		{Type: "deployments", Namespace: "default", Name: "app", Direction: common.RelatedDirectionReferencedBy, Reason: "workload pod template reference"},
+		{Type: "pods", Namespace: "default", Name: "debug", Direction: common.RelatedDirectionReferencedBy, Reason: "pod reference"},
+		{Type: "jobs", Namespace: "default", Name: "migrate", Direction: common.RelatedDirectionReferencedBy, Reason: "job pod template reference"},
+		{Type: "cronjobs", Namespace: "default", Name: "sync", Direction: common.RelatedDirectionReferencedBy, Reason: "cronjob pod template reference"},
+	}
+	if !sameRelatedResources(got, want) {
+		t.Fatalf("discoveryWorkloads() = %#v, want %#v", got, want)
+	}
+}
+
+func TestDiscoverSecretIngresses(t *testing.T) {
+	scheme := newRelatedResourcesTestScheme(t)
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "tls-ingress", Namespace: "default"},
+		Spec: networkingv1.IngressSpec{
+			TLS: []networkingv1.IngressTLS{
+				{SecretName: "app-tls"},
+			},
+		},
+	}
+	other := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "other", Namespace: "default"},
+		Spec: networkingv1.IngressSpec{
+			TLS: []networkingv1.IngressTLS{
+				{SecretName: "other-tls"},
+			},
+		},
+	}
+	client := &kube.K8sClient{
+		Client: fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(ingress, other).
+			Build(),
+	}
+
+	got, err := discoverSecretIngresses(context.Background(), client, "default", "app-tls")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []common.RelatedResource{
+		{Type: "ingresses", APIVersion: networkingv1.SchemeGroupVersion.String(), Namespace: "default", Name: "tls-ingress", Direction: common.RelatedDirectionReferencedBy, Reason: "ingress TLS secret"},
+	}
+	if !sameRelatedResources(got, want) {
+		t.Fatalf("discoverSecretIngresses() = %#v, want %#v", got, want)
 	}
 }
 

@@ -377,10 +377,24 @@
     "hostnames": "主机名"
   },
   "configMaps": {
-    "dataKeys": "数据键"
+    "dataKeys": "数据键",
+    "editDataTitle": "编辑配置项数据",
+    "editDataDescription": "以键值对方式编辑配置项数据。保存时会忽略空键。",
+    "editConfig": "编辑配置",
+    "confirmSaveDataTitle": "确认数据变更",
+    "confirmSaveDataDescription": "这将更新集群中的 {{count}} 个配置项数据条目。请确认编辑后的键值对无误。",
+    "confirmSaveData": "确认保存",
+    "dataSaved": "配置项数据已保存"
   },
   "secrets": {
-    "dataKeys": "数据键"
+    "dataKeys": "数据键",
+    "editConfig": "编辑密钥",
+    "editDataTitle": "编辑密钥数据",
+    "editDataDescription": "以键值对方式编辑解码后的密钥数据。保存时会重新写回为 base64 data。空键会被忽略。",
+    "confirmSaveDataTitle": "确认密钥数据变更",
+    "confirmSaveDataDescription": "这将更新集群中的 {{count}} 个密钥数据条目。请确认编辑后的敏感值无误。",
+    "confirmSaveData": "确认保存",
+    "dataSaved": "密钥数据已保存"
   },
   "crds": {
     "group": "分组",
@@ -1251,6 +1265,9 @@
       "previous": "回滚到前一个版本",
       "modified": "回滚到修改版本",
       "rollingBack": "回滚中...",
+      "confirmTitle": "确认回滚",
+      "confirmDescription": "这会将 {{target}} 应用到集群中。请确认后再继续。",
+      "confirm": "确认回滚",
       "success": "资源回滚成功",
       "error": "资源回滚失败"
     }

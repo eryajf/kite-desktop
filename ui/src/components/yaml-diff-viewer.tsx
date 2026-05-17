@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -47,6 +49,12 @@ interface YamlDiffViewerProps {
 }
 
 type DiffMode = 'previous-vs-modified' | 'current-vs-modified'
+type RollbackTarget = 'previous' | 'modified'
+
+type PendingRollback = {
+  target: RollbackTarget
+  yamlContent: string
+}
 
 export function YamlDiffViewer({
   original,
@@ -69,6 +77,8 @@ export function YamlDiffViewer({
   )
   const editorRef = useRef<monacoEditor.IStandaloneDiffEditor | null>(null)
   const [diffMode, setDiffMode] = useState<DiffMode>('previous-vs-modified')
+  const [pendingRollback, setPendingRollback] =
+    useState<PendingRollback | null>(null)
 
   const handleEditorDidMount = (editor: monacoEditor.IStandaloneDiffEditor) => {
     editorRef.current = editor
@@ -126,48 +136,31 @@ export function YamlDiffViewer({
   const { original: leftContent, modified: rightContent } = getDiffContent()
 
   // Handle rollback button clicks
-  const handleRollbackClick = (yamlContent: string) => {
-    if (onRollback) {
-      onRollback(yamlContent)
+  const handleRollbackClick = (yamlContent: string, target: RollbackTarget) => {
+    setPendingRollback({ target, yamlContent })
+  }
+
+  const handleConfirmRollback = () => {
+    if (onRollback && pendingRollback) {
+      onRollback(pendingRollback.yamlContent)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-6xl sm:!max-w-6xl max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
-            <span className="text-lg font-bold">{title}</span>
-            <div className="flex items-center gap-2 mr-4">
-              {current && (
-                <>
-                  {diffMode === 'current-vs-modified' && (
-                    <Button
-                      onClick={() => handleRollbackClick(modified)}
-                      disabled={isRollingBack}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {isRollingBack
-                        ? t('resourceHistory.rollback.rollingBack')
-                        : t('resourceHistory.rollback.modified')}
-                    </Button>
-                  )}
-
-                  {diffMode === 'previous-vs-modified' && (
-                    <>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="!max-w-6xl sm:!max-w-6xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span className="text-lg font-bold">{title}</span>
+              <div className="flex items-center gap-2 mr-4">
+                {current && (
+                  <>
+                    {diffMode === 'current-vs-modified' && (
                       <Button
-                        onClick={() => handleRollbackClick(original)}
-                        disabled={isRollingBack}
-                        variant="outline"
-                        size="sm"
-                      >
-                        {isRollingBack
-                          ? t('resourceHistory.rollback.rollingBack')
-                          : t('resourceHistory.rollback.previous')}
-                      </Button>
-                      <Button
-                        onClick={() => handleRollbackClick(modified)}
+                        onClick={() =>
+                          handleRollbackClick(modified, 'modified')
+                        }
                         disabled={isRollingBack}
                         variant="outline"
                         size="sm"
@@ -176,80 +169,154 @@ export function YamlDiffViewer({
                           ? t('resourceHistory.rollback.rollingBack')
                           : t('resourceHistory.rollback.modified')}
                       </Button>
-                    </>
-                  )}
+                    )}
 
-                  <Select
-                    value={diffMode}
-                    onValueChange={(value: DiffMode) => setDiffMode(value)}
-                  >
-                    <SelectTrigger className="max-w-64">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="previous-vs-modified">
-                        {t('resourceHistory.previousVsModified')}
-                      </SelectItem>
-                      <SelectItem value="current-vs-modified">
-                        {t('resourceHistory.currentVsModified')}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 min-h-0">
-          <Suspense
-            fallback={
-              <div
-                className="flex h-full items-center justify-center text-muted-foreground"
-                style={{ height }}
-              >
-                Loading editor...
+                    {diffMode === 'previous-vs-modified' && (
+                      <>
+                        <Button
+                          onClick={() =>
+                            handleRollbackClick(original, 'previous')
+                          }
+                          disabled={isRollingBack}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {isRollingBack
+                            ? t('resourceHistory.rollback.rollingBack')
+                            : t('resourceHistory.rollback.previous')}
+                        </Button>
+                        <Button
+                          onClick={() =>
+                            handleRollbackClick(modified, 'modified')
+                          }
+                          disabled={isRollingBack}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {isRollingBack
+                            ? t('resourceHistory.rollback.rollingBack')
+                            : t('resourceHistory.rollback.modified')}
+                        </Button>
+                      </>
+                    )}
+
+                    <Select
+                      value={diffMode}
+                      onValueChange={(value: DiffMode) => setDiffMode(value)}
+                    >
+                      <SelectTrigger className="max-w-64">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="previous-vs-modified">
+                          {t('resourceHistory.previousVsModified')}
+                        </SelectItem>
+                        <SelectItem value="current-vs-modified">
+                          {t('resourceHistory.currentVsModified')}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
               </div>
-            }
-          >
-            <MonacoDiffEditor
-              key={`yaml-diff-viewer-${colorTheme}-${actualTheme}-${backgroundColor}`}
-              height={height}
-              language="yaml"
-              beforeMount={(monaco) => {
-                defineMonacoBackgroundThemes(monaco, {
-                  darkThemeName: `custom-dark-${colorTheme}`,
-                  lightThemeName: `custom-vs-${colorTheme}`,
-                  backgroundColor,
-                })
-              }}
-              theme={
-                actualTheme === 'dark'
-                  ? `custom-dark-${colorTheme}`
-                  : `custom-vs-${colorTheme}`
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <Suspense
+              fallback={
+                <div
+                  className="flex h-full items-center justify-center text-muted-foreground"
+                  style={{ height }}
+                >
+                  Loading editor...
+                </div>
               }
-              options={{
-                readOnly: true,
-                minimap: { enabled: true },
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                folding: true,
-                lineNumbers: 'relative',
-                fontSize: 14,
-                fontFamily:
-                  "'Maple Mono',Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
-                renderSideBySide: true,
-                enableSplitViewResizing: true,
-                renderOverviewRuler: true,
-                overviewRulerBorder: true,
-                overviewRulerLanes: 2,
-              }}
-              onMount={handleEditorDidMount}
-              original={leftContent}
-              modified={rightContent}
-            />
-          </Suspense>
-        </div>
-      </DialogContent>
-    </Dialog>
+            >
+              <MonacoDiffEditor
+                key={`yaml-diff-viewer-${colorTheme}-${actualTheme}-${backgroundColor}`}
+                height={height}
+                language="yaml"
+                beforeMount={(monaco) => {
+                  defineMonacoBackgroundThemes(monaco, {
+                    darkThemeName: `custom-dark-${colorTheme}`,
+                    lightThemeName: `custom-vs-${colorTheme}`,
+                    backgroundColor,
+                  })
+                }}
+                theme={
+                  actualTheme === 'dark'
+                    ? `custom-dark-${colorTheme}`
+                    : `custom-vs-${colorTheme}`
+                }
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: true },
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  folding: true,
+                  lineNumbers: 'relative',
+                  fontSize: 14,
+                  fontFamily:
+                    "'Maple Mono',Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace",
+                  renderSideBySide: true,
+                  enableSplitViewResizing: true,
+                  renderOverviewRuler: true,
+                  overviewRulerBorder: true,
+                  overviewRulerLanes: 2,
+                }}
+                onMount={handleEditorDidMount}
+                original={leftContent}
+                modified={rightContent}
+              />
+            </Suspense>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingRollback)}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && !isRollingBack) {
+            setPendingRollback(null)
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {t('resourceHistory.rollback.confirmTitle')}
+            </DialogTitle>
+            <DialogDescription>
+              {t('resourceHistory.rollback.confirmDescription', {
+                target:
+                  pendingRollback?.target === 'previous'
+                    ? t('resourceHistory.rollback.previous')
+                    : t('resourceHistory.rollback.modified'),
+              })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isRollingBack}
+              onClick={() => setPendingRollback(null)}
+            >
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              disabled={isRollingBack}
+              onClick={handleConfirmRollback}
+            >
+              {isRollingBack
+                ? t('resourceHistory.rollback.rollingBack')
+                : t('resourceHistory.rollback.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
