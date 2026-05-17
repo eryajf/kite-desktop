@@ -226,41 +226,60 @@ func checkInUsedConfigs(spec *corev1.PodTemplateSpec, name string, resourceType 
 	containers := spec.Spec.Containers
 	containers = append(containers, spec.Spec.InitContainers...)
 	for _, container := range containers {
-		for _, envVar := range container.Env {
-			if envVar.ValueFrom != nil {
-				if resourceType == "configmaps" && envVar.ValueFrom.ConfigMapKeyRef != nil && envVar.ValueFrom.ConfigMapKeyRef.Name == name {
-					return true
-				}
-				if resourceType == "secrets" && envVar.ValueFrom.SecretKeyRef != nil && envVar.ValueFrom.SecretKeyRef.Name == name {
-					return true
-				}
-			}
-		}
-		for _, envFrom := range container.EnvFrom {
-			if resourceType == "configmaps" && envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == name {
-				return true
-			}
-			if resourceType == "secrets" && envFrom.SecretRef != nil && envFrom.SecretRef.Name == name {
-				return true
-			}
+		if containerUsesConfig(container, name, resourceType) {
+			return true
 		}
 	}
 	for _, volume := range spec.Spec.Volumes {
-		if resourceType == "configmaps" && volume.ConfigMap != nil && volume.ConfigMap.Name == name {
-			return true
-		}
-		if resourceType == "secrets" && volume.Secret != nil && volume.Secret.SecretName == name {
-			return true
-		}
-		if resourceType == "persistentvolumeclaims" && volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == name {
+		if volumeUsesConfig(volume, name, resourceType) {
 			return true
 		}
 	}
-	if resourceType == "secrets" {
-		for _, imagePullSecret := range spec.Spec.ImagePullSecrets {
-			if imagePullSecret.Name == name {
-				return true
-			}
+	return resourceType == "secrets" && imagePullSecretsUseSecret(spec.Spec.ImagePullSecrets, name)
+}
+
+func containerUsesConfig(container corev1.Container, name string, resourceType string) bool {
+	for _, envVar := range container.Env {
+		if envVar.ValueFrom == nil {
+			continue
+		}
+		if resourceType == "configmaps" && envVar.ValueFrom.ConfigMapKeyRef != nil && envVar.ValueFrom.ConfigMapKeyRef.Name == name {
+			return true
+		}
+		if resourceType == "secrets" && envVar.ValueFrom.SecretKeyRef != nil && envVar.ValueFrom.SecretKeyRef.Name == name {
+			return true
+		}
+	}
+
+	for _, envFrom := range container.EnvFrom {
+		if resourceType == "configmaps" && envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == name {
+			return true
+		}
+		if resourceType == "secrets" && envFrom.SecretRef != nil && envFrom.SecretRef.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
+func volumeUsesConfig(volume corev1.Volume, name string, resourceType string) bool {
+	if resourceType == "configmaps" && volume.ConfigMap != nil && volume.ConfigMap.Name == name {
+		return true
+	}
+	if resourceType == "secrets" && volume.Secret != nil && volume.Secret.SecretName == name {
+		return true
+	}
+	if resourceType == "persistentvolumeclaims" && volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == name {
+		return true
+	}
+	return false
+}
+
+func imagePullSecretsUseSecret(imagePullSecrets []corev1.LocalObjectReference, name string) bool {
+	for _, imagePullSecret := range imagePullSecrets {
+		if imagePullSecret.Name == name {
+			return true
 		}
 	}
 	return false
