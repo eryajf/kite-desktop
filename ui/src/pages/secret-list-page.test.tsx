@@ -1,9 +1,9 @@
 import { type ReactNode } from 'react'
 import { act, render, screen } from '@testing-library/react'
-import type { ConfigMap } from 'kubernetes-types/core/v1'
+import type { Secret } from 'kubernetes-types/core/v1'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { ConfigMapListPage } from './configmap-list-page'
+import { SecretListPage } from './secret-list-page'
 
 const mockNavigate = vi.fn()
 const mockResourceTable = vi.fn(
@@ -33,13 +33,6 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   }
 })
-
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn(),
-  },
-}))
 
 vi.mock('@/components/resource-table', () => ({
   ResourceTable: (props: { resourceName: string }) => mockResourceTable(props),
@@ -82,57 +75,57 @@ vi.mock('@/components/resource-delete-confirmation-dialog', () => ({
     ) : null,
 }))
 
-describe('ConfigMapListPage', () => {
+describe('SecretListPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockResourceTable.mockClear()
   })
 
-  it('provides unified row actions for configmaps', async () => {
-    render(<ConfigMapListPage />)
+  it('provides focused row actions for secrets', async () => {
+    render(<SecretListPage />)
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
-      columns: { id?: string; header?: string }[]
-      getRowContextMenuItems: (configMap: ConfigMap) => {
+      columns: { header?: string }[]
+      getRowContextMenuItems: (secret: Secret) => {
         key: string
         onSelect?: () => void | Promise<void>
       }[]
     }
 
-    expect(resourceTableProps.columns).toHaveLength(4)
     expect(resourceTableProps.columns.map((column) => column.header)).toEqual([
       'common.name',
+      'common.type',
       'detail.fields.labels',
       'detail.fields.annotations',
       'common.created',
     ])
 
-    const configMap = {
+    const secret = {
       metadata: {
-        name: 'app-config',
+        name: 'app-secret',
         namespace: 'default',
       },
-    } as ConfigMap
+    } as Secret
 
-    const items = resourceTableProps.getRowContextMenuItems(configMap)
+    const items = resourceTableProps.getRowContextMenuItems(secret)
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
-      'edit-config',
+      'edit-secret',
       'metadata-actions-separator',
       'manage-labels',
       'manage-annotations',
       'danger-actions-separator',
-      'delete-configmap',
+      'delete-secret',
     ])
 
     await items[0].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/configmaps/default/app-config?tab=yaml'
+      '/secrets/default/app-secret?tab=yaml'
     )
 
     await items[1].onSelect?.()
-    expect(mockNavigate).toHaveBeenCalledWith('/configmaps/default/app-config')
+    expect(mockNavigate).toHaveBeenCalledWith('/secrets/default/app-secret')
 
     await act(async () => {
       await items[3].onSelect?.()
@@ -154,6 +147,6 @@ describe('ConfigMapListPage', () => {
     expect(
       screen.getByText('resource-delete-confirmation-dialog')
     ).toBeInTheDocument()
-    expect(screen.getByText('configmaps')).toBeInTheDocument()
+    expect(screen.getByText('secrets')).toBeInTheDocument()
   })
 })

@@ -352,10 +352,24 @@
     "hostnames": "Hostnames"
   },
   "configMaps": {
-    "dataKeys": "Data Keys"
+    "dataKeys": "Data Keys",
+    "editDataTitle": "Edit ConfigMap data",
+    "editDataDescription": "Edit ConfigMap entries as key-value pairs. Empty keys are ignored when saving.",
+    "editConfig": "Edit config",
+    "confirmSaveDataTitle": "Confirm data changes",
+    "confirmSaveDataDescription": "This will update {{count}} ConfigMap data entries in the cluster. Please confirm the edited key-value pairs are correct.",
+    "confirmSaveData": "Confirm save",
+    "dataSaved": "ConfigMap data saved"
   },
   "secrets": {
-    "dataKeys": "Data Keys"
+    "dataKeys": "Data Keys",
+    "editConfig": "Edit secret",
+    "editDataTitle": "Edit Secret data",
+    "editDataDescription": "Edit decoded Secret entries as key-value pairs. Values are saved back as base64 data. Empty keys are ignored when saving.",
+    "confirmSaveDataTitle": "Confirm Secret data changes",
+    "confirmSaveDataDescription": "This will update {{count}} Secret data entries in the cluster. Please confirm the edited sensitive values are correct.",
+    "confirmSaveData": "Confirm save",
+    "dataSaved": "Secret data saved"
   },
   "crds": {
     "group": "Group",
@@ -1039,6 +1053,9 @@
       "previous": "Rollback Previous",
       "modified": "Rollback Modified",
       "rollingBack": "Rolling back...",
+      "confirmTitle": "Confirm rollback",
+      "confirmDescription": "This will apply {{target}} to the cluster. Please confirm before continuing.",
+      "confirm": "Confirm rollback",
       "success": "Successfully rolled back resource",
       "error": "Failed to rollback resource"
     }

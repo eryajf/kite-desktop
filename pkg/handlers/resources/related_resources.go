@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	v1 "k8s.io/api/networking/v1"
@@ -255,6 +256,13 @@ func checkInUsedConfigs(spec *corev1.PodTemplateSpec, name string, resourceType 
 			return true
 		}
 	}
+	if resourceType == "secrets" {
+		for _, imagePullSecret := range spec.Spec.ImagePullSecrets {
+			if imagePullSecret.Name == name {
+				return true
+			}
+		}
+	}
 	return false
 }
 
@@ -267,6 +275,9 @@ func discoveryWorkloads(ctx context.Context, k8sClient *kube.K8sClient, namespac
 	var deploymentList appsv1.DeploymentList
 	var statefulSetList appsv1.StatefulSetList
 	var daemonSetList appsv1.DaemonSetList
+	var podList corev1.PodList
+	var jobList batchv1.JobList
+	var cronJobList batchv1.CronJobList
 
 	g.Go(func() error {
 		return k8sClient.List(gctx, &deploymentList, client.InNamespace(namespace))
@@ -276,6 +287,15 @@ func discoveryWorkloads(ctx context.Context, k8sClient *kube.K8sClient, namespac
 	})
 	g.Go(func() error {
 		return k8sClient.List(gctx, &daemonSetList, client.InNamespace(namespace))
+	})
+	g.Go(func() error {
+		return k8sClient.List(gctx, &podList, client.InNamespace(namespace))
+	})
+	g.Go(func() error {
+		return k8sClient.List(gctx, &jobList, client.InNamespace(namespace))
+	})
+	g.Go(func() error {
+		return k8sClient.List(gctx, &cronJobList, client.InNamespace(namespace))
 	})
 
 	if err := g.Wait(); err != nil {
@@ -317,6 +337,66 @@ func discoveryWorkloads(ctx context.Context, k8sClient *kube.K8sClient, namespac
 			})
 		}
 	}
+	for _, pod := range podList.Items {
+		podTemplate := &corev1.PodTemplateSpec{Spec: pod.Spec}
+		if checkInUsedConfigs(podTemplate, name, resourceType) {
+			related = append(related, common.RelatedResource{
+				Type:      "pods",
+				Name:      pod.Name,
+				Namespace: pod.Namespace,
+				Direction: common.RelatedDirectionReferencedBy,
+				Reason:    "pod reference",
+			})
+		}
+	}
+	for _, job := range jobList.Items {
+		if checkInUsedConfigs(&job.Spec.Template, name, resourceType) {
+			related = append(related, common.RelatedResource{
+				Type:      "jobs",
+				Name:      job.Name,
+				Namespace: job.Namespace,
+				Direction: common.RelatedDirectionReferencedBy,
+				Reason:    "job pod template reference",
+			})
+		}
+	}
+	for _, cronJob := range cronJobList.Items {
+		if checkInUsedConfigs(&cronJob.Spec.JobTemplate.Spec.Template, name, resourceType) {
+			related = append(related, common.RelatedResource{
+				Type:      "cronjobs",
+				Name:      cronJob.Name,
+				Namespace: cronJob.Namespace,
+				Direction: common.RelatedDirectionReferencedBy,
+				Reason:    "cronjob pod template reference",
+			})
+		}
+	}
+	return related, nil
+}
+
+func discoverSecretIngresses(ctx context.Context, k8sClient *kube.K8sClient, namespace string, name string) ([]common.RelatedResource, error) {
+	var ingressList v1.IngressList
+	if err := k8sClient.List(ctx, &ingressList, client.InNamespace(namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list ingresses: %w", err)
+	}
+
+	var related []common.RelatedResource
+	for _, ingress := range ingressList.Items {
+		for _, tls := range ingress.Spec.TLS {
+			if tls.SecretName == name {
+				related = append(related, common.RelatedResource{
+					Type:       "ingresses",
+					Name:       ingress.Name,
+					Namespace:  ingress.Namespace,
+					APIVersion: v1.SchemeGroupVersion.String(),
+					Direction:  common.RelatedDirectionReferencedBy,
+					Reason:     "ingress TLS secret",
+				})
+				break
+			}
+		}
+	}
+
 	return related, nil
 }
 
@@ -619,6 +699,14 @@ func GetRelatedResources(c *gin.Context) {
 				})
 			}
 			result = append(result, workloads...)
+			if resourceType == "secrets" {
+				ingresses, err := discoverSecretIngresses(ctx, cs.K8sClient, namespace, name)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to discover secret ingresses: " + err.Error()})
+					return
+				}
+				result = append(result, ingresses...)
+			}
 		}
 	case *gatewayapiv1.HTTPRoute:
 		result = getHTTPRouteRelatedResouces(res, namespace)
