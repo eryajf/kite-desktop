@@ -104,9 +104,9 @@ func discoverIngressServices(namespace string, ingress *v1.Ingress) []common.Rel
 	return relatedServices
 }
 
-func filterExistingRelatedServices(ctx context.Context, k8sClient *kube.K8sClient, services []common.RelatedResource) ([]common.RelatedResource, error) {
+func filterExistingRelatedServices(ctx context.Context, k8sClient *kube.K8sClient, services []common.RelatedResource) []common.RelatedResource {
 	if len(services) == 0 {
-		return services, nil
+		return services
 	}
 
 	existing := make([]common.RelatedResource, 0, len(services))
@@ -126,7 +126,7 @@ func filterExistingRelatedServices(ctx context.Context, k8sClient *kube.K8sClien
 		existing = append(existing, service)
 	}
 
-	return existing, nil
+	return existing
 }
 
 func discoverConfigs(namespace string, podSpec *corev1.PodTemplateSpec) []common.RelatedResource {
@@ -625,15 +625,11 @@ func GetRelatedResources(c *gin.Context) {
 	case *autoscalingv2.HorizontalPodAutoscaler:
 		result = getAutoScalingRelatedResources(res, namespace)
 	case *v1.Ingress:
-		services, err := filterExistingRelatedServices(
+		services := filterExistingRelatedServices(
 			ctx,
 			cs.K8sClient,
 			discoverIngressServices(namespace, res),
 		)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to discover ingress related services: " + err.Error()})
-			return
-		}
 		result = append(result, services...)
 	}
 

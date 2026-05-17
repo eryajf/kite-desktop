@@ -90,11 +90,7 @@ func TestFilterExistingRelatedServices(t *testing.T) {
 			Build(),
 	}
 
-	got, err := filterExistingRelatedServices(context.Background(), k8sClient, related)
-	if err != nil {
-		t.Fatalf("filterExistingRelatedServices() error = %v", err)
-	}
-
+	got := filterExistingRelatedServices(context.Background(), k8sClient, related)
 	want := []common.RelatedResource{
 		{Type: "services", Namespace: "default", Name: "svc-a", APIVersion: corev1.SchemeGroupVersion.String(), Direction: common.RelatedDirectionReferences, Reason: "ingress backend service"},
 	}
