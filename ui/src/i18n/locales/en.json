@@ -1064,14 +1064,103 @@
     "volume": "Volume",
     "storageClass": "Storage Class",
     "capacity": "Capacity",
-    "accessModes": "Access Modes"
+    "accessModes": "Access Modes",
+    "copyVolume": "Copy Volume",
+    "copyStorageClass": "Copy Storage Class"
   },
   "pvs": {
     "storageClass": "Storage Class",
     "capacity": "Capacity",
     "accessModes": "Access Modes",
     "reclaimPolicy": "Reclaim Policy",
-    "claim": "Claim"
+    "claim": "Claim",
+    "copyStorageClass": "Copy Storage Class",
+    "copyClaim": "Copy Claim"
+  },
+  "pvcList": {
+    "manageLabels": "Manage PVC labels",
+    "manageAnnotations": "Manage PVC annotations"
+  },
+  "pvList": {
+    "manageLabels": "Manage PV labels",
+    "manageAnnotations": "Manage PV annotations"
+  },
+  "storageClasses": {
+    "provisioner": "Provisioner",
+    "defaultClass": "Default",
+    "volumeBindingMode": "Binding Mode",
+    "allowExpansion": "Allow Expansion",
+    "parameters": "Parameters",
+    "mountOptions": "Mount Options",
+    "viewParameters": "View Parameters",
+    "viewMountOptions": "View Mount Options",
+    "copyProvisioner": "Copy Provisioner"
+  },
+  "storageDetails": {
+    "pvcInformation": "PVC Information",
+    "pvInformation": "PV Information",
+    "storageClassInformation": "Storage Class Information",
+    "requestedStorage": "Requested Storage",
+    "volumeMode": "Volume Mode",
+    "volumeSource": "Volume Source",
+    "volumeSourceDetail": "Source Detail",
+    "nodeAffinity": "Node Affinity",
+    "releasedRetainWarning": "This volume is Released with Retain policy. The backing storage may require manual cleanup or rebinding.",
+    "associations": "Associations",
+    "consumingPods": "Consuming Pods",
+    "claims": "Claims",
+    "volumes": "Volumes"
+  },
+  "storageCreate": {
+    "storageClassTitle": "Create Storage Class",
+    "storageClassDescription": "Define a storage class for dynamic provisioning, including provisioner, policy, binding behavior, and optional driver parameters.",
+    "storageClassSuccess": "Storage class {{name}} created",
+    "templateLabel": "Template",
+    "templateHint": "Templates prefill common CSI provisioners and parameters. You can still adjust every field before creating.",
+    "awsAutoModeHint": "EKS Auto Mode uses a different EBS provisioner. Keep the auto compute topology parameter unless you know your cluster does not require it.",
+    "template": {
+      "generic": "Generic CSI / Local static",
+      "alibabaDisk": "Alibaba Cloud ACK Disk",
+      "tencentCbs": "Tencent Cloud TKE CBS",
+      "awsEbs": "AWS EBS CSI",
+      "awsEksAutoEbs": "AWS EKS Auto Mode EBS",
+      "awsEfs": "AWS EFS CSI"
+    },
+    "pvcTitle": "Create Persistent Volume Claim",
+    "pvcDescription": "Request storage for workloads. Use Storage Class for dynamic provisioning, or bind to a specific existing volume when needed.",
+    "pvcSuccess": "Persistent volume claim {{name}} created",
+    "pvTitle": "Create Persistent Volume",
+    "pvDescription": "Create a static persistent volume backed by HostPath, NFS, or Local storage.",
+    "pvSuccess": "Persistent volume {{name}} created",
+    "requestStorage": "Requested Storage",
+    "storageClassOptional": "Optional storage class",
+    "boundVolumeOptional": "Bind Volume (optional)",
+    "sourcePath": "Source Path",
+    "nfsServer": "NFS Server",
+    "nodeHostnameOptional": "Node Hostname (optional)",
+    "readOnly": "Read Only",
+    "accessMode": {
+      "rwo": "ReadWriteOnce",
+      "rom": "ReadOnlyMany",
+      "rwm": "ReadWriteMany"
+    }
+  },
+  "storageEdit": {
+    "resizePVCAction": "Resize",
+    "resizePVCTitle": "Resize Persistent Volume Claim",
+    "resizePVCDescription": "Update the PVC requested storage. Actual expansion depends on the StorageClass and CSI driver support.",
+    "newStorageSize": "New Size",
+    "resizePVCHint": "For example, 20Gi. Kubernetes generally supports expansion, not direct shrinking.",
+    "resizePVCSuccess": "Persistent volume claim {{name}} resized",
+    "reclaimPolicyAction": "Edit Reclaim Policy",
+    "reclaimPolicyTitle": "Edit Persistent Volume Reclaim Policy",
+    "reclaimPolicyDescription": "Change how the backing storage is handled after the PV is released.",
+    "reclaimPolicyHint": "Retain keeps data, Delete removes backing resources with the PV, and Recycle is deprecated.",
+    "reclaimPolicySuccess": "Persistent volume {{name}} reclaim policy updated",
+    "setDefaultAction": "Set as Default",
+    "unsetDefaultAction": "Unset Default",
+    "setDefaultSuccess": "Storage class {{name}} set as default",
+    "unsetDefaultSuccess": "Storage class {{name}} unset as default"
   },
   "resourceKind": {
     "pod": "Pod",
