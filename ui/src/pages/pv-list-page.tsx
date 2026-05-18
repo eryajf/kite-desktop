@@ -1,26 +1,56 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
 import { PersistentVolume } from 'kubernetes-types/core/v1'
-import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
+import { Copy, FileCode2, FileText, RotateCcw, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { copyTextToClipboard } from '@/lib/desktop'
-import { formatDate, parseBytes } from '@/lib/utils'
+import { formatDate, formatRelativeTimeStrict, parseBytes } from '@/lib/utils'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
+import { PVCreateDialog } from '@/components/editors/storage-create-dialogs'
+import { PVReclaimPolicyDialog } from '@/components/editors/storage-edit-dialogs'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
 import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
 
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
+
 export function PVListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [reclaimPolicyPV, setReclaimPolicyPV] =
+    useState<PersistentVolume | null>(null)
   const [labelsPV, setLabelsPV] = useState<PersistentVolume | null>(null)
   const [annotationsPV, setAnnotationsPV] = useState<PersistentVolume | null>(
     null
   )
   const columnHelper = useMemo(() => createColumnHelper<PersistentVolume>(), [])
+
+  const getVolumeSourceType = useCallback((pv: PersistentVolume) => {
+    const spec = pv.spec
+    if (spec?.csi) return 'CSI'
+    if (spec?.nfs) return 'NFS'
+    if (spec?.hostPath) return 'HostPath'
+    if (spec?.local) return 'Local'
+    if (spec?.awsElasticBlockStore) return 'AWSElasticBlockStore'
+    if (spec?.gcePersistentDisk) return 'GCEPersistentDisk'
+    return '-'
+  }, [])
 
   // Define columns for the PV table
   const columns = useMemo(
@@ -87,6 +117,15 @@ export function PVListPage() {
           return modes.join(', ') || '-'
         },
       }),
+      columnHelper.accessor('spec.volumeMode', {
+        header: t('storageDetails.volumeMode'),
+        cell: ({ getValue }) => getValue() || '-',
+      }),
+      columnHelper.display({
+        id: 'volume-source',
+        header: t('storageDetails.volumeSource'),
+        cell: ({ row }) => getVolumeSourceType(row.original),
+      }),
       columnHelper.accessor('spec.persistentVolumeReclaimPolicy', {
         header: t('pvs.reclaimPolicy'),
         cell: ({ getValue }) => {
@@ -112,18 +151,50 @@ export function PVListPage() {
           return '-'
         },
       }),
+      columnHelper.display({
+        id: 'labels',
+        header: t('detail.fields.labels'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="labels"
+            ariaLabel={t('pvList.manageLabels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
+            onClick={() => setLabelsPV(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'annotations',
+        header: t('detail.fields.annotations'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="annotations"
+            ariaLabel={t('pvList.manageAnnotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
+            onClick={() => setAnnotationsPV(row.original)}
+          />
+        ),
+      }),
       columnHelper.accessor('metadata.creationTimestamp', {
         header: t('common.created'),
         cell: ({ getValue }) => {
-          const dateStr = formatDate(getValue() || '')
-
           return (
-            <span className="text-muted-foreground text-sm">{dateStr}</span>
+            <span className="text-muted-foreground text-sm">
+              {formatTimestampWithRelative(getValue())}
+            </span>
           )
         },
       }),
     ],
-    [columnHelper, t]
+    [columnHelper, getVolumeSourceType, t]
   )
 
   // Custom filter for PV search
@@ -132,10 +203,12 @@ export function PVListPage() {
       pv.metadata!.name!.toLowerCase().includes(query) ||
       (pv.spec!.storageClassName?.toLowerCase() || '').includes(query) ||
       (pv.status!.phase?.toLowerCase() || '').includes(query) ||
+      (pv.spec!.volumeMode?.toLowerCase() || '').includes(query) ||
+      getVolumeSourceType(pv).toLowerCase().includes(query) ||
       (pv.spec!.claimRef?.name?.toLowerCase() || '').includes(query) ||
       (pv.spec!.claimRef?.namespace?.toLowerCase() || '').includes(query)
     )
-  }, [])
+  }, [getVolumeSourceType])
 
   const getPVDetailPath = useCallback((pv: PersistentVolume) => {
     return `/persistentvolumes/${pv.metadata!.name}`
@@ -149,6 +222,22 @@ export function PVListPage() {
     [t]
   )
 
+  const handleCreateSuccess = useCallback(
+    async (pv: PersistentVolume) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['persistentvolumes'],
+      })
+      navigate(`/persistentvolumes/${pv.metadata?.name || ''}`)
+    },
+    [navigate, queryClient]
+  )
+
+  const handleEditSuccess = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['persistentvolumes'],
+    })
+  }, [queryClient])
+
   const getRowContextMenuItems = useCallback(
     (pv: PersistentVolume): RowContextMenuItem<PersistentVolume>[] => [
       {
@@ -157,12 +246,37 @@ export function PVListPage() {
         icon: <FileCode2 className="h-4 w-4" />,
         onSelect: () => navigate(`${getPVDetailPath(pv)}?tab=yaml`),
       },
+      {
+        key: 'edit-reclaim-policy',
+        label: t('storageEdit.reclaimPolicyAction'),
+        icon: <RotateCcw className="h-4 w-4" />,
+        onSelect: () => setReclaimPolicyPV(pv),
+      },
       { type: 'separator', key: 'primary-actions-separator' },
       {
         key: 'copy-name',
         label: t('common.copyName', 'Copy name'),
         icon: <Copy className="h-4 w-4" />,
         onSelect: () => handleCopy(pv.metadata?.name || ''),
+      },
+      {
+        key: 'copy-storage-class',
+        label: t('pvs.copyStorageClass'),
+        icon: <Copy className="h-4 w-4" />,
+        disabled: !pv.spec?.storageClassName,
+        onSelect: () => handleCopy(pv.spec?.storageClassName || ''),
+      },
+      {
+        key: 'copy-claim',
+        label: t('pvs.copyClaim'),
+        icon: <Copy className="h-4 w-4" />,
+        disabled: !pv.spec?.claimRef?.name,
+        onSelect: () =>
+          handleCopy(
+            pv.spec?.claimRef?.namespace && pv.spec?.claimRef?.name
+              ? `${pv.spec.claimRef.namespace}/${pv.spec.claimRef.name}`
+              : ''
+          ),
       },
       { type: 'separator', key: 'metadata-actions-separator' },
       {
@@ -188,10 +302,29 @@ export function PVListPage() {
         columns={columns}
         clusterScope={true}
         searchQueryFilter={pvSearchFilter}
+        showCreateButton={true}
+        onCreateClick={() => setIsCreateDialogOpen(true)}
         batchDeleteConfirmationValue={t(
           'deleteConfirmation.confirmDeleteKeyword'
         )}
         getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <PVCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <PVReclaimPolicyDialog
+        open={Boolean(reclaimPolicyPV)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReclaimPolicyPV(null)
+          }
+        }}
+        pv={reclaimPolicyPV}
+        onSuccess={handleEditSuccess}
       />
 
       <ResourceMetadataDialog

@@ -1,12 +1,12 @@
 import { type ReactNode } from 'react'
 import { createColumnHelper, flexRender } from '@tanstack/react-table'
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import type { PersistentVolumeClaim } from 'kubernetes-types/core/v1'
+import type { PersistentVolume } from 'kubernetes-types/core/v1'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
 
-import { PVCListPage } from './pvc-list-page'
+import { PVListPage } from './pv-list-page'
 
 const mockNavigate = vi.fn()
 const mockCopyTextToClipboard = vi.fn()
@@ -82,44 +82,27 @@ vi.mock('@/components/resource-table', () => ({
 }))
 
 vi.mock('@/components/editors/resource-metadata-dialog', () => ({
-  ResourceMetadataDialog: ({
-    open,
-    type,
-    resource,
-  }: {
-    open: boolean
-    type: 'labels' | 'annotations'
-    resource?: { metadata?: { name?: string } } | null
-  }) =>
-    open ? (
-      <div>
-        <span>{`resource-metadata-dialog-${type}`}</span>
-        <span>{resource?.metadata?.name}</span>
-      </div>
-    ) : null,
+  ResourceMetadataDialog: () => null,
 }))
 
 vi.mock('@/components/editors/storage-create-dialogs', () => ({
-  PVCCreateDialog: ({
+  PVCreateDialog: ({
     open,
     onSuccess,
   }: {
     open: boolean
-    onSuccess: (pvc: PersistentVolumeClaim, namespace: string) => void
+    onSuccess: (pv: PersistentVolume) => void
   }) =>
     open ? (
       <div>
-        <span>pvc-create-dialog</span>
+        <span>pv-create-dialog</span>
         <button
           onClick={() =>
-            onSuccess(
-              {
-                metadata: {
-                  name: 'data-web-0',
-                },
-              } as PersistentVolumeClaim,
-              'default'
-            )
+            onSuccess({
+              metadata: {
+                name: 'pv-data-web-0',
+              },
+            } as PersistentVolume)
           }
         >
           finish-create
@@ -129,11 +112,11 @@ vi.mock('@/components/editors/storage-create-dialogs', () => ({
 }))
 
 vi.mock('@/components/editors/storage-edit-dialogs', () => ({
-  PVCResizeDialog: ({ open }: { open: boolean }) =>
-    open ? <div>pvc-resize-dialog</div> : null,
+  PVReclaimPolicyDialog: ({ open }: { open: boolean }) =>
+    open ? <div>pv-reclaim-policy-dialog</div> : null,
 }))
 
-describe('PVCListPage', () => {
+describe('PVListPage', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-05-10T13:53:27.000Z'))
@@ -143,29 +126,27 @@ describe('PVCListPage', () => {
     mockResourceTable.mockClear()
   })
 
-  it('opens pvc create dialog and navigates to the created resource', async () => {
-    render(<PVCListPage />)
+  it('opens pv create dialog and navigates to the created resource', async () => {
+    render(<PVListPage />)
 
     expect(screen.getByText('create-enabled')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'open-create' }))
-    expect(screen.getByText('pvc-create-dialog')).toBeInTheDocument()
+    expect(screen.getByText('pv-create-dialog')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'finish-create' }))
     expect(mockInvalidateQueries).toHaveBeenCalledWith({
-      queryKey: ['persistentvolumeclaims'],
+      queryKey: ['persistentvolumes'],
     })
     await Promise.resolve()
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/persistentvolumeclaims/default/data-web-0'
-    )
+    expect(mockNavigate).toHaveBeenCalledWith('/persistentvolumes/pv-data-web-0')
   })
 
-  it('renders pvc creation time with relative age', () => {
-    render(<PVCListPage />)
+  it('renders pv creation time with relative age', () => {
+    render(<PVListPage />)
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
-      columns: ReturnType<typeof createColumnHelper<PersistentVolumeClaim>>[]
+      columns: ReturnType<typeof createColumnHelper<PersistentVolume>>[]
     }
     const createdAt = '2026-05-09T13:53:27.000Z'
     const createdColumn = resourceTableProps.columns.at(-1)
@@ -183,37 +164,38 @@ describe('PVCListPage', () => {
     )
   })
 
-  it('provides unified row actions for pvc resources', async () => {
-    render(<PVCListPage />)
+  it('provides unified row actions for pv resources', async () => {
+    render(<PVListPage />)
 
     const resourceTableProps = mockResourceTable.mock.calls[0]?.[0] as {
-      getRowContextMenuItems: (pvc: PersistentVolumeClaim) => {
+      getRowContextMenuItems: (pv: PersistentVolume) => {
         key: string
         onSelect?: () => void | Promise<void>
       }[]
     }
 
-    const pvc = {
+    const pv = {
       metadata: {
-        name: 'data-web-0',
-        namespace: 'default',
+        name: 'pv-data-web-0',
       },
       spec: {
-        volumeName: 'pv-data-web-0',
         storageClassName: 'fast-ssd',
+        claimRef: {
+          namespace: 'default',
+          name: 'data-web-0',
+        },
       },
-    } as PersistentVolumeClaim
+    } as PersistentVolume
 
-    const items = resourceTableProps.getRowContextMenuItems(pvc)
+    const items = resourceTableProps.getRowContextMenuItems(pv)
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
-      'resize-pvc',
+      'edit-reclaim-policy',
       'primary-actions-separator',
       'copy-name',
-      'copy-namespace',
-      'copy-volume',
       'copy-storage-class',
+      'copy-claim',
       'metadata-actions-separator',
       'manage-labels',
       'manage-annotations',
@@ -221,38 +203,21 @@ describe('PVCListPage', () => {
 
     await items[0].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith(
-      '/persistentvolumeclaims/default/data-web-0?tab=yaml'
+      '/persistentvolumes/pv-data-web-0?tab=yaml'
     )
 
     await act(async () => {
       await items[1].onSelect?.()
     })
-    expect(screen.getByText('pvc-resize-dialog')).toBeInTheDocument()
+    expect(screen.getByText('pv-reclaim-policy-dialog')).toBeInTheDocument()
 
     await items[3].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('data-web-0')
-
-    await items[4].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('default')
-
-    await items[5].onSelect?.()
     expect(mockCopyTextToClipboard).toHaveBeenCalledWith('pv-data-web-0')
 
-    await items[6].onSelect?.()
+    await items[4].onSelect?.()
     expect(mockCopyTextToClipboard).toHaveBeenCalledWith('fast-ssd')
 
-    await act(async () => {
-      await items[8].onSelect?.()
-    })
-    expect(
-      screen.getByText('resource-metadata-dialog-labels')
-    ).toBeInTheDocument()
-
-    await act(async () => {
-      await items[9].onSelect?.()
-    })
-    expect(
-      screen.getByText('resource-metadata-dialog-annotations')
-    ).toBeInTheDocument()
+    await items[5].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('default/data-web-0')
   })
 })

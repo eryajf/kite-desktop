@@ -1546,14 +1546,103 @@
     "volume": "卷",
     "storageClass": "存储类",
     "capacity": "容量",
-    "accessModes": "访问模式"
+    "accessModes": "访问模式",
+    "copyVolume": "复制卷",
+    "copyStorageClass": "复制存储类"
   },
   "pvs": {
     "storageClass": "存储类",
     "capacity": "容量",
     "accessModes": "访问模式",
     "reclaimPolicy": "回收策略",
-    "claim": "声明"
+    "claim": "声明",
+    "copyStorageClass": "复制存储类",
+    "copyClaim": "复制声明"
+  },
+  "pvcList": {
+    "manageLabels": "管理 PVC 标签",
+    "manageAnnotations": "管理 PVC 注解"
+  },
+  "pvList": {
+    "manageLabels": "管理 PV 标签",
+    "manageAnnotations": "管理 PV 注解"
+  },
+  "storageClasses": {
+    "provisioner": "供应器",
+    "defaultClass": "默认",
+    "volumeBindingMode": "绑定模式",
+    "allowExpansion": "允许扩容",
+    "parameters": "参数",
+    "mountOptions": "挂载选项",
+    "viewParameters": "查看参数",
+    "viewMountOptions": "查看挂载选项",
+    "copyProvisioner": "复制供应器"
+  },
+  "storageDetails": {
+    "pvcInformation": "PVC 信息",
+    "pvInformation": "PV 信息",
+    "storageClassInformation": "存储类信息",
+    "requestedStorage": "请求容量",
+    "volumeMode": "卷模式",
+    "volumeSource": "卷来源",
+    "volumeSourceDetail": "来源详情",
+    "nodeAffinity": "节点亲和性",
+    "releasedRetainWarning": "该卷处于 Released 状态且回收策略为 Retain，底层存储可能需要手动清理或重新绑定。",
+    "associations": "关联",
+    "consumingPods": "消费该卷的 Pod",
+    "claims": "声明",
+    "volumes": "卷"
+  },
+  "storageCreate": {
+    "storageClassTitle": "创建存储类",
+    "storageClassDescription": "定义用于动态供给的存储类，包括供应器、回收策略、绑定模式和可选驱动参数。",
+    "storageClassSuccess": "存储类 {{name}} 已创建",
+    "templateLabel": "模板",
+    "templateHint": "模板会预填常见 CSI 供应器和参数，创建前仍可按集群实际情况调整所有字段。",
+    "awsAutoModeHint": "EKS Auto Mode 使用不同的 EBS 供应器。除非确认集群不需要，否则建议保留 auto compute 拓扑参数。",
+    "template": {
+      "generic": "通用 CSI / 本地静态卷",
+      "alibabaDisk": "阿里云 ACK 云盘",
+      "tencentCbs": "腾讯云 TKE CBS",
+      "awsEbs": "AWS EBS CSI",
+      "awsEksAutoEbs": "AWS EKS Auto Mode EBS",
+      "awsEfs": "AWS EFS CSI"
+    },
+    "pvcTitle": "创建存储声明",
+    "pvcDescription": "为工作负载申请存储。可通过存储类动态供给，也可按需绑定指定存储卷。",
+    "pvcSuccess": "存储声明 {{name}} 已创建",
+    "pvTitle": "创建存储卷",
+    "pvDescription": "创建由 HostPath、NFS 或 Local 存储提供的静态存储卷。",
+    "pvSuccess": "存储卷 {{name}} 已创建",
+    "requestStorage": "请求容量",
+    "storageClassOptional": "可选存储类",
+    "boundVolumeOptional": "绑定卷（可选）",
+    "sourcePath": "来源路径",
+    "nfsServer": "NFS 服务器",
+    "nodeHostnameOptional": "节点主机名（可选）",
+    "readOnly": "只读",
+    "accessMode": {
+      "rwo": "ReadWriteOnce",
+      "rom": "ReadOnlyMany",
+      "rwm": "ReadWriteMany"
+    }
+  },
+  "storageEdit": {
+    "resizePVCAction": "调整容量",
+    "resizePVCTitle": "调整存储声明容量",
+    "resizePVCDescription": "更新 PVC 的请求容量。实际扩容能力取决于存储类是否允许扩容以及底层 CSI 驱动支持情况。",
+    "newStorageSize": "新容量",
+    "resizePVCHint": "例如 20Gi。Kubernetes 通常只支持扩容，不支持直接缩容。",
+    "resizePVCSuccess": "存储声明 {{name}} 容量已更新",
+    "reclaimPolicyAction": "编辑回收策略",
+    "reclaimPolicyTitle": "编辑存储卷回收策略",
+    "reclaimPolicyDescription": "调整 PV 释放后的底层存储处理方式。",
+    "reclaimPolicyHint": "Retain 会保留底层数据，Delete 会随 PV 删除底层资源，Recycle 已不推荐使用。",
+    "reclaimPolicySuccess": "存储卷 {{name}} 回收策略已更新",
+    "setDefaultAction": "设为默认存储类",
+    "unsetDefaultAction": "取消默认存储类",
+    "setDefaultSuccess": "存储类 {{name}} 已设为默认",
+    "unsetDefaultSuccess": "存储类 {{name}} 已取消默认"
   },
   "resourceKind": {
     "pod": "容器组",

@@ -12,10 +12,13 @@ import { IngressDetail } from './ingress-detail'
 import { JobDetail } from './job-detail'
 import { NodeDetail } from './node-detail'
 import { PodDetail } from './pod-detail'
+import { PVDetail } from './pv-detail'
+import { PVCDetail } from './pvc-detail'
 import { SecretDetail } from './secret-detail'
 import { ServiceDetail } from './service-detail'
 import { SimpleResourceDetail } from './simple-resource-detail'
 import { StatefulSetDetail } from './statefulset-detail'
+import { StorageClassDetail } from './storageclass-detail'
 
 function getResourceTypeName(resource: string): string {
   const resourceMap: Record<string, string> = {
@@ -78,6 +81,12 @@ export function ResourceDetail() {
       return <ServiceDetail namespace={namespace!} name={name} />
     case 'ingresses':
       return <IngressDetail namespace={namespace!} name={name} />
+    case 'persistentvolumeclaims':
+      return <PVCDetail namespace={namespace!} name={name} />
+    case 'persistentvolumes':
+      return <PVDetail name={name} />
+    case 'storageclasses':
+      return <StorageClassDetail name={name} />
     default:
       return (
         <SimpleResourceDetail

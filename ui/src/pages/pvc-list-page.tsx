@@ -1,21 +1,39 @@
 import { useCallback, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { createColumnHelper } from '@tanstack/react-table'
 import { PersistentVolumeClaim } from 'kubernetes-types/core/v1'
-import { Copy, FileCode2, FileText, Tags } from 'lucide-react'
+import { Copy, FileCode2, FileText, Maximize2, Tags } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { copyTextToClipboard } from '@/lib/desktop'
-import { formatDate, parseBytes } from '@/lib/utils'
+import { formatDate, formatRelativeTimeStrict, parseBytes } from '@/lib/utils'
 import { ResourceMetadataDialog } from '@/components/editors/resource-metadata-dialog'
+import { PVCCreateDialog } from '@/components/editors/storage-create-dialogs'
+import { PVCResizeDialog } from '@/components/editors/storage-edit-dialogs'
+import {
+  MetadataActionButton,
+  renderMetadataTooltipContent,
+} from '@/components/metadata-action-button'
 import { Badge } from '@/components/ui/badge'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
 
+function formatTimestampWithRelative(timestamp?: string) {
+  if (!timestamp) {
+    return '-'
+  }
+
+  return `${formatDate(timestamp)} (${formatRelativeTimeStrict(timestamp)})`
+}
+
 export function PVCListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [resizePVC, setResizePVC] = useState<PersistentVolumeClaim | null>(null)
   const [labelsPVC, setLabelsPVC] = useState<PersistentVolumeClaim | null>(null)
   const [annotationsPVC, setAnnotationsPVC] =
     useState<PersistentVolumeClaim | null>(null)
@@ -108,13 +126,49 @@ export function PVCListPage() {
           return modes.join(', ') || '-'
         },
       }),
+      columnHelper.accessor('spec.volumeMode', {
+        header: t('storageDetails.volumeMode'),
+        cell: ({ getValue }) => getValue() || '-',
+      }),
+      columnHelper.display({
+        id: 'labels',
+        header: t('detail.fields.labels'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="labels"
+            ariaLabel={t('pvcList.manageLabels')}
+            count={Object.keys(row.original.metadata?.labels || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.labels
+            )}
+            onClick={() => setLabelsPVC(row.original)}
+          />
+        ),
+      }),
+      columnHelper.display({
+        id: 'annotations',
+        header: t('detail.fields.annotations'),
+        meta: { align: 'left' },
+        cell: ({ row }) => (
+          <MetadataActionButton
+            icon="annotations"
+            ariaLabel={t('pvcList.manageAnnotations')}
+            count={Object.keys(row.original.metadata?.annotations || {}).length}
+            tooltipContent={renderMetadataTooltipContent(
+              row.original.metadata?.annotations
+            )}
+            onClick={() => setAnnotationsPVC(row.original)}
+          />
+        ),
+      }),
       columnHelper.accessor('metadata.creationTimestamp', {
         header: t('common.created'),
         cell: ({ getValue }) => {
-          const dateStr = formatDate(getValue() || '')
-
           return (
-            <span className="text-muted-foreground text-sm">{dateStr}</span>
+            <span className="text-muted-foreground text-sm">
+              {formatTimestampWithRelative(getValue())}
+            </span>
           )
         },
       }),
@@ -130,6 +184,7 @@ export function PVCListPage() {
         (pvc.metadata!.namespace?.toLowerCase() || '').includes(query) ||
         (pvc.spec!.volumeName?.toLowerCase() || '').includes(query) ||
         (pvc.spec!.storageClassName?.toLowerCase() || '').includes(query) ||
+        (pvc.spec!.volumeMode?.toLowerCase() || '').includes(query) ||
         (pvc.status!.phase?.toLowerCase() || '').includes(query)
       )
     },
@@ -148,6 +203,24 @@ export function PVCListPage() {
     [t]
   )
 
+  const handleCreateSuccess = useCallback(
+    async (pvc: PersistentVolumeClaim, namespace: string) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['persistentvolumeclaims'],
+      })
+      navigate(
+        `/persistentvolumeclaims/${namespace}/${pvc.metadata?.name || ''}`
+      )
+    },
+    [navigate, queryClient]
+  )
+
+  const handleEditSuccess = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ['persistentvolumeclaims'],
+    })
+  }, [queryClient])
+
   const getRowContextMenuItems = useCallback(
     (pvc: PersistentVolumeClaim): RowContextMenuItem<PersistentVolumeClaim>[] => [
       {
@@ -155,6 +228,12 @@ export function PVCListPage() {
         label: t('common.viewYaml', 'View YAML'),
         icon: <FileCode2 className="h-4 w-4" />,
         onSelect: () => navigate(`${getPVCDetailPath(pvc)}?tab=yaml`),
+      },
+      {
+        key: 'resize-pvc',
+        label: t('storageEdit.resizePVCAction'),
+        icon: <Maximize2 className="h-4 w-4" />,
+        onSelect: () => setResizePVC(pvc),
       },
       { type: 'separator', key: 'primary-actions-separator' },
       {
@@ -168,6 +247,20 @@ export function PVCListPage() {
         label: t('common.copyNamespace', 'Copy namespace'),
         icon: <Copy className="h-4 w-4" />,
         onSelect: () => handleCopy(pvc.metadata?.namespace || ''),
+      },
+      {
+        key: 'copy-volume',
+        label: t('pvcs.copyVolume'),
+        icon: <Copy className="h-4 w-4" />,
+        disabled: !pvc.spec?.volumeName,
+        onSelect: () => handleCopy(pvc.spec?.volumeName || ''),
+      },
+      {
+        key: 'copy-storage-class',
+        label: t('pvcs.copyStorageClass'),
+        icon: <Copy className="h-4 w-4" />,
+        disabled: !pvc.spec?.storageClassName,
+        onSelect: () => handleCopy(pvc.spec?.storageClassName || ''),
       },
       { type: 'separator', key: 'metadata-actions-separator' },
       {
@@ -192,10 +285,29 @@ export function PVCListPage() {
         resourceName={'PersistentVolumeClaims'}
         columns={columns}
         searchQueryFilter={pvcSearchFilter}
+        showCreateButton={true}
+        onCreateClick={() => setIsCreateDialogOpen(true)}
         batchDeleteConfirmationValue={t(
           'deleteConfirmation.confirmDeleteKeyword'
         )}
         getRowContextMenuItems={getRowContextMenuItems}
+      />
+
+      <PVCCreateDialog
+        open={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSuccess={handleCreateSuccess}
+      />
+
+      <PVCResizeDialog
+        open={Boolean(resizePVC)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setResizePVC(null)
+          }
+        }}
+        pvc={resizePVC}
+        onSuccess={handleEditSuccess}
       />
 
       <ResourceMetadataDialog
