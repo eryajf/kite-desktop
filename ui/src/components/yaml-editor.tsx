@@ -27,7 +27,7 @@ interface YamlEditorProps<T extends ResourceType> {
   title?: string
   /** Minimum height of the editor */
   minHeight?: number
-  /** Callback when YAML content changes */
+  /** Callback when committed YAML content changes or edits are canceled */
   onChange?: (value: string) => void
   /** Callback when save is confirmed. Return false to keep editing after a handled failure. */
   onSave?: (
@@ -115,7 +115,6 @@ export function YamlEditor<T extends ResourceType>({
   const handleEditorChange = (value: string | undefined) => {
     const newValue = value || ''
     setEditorValue(newValue)
-    onChange?.(newValue)
   }
 
   const handleEdit = () => {
@@ -143,6 +142,7 @@ export function YamlEditor<T extends ResourceType>({
         return
       }
       editStartValueRef.current = editorValue
+      onChange?.(editorValue)
       setIsDiffOpen(false)
       if (!readOnly) {
         setIsEditing(false)

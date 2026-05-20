@@ -28,12 +28,6 @@ interface EnvironmentEditorProps {
   onUpdate: (updates: Partial<Container>) => void
 }
 
-function hasEnvFromSourceValue(source: EnvFromSource) {
-  return Boolean(
-    source.configMapRef?.name?.trim() || source.secretRef?.name?.trim()
-  )
-}
-
 export function EnvironmentEditor({
   container,
   namespace,
@@ -53,19 +47,13 @@ export function EnvironmentEditor({
   const addEnvVar = () => {
     const newEnvVars = [{ name: '', value: '' }, ...envVars]
     setEnvVars(newEnvVars)
-    // Don't filter out empty names immediately, let user fill them in
     onUpdate({ env: newEnvVars })
   }
 
   const removeEnvVar = (index: number) => {
     const newEnvVars = envVars.filter((_, i) => i !== index)
     setEnvVars(newEnvVars)
-    onUpdate({
-      env: newEnvVars.filter(
-        (env) =>
-          env.name.trim() !== '' || env.value?.trim() !== '' || env.valueFrom
-      ),
-    })
+    onUpdate({ env: newEnvVars })
   }
 
   const updateEnvVar = (
@@ -77,13 +65,7 @@ export function EnvironmentEditor({
       i === index ? { ...env, [field]: value } : env
     )
     setEnvVars(newEnvVars)
-    // Only filter out completely empty entries (both name and value empty)
-    onUpdate({
-      env: newEnvVars.filter(
-        (env) =>
-          env.name.trim() !== '' || env.value?.trim() !== '' || env.valueFrom
-      ),
-    })
+    onUpdate({ env: newEnvVars })
   }
 
   const updateEnvVarType = (index: number, type: 'value' | 'valueFrom') => {
@@ -110,12 +92,7 @@ export function EnvironmentEditor({
       return env
     })
     setEnvVars(newEnvVars)
-    onUpdate({
-      env: newEnvVars.filter(
-        (env) =>
-          env.name.trim() !== '' || env.value?.trim() !== '' || env.valueFrom
-      ),
-    })
+    onUpdate({ env: newEnvVars })
   }
 
   const updateValueFrom = (
@@ -171,12 +148,7 @@ export function EnvironmentEditor({
       return env
     })
     setEnvVars(newEnvVars)
-    onUpdate({
-      env: newEnvVars.filter(
-        (env) =>
-          env.name.trim() !== '' || env.value?.trim() !== '' || env.valueFrom
-      ),
-    })
+    onUpdate({ env: newEnvVars })
   }
 
   const updateValueFromType = (
@@ -202,12 +174,7 @@ export function EnvironmentEditor({
       return env
     })
     setEnvVars(newEnvVars)
-    onUpdate({
-      env: newEnvVars.filter(
-        (env) =>
-          env.name.trim() !== '' || env.value?.trim() !== '' || env.valueFrom
-      ),
-    })
+    onUpdate({ env: newEnvVars })
   }
 
   // EnvFrom management functions
@@ -217,17 +184,13 @@ export function EnvironmentEditor({
       ...envFromSources,
     ]
     setEnvFromSources(newEnvFromSources)
-    onUpdate({
-      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
-    })
+    onUpdate({ envFrom: newEnvFromSources })
   }
 
   const removeEnvFromSource = (index: number) => {
     const newEnvFromSources = envFromSources.filter((_, i) => i !== index)
     setEnvFromSources(newEnvFromSources)
-    onUpdate({
-      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
-    })
+    onUpdate({ envFrom: newEnvFromSources })
   }
 
   const updateEnvFromSource = (
@@ -268,9 +231,7 @@ export function EnvironmentEditor({
       return source
     })
     setEnvFromSources(newEnvFromSources)
-    onUpdate({
-      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
-    })
+    onUpdate({ envFrom: newEnvFromSources })
   }
 
   const updateEnvFromSourceType = (
@@ -288,9 +249,7 @@ export function EnvironmentEditor({
       return source
     })
     setEnvFromSources(newEnvFromSources)
-    onUpdate({
-      envFrom: newEnvFromSources.filter(hasEnvFromSourceValue),
-    })
+    onUpdate({ envFrom: newEnvFromSources })
   }
 
   return (

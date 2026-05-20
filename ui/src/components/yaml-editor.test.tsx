@@ -1,12 +1,15 @@
 import '@/i18n'
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { YamlEditor } from './yaml-editor'
 
 const originalYaml =
   'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n'
+const modifiedYaml =
+  'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: changed\n'
 
 vi.mock('@/lib/monaco-loader', () => ({
   MonacoEditor: ({
@@ -40,6 +43,31 @@ vi.mock('@/lib/monaco-loader', () => ({
 }))
 
 describe('YamlEditor', () => {
+  function ControlledYamlTab({
+    initialValue = originalYaml,
+    onSave,
+  }: {
+    initialValue?: string
+    onSave?: Parameters<typeof YamlEditor<'configmaps'>>[0]['onSave']
+  }) {
+    const [value, setValue] = useState(initialValue)
+    const [showYamlTab, setShowYamlTab] = useState(true)
+
+    return (
+      <div>
+        <button onClick={() => setShowYamlTab(false)}>overview</button>
+        <button onClick={() => setShowYamlTab(true)}>yaml</button>
+        {showYamlTab ? (
+          <YamlEditor<'configmaps'>
+            value={value}
+            onChange={setValue}
+            onSave={onSave}
+          />
+        ) : null}
+      </div>
+    )
+  }
+
   it('opens in view mode and switches to edit mode from the edit button', () => {
     render(<YamlEditor<'configmaps'> value={originalYaml} />)
 
@@ -78,8 +106,6 @@ describe('YamlEditor', () => {
 
   it('shows a diff before saving changed YAML and saves after confirmation', async () => {
     const handleSave = vi.fn().mockResolvedValue(undefined)
-    const modifiedYaml =
-      'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: changed\n'
 
     render(
       <YamlEditor<'configmaps'> value={originalYaml} onSave={handleSave} />
@@ -120,9 +146,7 @@ describe('YamlEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /edit/i }))
     fireEvent.change(screen.getByLabelText('yaml-editor'), {
-      target: {
-        value: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: changed\n',
-      },
+      target: { value: modifiedYaml },
     })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     fireEvent.click(screen.getByRole('button', { name: /continue editing/i }))
@@ -141,9 +165,7 @@ describe('YamlEditor', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /edit/i }))
     fireEvent.change(screen.getByLabelText('yaml-editor'), {
-      target: {
-        value: 'apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: changed\n',
-      },
+      target: { value: modifiedYaml },
     })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm save/i }))
@@ -153,6 +175,30 @@ describe('YamlEditor', () => {
     })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByLabelText('yaml-editor')).not.toHaveAttribute('readonly')
+  })
+
+  it('does not restore a failed save draft after the YAML tab remounts', async () => {
+    const handleSave = vi.fn().mockResolvedValue(false)
+
+    render(<ControlledYamlTab onSave={handleSave} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByLabelText('yaml-editor'), {
+      target: { value: modifiedYaml },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm save/i }))
+
+    await waitFor(() => {
+      expect(handleSave).toHaveBeenCalled()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /continue editing/i }))
+    fireEvent.click(screen.getByRole('button', { name: /overview/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^yaml$/i }))
+
+    expect(screen.getByLabelText('yaml-editor')).toHaveValue(originalYaml)
+    expect(screen.getByLabelText('yaml-editor')).toHaveAttribute('readonly')
   })
 
   it('exits edit mode without opening diff when YAML is unchanged', () => {
