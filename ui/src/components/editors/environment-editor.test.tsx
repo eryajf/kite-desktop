@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { Container } from 'kubernetes-types/core/v1'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 
 import { EnvironmentEditor } from './environment-editor'
@@ -52,6 +53,30 @@ vi.mock('../selector/secret-selector', () => ({
 }))
 
 describe('EnvironmentEditor', () => {
+  function ControlledEditor({
+    initialContainer,
+    onUpdate,
+  }: {
+    initialContainer: Container
+    onUpdate: (updates: Partial<Container>) => void
+  }) {
+    const [container, setContainer] = useState(initialContainer)
+
+    return (
+      <EnvironmentEditor
+        container={container}
+        namespace="default"
+        onUpdate={(updates) => {
+          onUpdate(updates)
+          setContainer((currentContainer) => ({
+            ...currentContainer,
+            ...updates,
+          }))
+        }}
+      />
+    )
+  }
+
   it('adds new environment variables at the top', () => {
     const onUpdate = vi.fn()
     const container = {
@@ -84,6 +109,39 @@ describe('EnvironmentEditor', () => {
     })
   })
 
+  it('keeps pending environment variable rows after editing one row', () => {
+    const onUpdate = vi.fn()
+
+    render(
+      <ControlledEditor
+        initialContainer={{ name: 'app' } as Container}
+        onUpdate={onUpdate}
+      />
+    )
+
+    const addButton = screen.getByRole('button', {
+      name: /environmentEditor.addVariable/,
+    })
+    fireEvent.click(addButton)
+    fireEvent.click(addButton)
+    fireEvent.click(addButton)
+
+    let nameInputs = screen.getAllByPlaceholderText(
+      'environmentEditor.variableNamePlaceholder'
+    )
+    expect(nameInputs).toHaveLength(3)
+
+    fireEvent.change(nameInputs[0], { target: { value: 'FIRST_ENV' } })
+
+    nameInputs = screen.getAllByPlaceholderText(
+      'environmentEditor.variableNamePlaceholder'
+    )
+    expect(nameInputs).toHaveLength(3)
+    expect(nameInputs[0]).toHaveValue('FIRST_ENV')
+    expect(nameInputs[1]).toHaveValue('')
+    expect(nameInputs[2]).toHaveValue('')
+  })
+
   it('adds new environment sources at the top', () => {
     const onUpdate = vi.fn()
     const container = {
@@ -108,7 +166,10 @@ describe('EnvironmentEditor', () => {
     )
     expect(sourceInputs[0]).toHaveValue('')
     expect(onUpdate).toHaveBeenLastCalledWith({
-      envFrom: [{ secretRef: { name: 'existing-secret' } }],
+      envFrom: [
+        { configMapRef: { name: '' } },
+        { secretRef: { name: 'existing-secret' } },
+      ],
     })
   })
 })
