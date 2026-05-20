@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"golang.org/x/net/websocket"
 	corev1 "k8s.io/api/core/v1"
@@ -64,16 +65,6 @@ func (l *BatchLogHandler) startPodLogStream(podStream *PodLogStream) {
 		close(podStream.Done)
 	}()
 
-	req := l.k8sClient.ClientSet.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, l.opts)
-	podLogs, err := req.Stream(podCtx)
-	if err != nil {
-		_ = sendErrorMessage(l.conn, fmt.Sprintf("Failed to get pod logs for %s: %v", pod.Name, err))
-		return
-	}
-	defer func() {
-		_ = podLogs.Close()
-	}()
-
 	lw := writerFunc(func(p []byte) (int, error) {
 		logString := string(p)
 		logLines := strings.SplitSeq(logString, "\n")
@@ -93,12 +84,57 @@ func (l *BatchLogHandler) startPodLogStream(podStream *PodLogStream) {
 		return len(p), nil
 	})
 
-	_, err = io.Copy(lw, podLogs)
-	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, context.Canceled) {
-		_ = sendErrorMessage(l.conn, fmt.Sprintf("Failed to stream pod logs for %s: %v", pod.Name, err))
-	}
+	// Use StreamingClientSet (no HTTP timeout) to avoid killing long-running log streams.
+	// Retry on transient errors (e.g., network hiccups) with a brief delay.
+	isFirstAttempt := true
+	for {
+		select {
+		case <-podCtx.Done():
+			return
+		default:
+		}
 
-	_ = sendMessage(l.conn, "close", fmt.Sprintf("{\"status\":\"closed\",\"pod\":\"%s\"}", pod.Name))
+		// On retry, use TailLines=0 to avoid re-sending old log lines
+		opts := l.opts
+		if !isFirstAttempt {
+			retryOpts := *l.opts
+			var zero int64
+			retryOpts.TailLines = &zero
+			opts = &retryOpts
+		}
+
+		req := l.k8sClient.StreamingClientSet.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, opts)
+		podLogs, err := req.Stream(podCtx)
+		if err != nil {
+			if errors.Is(err, context.Canceled) {
+				return
+			}
+			_ = sendErrorMessage(l.conn, fmt.Sprintf("Failed to get pod logs for %s: %v", pod.Name, err))
+			select {
+			case <-podCtx.Done():
+				return
+			case <-time.After(3 * time.Second):
+			}
+			isFirstAttempt = false
+			continue
+		}
+
+		_, err = io.Copy(lw, podLogs)
+		_ = podLogs.Close()
+
+		if err == nil || errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
+			return
+		}
+
+		klog.Warningf("Log stream for %s interrupted: %v, will retry", pod.Name, err)
+		isFirstAttempt = false
+
+		select {
+		case <-podCtx.Done():
+			return
+		case <-time.After(2 * time.Second):
+		}
+	}
 }
 
 func (l *BatchLogHandler) heartbeat(ctx context.Context) {

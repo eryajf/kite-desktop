@@ -40,10 +40,11 @@ func init() {
 // K8sClient holds the Kubernetes client instances
 type K8sClient struct {
 	client.Client
-	ClientSet     kubernetes.Interface
-	Configuration *rest.Config
-	MetricsClient *metricsclient.Clientset
-	CacheEnabled  bool // true when using controller-runtime informer cache
+	ClientSet          kubernetes.Interface
+	StreamingClientSet kubernetes.Interface // For long-running streaming requests (e.g., log follow) without HTTP timeout
+	Configuration      *rest.Config
+	MetricsClient      *metricsclient.Clientset
+	CacheEnabled       bool // true when using controller-runtime informer cache
 
 	cancel context.CancelFunc
 }
@@ -55,6 +56,14 @@ func NewClient(config *rest.Config) (*K8sClient, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
+	}
+
+	// Create a streaming clientset without HTTP timeout for long-running requests like log streaming
+	streamingConfig := rest.CopyConfig(config)
+	streamingConfig.Timeout = 0
+	streamingClientset, err := kubernetes.NewForConfig(streamingConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create streaming clientset: %w", err)
 	}
 
 	metricsClient, err := metricsclient.NewForConfig(config)
@@ -121,12 +130,13 @@ func NewClient(config *rest.Config) (*K8sClient, error) {
 	}
 
 	return &K8sClient{
-		Client:        c,
-		ClientSet:     clientset,
-		Configuration: config,
-		MetricsClient: metricsClient,
-		CacheEnabled:  cacheEnabled,
-		cancel:        cancel,
+		Client:             c,
+		ClientSet:          clientset,
+		StreamingClientSet: streamingClientset,
+		Configuration:      config,
+		MetricsClient:      metricsClient,
+		CacheEnabled:       cacheEnabled,
+		cancel:             cancel,
 	}, nil
 }
 
