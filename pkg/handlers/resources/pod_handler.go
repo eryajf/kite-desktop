@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	metricsv1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -279,6 +280,16 @@ func (h *PodHandler) registerCustomRoutes(group *gin.RouterGroup) {
 	filesGroup.GET("/preview", h.PreviewFile)
 	filesGroup.GET("/download", h.DownloadFile)
 	filesGroup.PUT("/upload", h.UploadFile)
+}
+
+func podWatchClientSet(cs *cluster.ClientSet) kubernetes.Interface {
+	if cs != nil && cs.K8sClient != nil && cs.K8sClient.StreamingClientSet != nil {
+		return cs.K8sClient.StreamingClientSet
+	}
+	if cs != nil && cs.K8sClient != nil {
+		return cs.K8sClient.ClientSet
+	}
+	return nil
 }
 
 type FileInfo struct {
@@ -555,7 +566,12 @@ func (h *PodHandler) Watch(c *gin.Context) {
 		klog.Warningf("Failed to list pod metrics: %v", err)
 	}
 
-	watchInterface, err := cs.K8sClient.ClientSet.CoreV1().Pods(ns).Watch(c, listOpts)
+	clientset := podWatchClientSet(cs)
+	if clientset == nil {
+		_ = writeSSE(c, "error", gin.H{"error": "kubernetes client is not initialized"})
+		return
+	}
+	watchInterface, err := clientset.CoreV1().Pods(ns).Watch(c.Request.Context(), listOpts)
 	if err != nil {
 		_ = writeSSE(c, "error", gin.H{"error": fmt.Sprintf("failed to start watch: %v", err)})
 		return

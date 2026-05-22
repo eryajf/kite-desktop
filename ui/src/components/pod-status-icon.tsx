@@ -4,6 +4,7 @@ import {
   IconCircleXFilled,
   IconExclamationCircle,
   IconLoader,
+  IconProgressAlert,
   IconTrash,
 } from '@tabler/icons-react'
 
@@ -74,6 +75,7 @@ export const PodStatusIcon = ({
       status === 'ContainerCreating' ||
       status === 'PodInitializing' ||
       status === 'SchedulingGated' ||
+      status === 'Starting' ||
       status.startsWith('Init:') ||
       status.includes('Pending') ||
       status.includes('Creating') ||
@@ -130,6 +132,13 @@ export const PodStatusIcon = ({
         )
 
       case 'warning':
+        if (status === 'NotReady') {
+          return (
+            <IconProgressAlert
+              className={`text-amber-500 dark:text-amber-400 ${className}`}
+            />
+          )
+        }
         return (
           <IconAlertTriangle
             className={`fill-yellow-500 dark:fill-yellow-400 ${className}`}

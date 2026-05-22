@@ -3,9 +3,12 @@ package resources
 import (
 	"testing"
 
+	"github.com/eryajf/kite-desktop/pkg/cluster"
+	"github.com/eryajf/kite-desktop/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 	metricsv1 "k8s.io/metrics/pkg/apis/metrics/v1beta1"
 )
 
@@ -107,6 +110,34 @@ func TestGetPodMetricsMissingMetrics(t *testing.T) {
 
 	if got := GetPodMetrics(map[string]metricsv1.PodMetrics{}, pod); got != nil {
 		t.Fatalf("expected nil metrics, got %#v", got)
+	}
+}
+
+func TestPodWatchClientSetPrefersStreamingClient(t *testing.T) {
+	regularClient := fake.NewSimpleClientset()
+	streamingClient := fake.NewSimpleClientset()
+	cs := &cluster.ClientSet{
+		K8sClient: &kube.K8sClient{
+			ClientSet:          regularClient,
+			StreamingClientSet: streamingClient,
+		},
+	}
+
+	if got := podWatchClientSet(cs); got != streamingClient {
+		t.Fatalf("expected streaming clientset for pod watch")
+	}
+}
+
+func TestPodWatchClientSetFallsBackToRegularClient(t *testing.T) {
+	regularClient := fake.NewSimpleClientset()
+	cs := &cluster.ClientSet{
+		K8sClient: &kube.K8sClient{
+			ClientSet: regularClient,
+		},
+	}
+
+	if got := podWatchClientSet(cs); got != regularClient {
+		t.Fatalf("expected regular clientset fallback")
 	}
 }
 

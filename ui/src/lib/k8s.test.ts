@@ -12,6 +12,7 @@ import {
   filterPodsOwnedByController,
   filterPodsOwnedByDeployment,
   filterReplicaSetsOwnedByDeployment,
+  getPodStatus,
   getPrinterColumnValue,
 } from './k8s'
 
@@ -74,6 +75,128 @@ describe('getPrinterColumnValue', () => {
     expect(getPrinterColumnValue(resource, '.status.addresses[*].value')).toBe(
       '10.0.0.1, 10.0.0.2'
     )
+  })
+})
+
+describe('getPodStatus', () => {
+  it('shows NotReady when regular containers are running but readiness is not true', () => {
+    const pod = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'web-0',
+        namespace: 'default',
+      },
+      spec: {
+        containers: [{ name: 'app', image: 'nginx:latest' }],
+      },
+      status: {
+        phase: 'Running',
+        conditions: [{ type: 'Ready', status: 'False' }],
+        containerStatuses: [
+          {
+            name: 'app',
+            image: 'nginx:latest',
+            imageID: 'container-image-id',
+            containerID: 'container-id',
+            ready: false,
+            restartCount: 1,
+            started: true,
+            state: {
+              running: {
+                startedAt: '2026-05-22T01:00:00Z',
+              },
+            },
+          },
+        ],
+      },
+    } as Pod
+
+    expect(getPodStatus(pod)).toMatchObject({
+      readyContainers: 0,
+      totalContainers: 1,
+      reason: 'NotReady',
+    })
+  })
+
+  it('shows Starting while a running container has not passed startup yet', () => {
+    const pod = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'web-0',
+        namespace: 'default',
+      },
+      spec: {
+        containers: [{ name: 'app', image: 'nginx:latest' }],
+      },
+      status: {
+        phase: 'Running',
+        conditions: [{ type: 'Ready', status: 'False' }],
+        containerStatuses: [
+          {
+            name: 'app',
+            image: 'nginx:latest',
+            imageID: 'container-image-id',
+            containerID: 'container-id',
+            ready: false,
+            restartCount: 1,
+            started: false,
+            state: {
+              running: {
+                startedAt: '2026-05-22T01:00:00Z',
+              },
+            },
+          },
+        ],
+      },
+    } as Pod
+
+    expect(getPodStatus(pod)).toMatchObject({
+      readyContainers: 0,
+      totalContainers: 1,
+      reason: 'Starting',
+    })
+  })
+
+  it('shows Running only when the pod Ready condition is true', () => {
+    const pod = {
+      apiVersion: 'v1',
+      kind: 'Pod',
+      metadata: {
+        name: 'web-0',
+        namespace: 'default',
+      },
+      spec: {
+        containers: [{ name: 'app', image: 'nginx:latest' }],
+      },
+      status: {
+        phase: 'Running',
+        conditions: [{ type: 'Ready', status: 'True' }],
+        containerStatuses: [
+          {
+            name: 'app',
+            image: 'nginx:latest',
+            imageID: 'container-image-id',
+            containerID: 'container-id',
+            ready: true,
+            restartCount: 1,
+            started: true,
+            state: {
+              running: {
+                startedAt: '2026-05-22T01:00:00Z',
+              },
+            },
+          },
+        ],
+      },
+    } as Pod
+
+    expect(getPodStatus(pod)).toMatchObject({
+      readyContainers: 1,
+      totalContainers: 1,
+      reason: 'Running',
+    })
   })
 })
 

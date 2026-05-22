@@ -257,6 +257,8 @@ export function getPodStatus(pod?: Pod): PodStatus {
     restarts = restartableInitContainerRestarts
     lastRestartDate = lastRestartableInitContainerRestartDate
     let hasRunning = false
+    let hasStartingContainer = false
+    let hasContainerStatusReason = false
 
     if (pod.status?.containerStatuses) {
       for (let i = pod.status.containerStatuses.length - 1; i >= 0; i--) {
@@ -274,8 +276,10 @@ export function getPodStatus(pod?: Pod): PodStatus {
 
         if (container.state?.waiting?.reason) {
           reason = container.state.waiting.reason
+          hasContainerStatusReason = true
         } else if (container.state?.terminated?.reason) {
           reason = container.state.terminated.reason
+          hasContainerStatusReason = true
         } else if (
           container.state?.terminated &&
           !container.state.terminated.reason
@@ -285,17 +289,38 @@ export function getPodStatus(pod?: Pod): PodStatus {
           } else {
             reason = `ExitCode:${container.state.terminated.exitCode}`
           }
-        } else if (container.ready && container.state?.running) {
+          hasContainerStatusReason = true
+        } else if (container.state?.running) {
           hasRunning = true
-          readyContainers++
+          if (container.started === false) {
+            hasStartingContainer = true
+          }
+          if (container.ready) {
+            readyContainers++
+          }
         }
       }
     }
 
     if (reason === 'Completed' && hasRunning) {
-      if (hasPodReadyCondition(pod.status?.conditions)) {
+      if (isPodReadyConditionTrue(pod.status?.conditions)) {
         reason = 'Running'
+      } else if (hasStartingContainer) {
+        reason = 'Starting'
       } else {
+        reason = 'NotReady'
+      }
+    } else if (
+      !hasContainerStatusReason &&
+      podPhase === 'Running' &&
+      !isPodPhaseTerminal(podPhase)
+    ) {
+      if (hasStartingContainer) {
+        reason = 'Starting'
+      } else if (
+        readyContainers < totalContainers ||
+        isPodReadyConditionFalse(pod.status?.conditions)
+      ) {
         reason = 'NotReady'
       }
     }
@@ -945,9 +970,24 @@ export function getServiceExternalIP(service: Service): string {
   }
 }
 
-// Helper function to check if pod has ready condition
-function hasPodReadyCondition(conditions?: Array<{ type?: string }>): boolean {
-  return conditions?.some((condition) => condition.type === 'Ready') ?? false
+function isPodReadyConditionTrue(
+  conditions?: Array<{ type?: string; status?: string }>
+): boolean {
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'Ready' && condition.status === 'True'
+    ) ?? false
+  )
+}
+
+function isPodReadyConditionFalse(
+  conditions?: Array<{ type?: string; status?: string }>
+): boolean {
+  return (
+    conditions?.some(
+      (condition) => condition.type === 'Ready' && condition.status !== 'True'
+    ) ?? false
+  )
 }
 
 // Helper function to check if pod is initialized
