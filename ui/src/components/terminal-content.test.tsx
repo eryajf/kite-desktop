@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Pod } from 'kubernetes-types/core/v1'
-import { beforeAll, describe, expect, it, vi } from 'vitest'
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Terminal } from './terminal-content'
+
+const websocketUrls: string[] = []
 
 vi.mock('@xterm/xterm', () => ({
   Terminal: class {
@@ -19,7 +21,7 @@ vi.mock('@xterm/xterm', () => ({
     }
     rows = 24
     cols = 80
-    options = {}
+    options: Record<string, unknown> = {}
   },
 }))
 
@@ -82,7 +84,8 @@ class WebSocketMock {
   onerror: ((event: Event) => void) | null = null
   onclose: ((event: CloseEvent) => void) | null = null
 
-  constructor() {
+  constructor(url: string) {
+    websocketUrls.push(url)
     setTimeout(() => this.onopen?.(), 0)
   }
 
@@ -106,6 +109,11 @@ const pods = [
 ] as Pod[]
 
 describe('Terminal', () => {
+  beforeEach(() => {
+    websocketUrls.length = 0
+    localStorage.clear()
+  })
+
   it('shows a pod file tree toggle for pod terminals', () => {
     render(
       <Terminal
@@ -133,5 +141,24 @@ describe('Terminal', () => {
         name: 'terminalContent.toggleFileTree',
       })
     ).not.toBeInTheDocument()
+  })
+
+  it('uses the frozen session cluster for websocket connections', async () => {
+    localStorage.setItem('current-cluster', 'cluster-b')
+
+    render(
+      <Terminal
+        type="pod"
+        clusterName="cluster-a"
+        namespace="default"
+        podName="web-abc"
+        containers={[{ name: 'nginx', image: 'nginx:latest' }]}
+      />
+    )
+
+    await waitFor(() => {
+      expect(websocketUrls[0]).toContain('x-cluster-name=cluster-a')
+    })
+    expect(websocketUrls[0]).not.toContain('cluster-b')
   })
 })

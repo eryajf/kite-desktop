@@ -52,6 +52,7 @@ import { ResourceEditor } from '@/components/editors/resource-editor'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LogViewer } from '@/components/log-viewer'
+import { OpenPodTerminalButton } from '@/components/open-pod-terminal-button'
 import { PodFileBrowser } from '@/components/pod-file-browser'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodStatusIcon } from '@/components/pod-status-icon'
@@ -59,7 +60,6 @@ import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ContainerSelector } from '@/components/selector/container-selector'
-import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
 import { YamlEditor } from '@/components/yaml-editor'
 
@@ -312,6 +312,11 @@ export function PodDetail(props: { namespace: string; name: string }) {
             resourceType="pods"
             namespace={namespace}
             name={name}
+          />
+          <OpenPodTerminalButton
+            namespace={namespace}
+            pod={pod}
+            source={`pod/${name}`}
           />
           {resizeAvailable && (
             <Button
@@ -707,20 +712,6 @@ export function PodDetail(props: { namespace: string; name: string }) {
                 containers={pod.spec?.containers}
                 initContainers={pod.spec?.initContainers}
               />
-            ),
-          },
-          {
-            value: 'terminal',
-            label: t('detail.tabs.terminal'),
-            content: (
-              <div className="space-y-6">
-                <Terminal
-                  namespace={namespace}
-                  podName={name}
-                  containers={pod.spec?.containers}
-                  initContainers={pod.spec?.initContainers}
-                />
-              </div>
             ),
           },
           {

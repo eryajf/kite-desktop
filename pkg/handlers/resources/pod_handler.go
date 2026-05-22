@@ -280,6 +280,8 @@ func (h *PodHandler) registerCustomRoutes(group *gin.RouterGroup) {
 	filesGroup.GET("/preview", h.PreviewFile)
 	filesGroup.GET("/download", h.DownloadFile)
 	filesGroup.PUT("/upload", h.UploadFile)
+	filesGroup.PUT("/content", h.UpdateFileContent)
+	filesGroup.DELETE("", h.DeleteFile)
 }
 
 func podWatchClientSet(cs *cluster.ClientSet) kubernetes.Interface {
@@ -507,6 +509,76 @@ func (h *PodHandler) UploadFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "file uploaded successfully"})
+}
+
+func (h *PodHandler) UpdateFileContent(c *gin.Context) {
+	namespace := c.Param("namespace")
+	podName := c.Param("name")
+	container := c.Query("container")
+	path := c.Query("path")
+	cs := c.MustGet("cluster").(*cluster.ClientSet)
+	if path == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path is required"})
+		return
+	}
+	if strings.Contains(path, "->") {
+		path = strings.TrimSpace(strings.SplitN(path, "->", 2)[0])
+	}
+
+	var req struct {
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	err := cs.K8sClient.ExecCommand(c.Request.Context(), kube.ExecOptions{
+		Namespace:     namespace,
+		PodName:       podName,
+		ContainerName: container,
+		Command:       []string{"tee", path},
+		Stdin:         strings.NewReader(req.Content),
+		Stdout:        nil,
+		Stderr:        nil,
+		TTY:           false,
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to update file: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "file updated successfully"})
+}
+
+func (h *PodHandler) DeleteFile(c *gin.Context) {
+	namespace := c.Param("namespace")
+	podName := c.Param("name")
+	container := c.Query("container")
+	path := c.Query("path")
+	cs := c.MustGet("cluster").(*cluster.ClientSet)
+	if path == "" || path == "/" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path is required"})
+		return
+	}
+	if strings.Contains(path, "->") {
+		path = strings.TrimSpace(strings.SplitN(path, "->", 2)[0])
+	}
+
+	_, _, err := cs.K8sClient.ExecCommandBuffered(
+		c.Request.Context(),
+		namespace,
+		podName,
+		container,
+		[]string{"rm", "-rf", "--", path},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to delete path: %v", err)})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "path deleted successfully"})
 }
 
 func writeSSE(c *gin.Context, event string, payload any) error {

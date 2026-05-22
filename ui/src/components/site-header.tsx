@@ -33,7 +33,7 @@ export function SiteHeader() {
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const { isDesktop } = useRuntime()
-  const { toggleTerminal, isOpen } = useTerminal()
+  const { openTerminal, sessions } = useTerminal()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const { t } = useTranslation()
   const { data: generalSetting } = useGeneralSetting({
@@ -41,6 +41,9 @@ export function SiteHeader() {
   })
   const kubectlEnabled = generalSetting?.kubectlEnabled ?? true
   const canManageSettings = isDesktop
+  const hasKubectlSession = sessions.some(
+    (session) => session.type === 'kubectl'
+  )
 
   return (
     <>
@@ -61,11 +64,11 @@ export function SiteHeader() {
             />
             {canManageSettings && kubectlEnabled && (
               <button
-                onClick={() => toggleTerminal('button')}
+                onClick={() => openTerminal('button')}
                 title={t('siteHeader.kubectlTerminal')}
                 aria-label={t('siteHeader.toggleKubectlTerminal')}
                 className={`flex items-center justify-center rounded-sm p-1 transition-colors ${
-                  isOpen
+                  hasKubectlSession
                     ? 'text-green-500 hover:text-green-600'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}

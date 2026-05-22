@@ -63,9 +63,9 @@ import { MetricCell } from '@/components/metrics-cell'
 import { NodeDrainOptionRow } from '@/components/node-drain-option-row'
 import { NodeImageTable } from '@/components/node-image-table'
 import { NodeMonitoring } from '@/components/node-monitoring'
+import { OpenNodeTerminalButton } from '@/components/open-node-terminal-button'
 import { PodTable } from '@/components/pod-table'
 import { RefreshButton } from '@/components/refresh-button'
-import { Terminal } from '@/components/terminal'
 import { YamlEditor } from '@/components/yaml-editor'
 
 function NodePodsUsageSummary({
@@ -389,6 +389,7 @@ export function NodeDetail(props: { name: string }) {
             {t('detail.buttons.refresh')}
           </RefreshButton>
           <DescribeDialog resourceType="nodes" name={name} />
+          <OpenNodeTerminalButton nodeName={name} />
           {/* Drain Node Popover */}
           <Popover
             open={isDrainPopoverOpen}
@@ -1151,15 +1152,6 @@ export function NodeDetail(props: { name: string }) {
             value: 'monitor',
             label: t('detail.tabs.monitor'),
             content: <NodeMonitoring name={name} />,
-          },
-          {
-            value: 'Terminal',
-            label: t('detail.tabs.terminal'),
-            content: (
-              <div className="space-y-6">
-                <Terminal type="node" nodeName={name} />
-              </div>
-            ),
           },
           {
             value: 'events',

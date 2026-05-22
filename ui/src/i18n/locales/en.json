@@ -1460,7 +1460,18 @@
     "enterDirectory": "Enter directory {{name}}",
     "previewFile": "Preview file",
     "downloadDirectoryArchive": "Download directory as .tar archive",
-    "downloadFile": "Download file"
+    "downloadFile": "Download file",
+    "copyPath": "Copy path",
+    "pathCopied": "Path copied",
+    "edit": "Edit",
+    "editFile": "Edit file",
+    "loadingFileContent": "Loading file content...",
+    "fileSaved": "File saved",
+    "delete": "Delete",
+    "fileDeleted": "File deleted",
+    "directoryDeleted": "Directory deleted",
+    "deleteConfirmTitle": "Delete path",
+    "deleteConfirmDescription": "Delete {{path}}? This operation cannot be undone."
   },
   "siteHeader": {
     "createNewResource": "Create new resource",
@@ -2004,21 +2015,33 @@
     "seconds": "{{count}} seconds"
   },
   "terminalContent": {
-    "currentThemeShortcut": "Current theme: {{name}} (Ctrl+T to cycle)",
     "terminalTheme": "Terminal Theme",
     "cursorStyle": "Cursor Style",
     "block": "Block",
     "underline": "Underline",
     "bar": "Bar",
     "toggleFileTree": "Toggle pod file tree",
-    "fileTreeUnavailable": "Select a pod and container to browse files."
+    "fileTreeUnavailable": "Select a pod and container to browse files.",
+    "settings": "Terminal settings",
+    "clear": "Clear terminal"
   },
   "floatingTerminal": {
+    "workspace": "Terminal Workspace",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
     "restore": "Restore",
     "minimize": "Minimize",
-    "closeSession": "Close (ends session)"
+    "closeSession": "Close session",
+    "closeAllSessions": "Close all sessions"
+  },
+  "terminalLauncher": {
+    "title": "Open terminal workspace",
+    "description": "Start the shell in the bottom terminal workspace. The session stays alive while you inspect other pages.",
+    "nodeTitle": "Open node terminal",
+    "nodeDescription": "Start the shell in the bottom terminal workspace. The session stays alive while you inspect other pages.",
+    "selectPod": "Select pod",
+    "selectContainer": "Select container",
+    "open": "Open terminal"
   },
   "containerInfo": {
     "running": "Running",

@@ -31,6 +31,7 @@ import {
 import { DeleteConfirmationDialog } from './delete-confirmation-dialog'
 import { DescribeDialog } from './describe-dialog'
 import { MetricCell } from './metrics-cell'
+import { OpenPodTerminalButton } from './open-pod-terminal-button'
 import { PodStatusIcon } from './pod-status-icon'
 import { ResourceTableView } from './resource-table-view'
 import { Badge } from './ui/badge'
@@ -215,6 +216,11 @@ export function PodTable(props: {
                 resourceType="pods"
                 namespace={namespace}
                 name={podName}
+              />
+              <OpenPodTerminalButton
+                pod={pod}
+                source={`pod/${podName}`}
+                iconOnly
               />
               <Button
                 variant="destructive"

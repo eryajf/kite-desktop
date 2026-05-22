@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { useTerminal } from '@/contexts/terminal-context'
 import { NodeWithMetrics } from '@/types/api'
 import { trackResourceAction } from '@/lib/analytics'
 import { cordonNode, drainNode, uncordonNode } from '@/lib/api'
@@ -36,7 +37,6 @@ import { NodeDrainOptionRow } from '@/components/node-drain-option-row'
 import { NodeStatusIcon } from '@/components/node-status-icon'
 import { ResourceTable } from '@/components/resource-table'
 import { RowContextMenuItem } from '@/components/row-context-menu'
-import { Terminal } from '@/components/terminal'
 
 function NodePodsUsageCell({ node }: { node: NodeWithMetrics }) {
   const podsUsed = node.metrics?.pods || 0
@@ -202,7 +202,7 @@ export function NodeListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [terminalNode, setTerminalNode] = useState<NodeWithMetrics | null>(null)
+  const { openSession } = useTerminal()
   const [cordonNodeTarget, setCordonNodeTarget] =
     useState<NodeWithMetrics | null>(null)
   const [drainNodeTarget, setDrainNodeTarget] =
@@ -415,8 +415,16 @@ export function NodeListPage() {
   }, [queryClient])
 
   const handleOpenNodeTerminal = useCallback((node: NodeWithMetrics) => {
-    setTerminalNode(node)
-  }, [])
+    const nodeName = node.metadata?.name
+    if (!nodeName) return
+    openSession({
+      type: 'node',
+      nodeName,
+      title: nodeName,
+      source: `node/${nodeName}`,
+      entry: 'node-list',
+    })
+  }, [openSession])
 
   const handleCordon = useCallback(async () => {
     if (!cordonNodeTarget?.metadata?.name) {
@@ -585,45 +593,6 @@ export function NodeListPage() {
         ]}
         getRowContextMenuItems={getRowContextMenuItems}
       />
-
-      <Dialog
-        open={Boolean(terminalNode)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setTerminalNode(null)
-          }
-        }}
-      >
-        <DialogContent className="flex h-[calc(100dvh-2rem)] max-w-[calc(100vw-2rem)] min-h-0 flex-col p-0 md:h-[80dvh] md:max-w-[80vw]">
-          <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle>
-              {terminalNode
-                ? t('nodes.terminalDialogTitle', {
-                    name: terminalNode.metadata?.name,
-                    defaultValue: '{{name}} · Terminal',
-                  })
-                : t('detail.tabs.terminal')}
-            </DialogTitle>
-            <DialogDescription>
-              {t(
-                'nodes.terminalDialogDescription',
-                'Open a shell session on the selected node.'
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 px-6 pb-6">
-            {terminalNode ? (
-              <div className="h-full min-h-[480px]">
-                <Terminal
-                  type="node"
-                  nodeName={terminalNode.metadata?.name}
-                  embedded
-                />
-              </div>
-            ) : null}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(cordonNodeTarget)}
