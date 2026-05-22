@@ -470,11 +470,13 @@ export function useResourcesWatch<T extends ResourceType>(
       })
 
       es.addEventListener('error', (e: MessageEvent) => {
-        try {
-          const payload = JSON.parse(e.data)
-          setError(new Error(payload?.error || 'SSE error'))
-        } catch {
-          setError(new Error('SSE error'))
+        if (typeof e.data === 'string' && e.data.length > 0) {
+          try {
+            const payload = JSON.parse(e.data)
+            setError(new Error(payload?.error || 'SSE error'))
+          } catch {
+            setError(new Error('SSE error'))
+          }
         }
         setIsLoading(false)
         setIsConnected(false)
