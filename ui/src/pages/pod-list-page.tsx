@@ -12,6 +12,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { useTerminal } from '@/contexts/terminal-context'
 import { PodWithMetrics } from '@/types/api'
 import { getPodStatus } from '@/lib/k8s'
 import { formatDate, formatRelativeTimeStrict } from '@/lib/utils'
@@ -40,6 +41,7 @@ function formatTimestampWithRelative(timestamp?: string) {
 export function PodListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const { openSession } = useTerminal()
   const [labelsPod, setLabelsPod] = useState<Pod | null>(null)
   const [annotationsPod, setAnnotationsPod] = useState<Pod | null>(null)
   const [deletePodTarget, setDeletePodTarget] = useState<Pod | null>(null)
@@ -242,7 +244,17 @@ export function PodListPage() {
           key: 'open-terminal',
           label: t('detail.tabs.terminal'),
           icon: <TerminalSquare className="h-4 w-4" />,
-          onSelect: () => navigate(`${detailPath}?tab=terminal`),
+          onSelect: () => {
+            openSession({
+              type: 'pod',
+              namespace: pod.metadata?.namespace,
+              podName: pod.metadata?.name,
+              containers: pod.spec?.containers,
+              initContainers: pod.spec?.initContainers,
+              source: `pod/${pod.metadata?.name}`,
+              entry: 'pod-list',
+            })
+          },
         },
         {
           key: 'view-logs',
@@ -272,7 +284,7 @@ export function PodListPage() {
         },
       ]
     },
-    [getPodDetailPath, navigate, t]
+    [getPodDetailPath, navigate, openSession, t]
   )
 
   return (

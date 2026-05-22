@@ -27,13 +27,13 @@ import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LabelsAnno } from '@/components/lables-anno'
 import { LogViewer } from '@/components/log-viewer'
+import { OpenPodTerminalButton } from '@/components/open-pod-terminal-button'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
 import { RefreshButton } from '@/components/refresh-button'
 import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
-import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
 import { YamlEditor } from '@/components/yaml-editor'
 
@@ -244,6 +244,13 @@ export function JobDetail(props: { namespace: string; name: string }) {
             resourceType={'jobs'}
             namespace={namespace}
             name={name}
+          />
+          <OpenPodTerminalButton
+            namespace={namespace}
+            pods={pods}
+            containers={job.spec?.template.spec?.containers}
+            initContainers={job.spec?.template.spec?.initContainers}
+            source={`job/${name}`}
           />
           <Button
             variant="destructive"
@@ -513,20 +520,6 @@ export function JobDetail(props: { namespace: string; name: string }) {
                         containers={job.spec?.template.spec?.containers}
                         initContainers={job.spec?.template.spec?.initContainers}
                         labelSelector={`job-name=${name}`}
-                      />
-                    </div>
-                  ),
-                },
-                {
-                  value: 'terminal',
-                  label: t('detail.tabs.terminal'),
-                  content: (
-                    <div className="space-y-6">
-                      <Terminal
-                        namespace={namespace}
-                        pods={pods}
-                        containers={job.spec?.template.spec?.containers}
-                        initContainers={job.spec?.template.spec?.initContainers}
                       />
                     </div>
                   ),

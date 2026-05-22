@@ -35,6 +35,7 @@ import { DescribeDialog } from '@/components/describe-dialog'
 import { ErrorMessage } from '@/components/error-message'
 import { EventTable } from '@/components/event-table'
 import { LogViewer } from '@/components/log-viewer'
+import { OpenPodTerminalButton } from '@/components/open-pod-terminal-button'
 import { PodMonitoring } from '@/components/pod-monitoring'
 import { PodTable } from '@/components/pod-table'
 import { RefreshButton } from '@/components/refresh-button'
@@ -42,7 +43,6 @@ import { RelatedResourcesTable } from '@/components/related-resource-table'
 import { ResourceDeleteConfirmationDialog } from '@/components/resource-delete-confirmation-dialog'
 import { ResourceHistoryTable } from '@/components/resource-history-table'
 import { StatefulSetOverviewInfoCard } from '@/components/statefulset-overview-info-card'
-import { Terminal } from '@/components/terminal'
 import { VolumeTable } from '@/components/volume-table'
 import { YamlEditor } from '@/components/yaml-editor'
 
@@ -328,6 +328,13 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
             namespace={namespace}
             name={name}
           />
+          <OpenPodTerminalButton
+            namespace={namespace}
+            pods={relatedPods}
+            containers={spec?.template.spec?.containers}
+            initContainers={spec?.template.spec?.initContainers}
+            source={`statefulset/${name}`}
+          />
           <Popover
             open={isScalePopoverOpen}
             onOpenChange={setIsScalePopoverOpen}
@@ -564,22 +571,6 @@ export function StatefulSetDetail(props: { namespace: string; name: string }) {
                         initContainers={spec?.template.spec?.initContainers}
                         labelSelector={labelSelector}
                       />
-                    </div>
-                  ),
-                },
-                {
-                  value: 'terminal',
-                  label: t('detail.tabs.terminal'),
-                  content: (
-                    <div className="space-y-6">
-                      {relatedPods && relatedPods.length > 0 && (
-                        <Terminal
-                          namespace={namespace}
-                          pods={relatedPods}
-                          containers={spec?.template.spec?.containers}
-                          initContainers={spec?.template.spec?.initContainers}
-                        />
-                      )}
                     </div>
                   ),
                 },

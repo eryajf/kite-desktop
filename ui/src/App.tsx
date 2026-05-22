@@ -129,13 +129,13 @@ function AppContent() {
             </div>
           </div>
         </SidebarInset>
+        {isTerminalOpen ? (
+          <Suspense fallback={null}>
+            <FloatingTerminal />
+          </Suspense>
+        ) : null}
       </SidebarProvider>
       <GlobalSearch open={isOpen} mode={mode} onOpenChange={closeSearch} />
-      {isTerminalOpen ? (
-        <Suspense fallback={null}>
-          <FloatingTerminal />
-        </Suspense>
-      ) : null}
       <UpdateDownloadToast />
       <AIChatbox />
       <Toaster />

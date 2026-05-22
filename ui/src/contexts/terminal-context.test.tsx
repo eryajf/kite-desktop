@@ -39,7 +39,9 @@ function TerminalConsumer() {
   const {
     isOpen,
     isMinimized,
+    sessions,
     openTerminal,
+    openSession,
     closeTerminal,
     minimizeTerminal,
     toggleTerminal,
@@ -50,8 +52,26 @@ function TerminalConsumer() {
       <span data-testid="state">
         {isOpen ? 'open' : 'closed'}/{isMinimized ? 'minimized' : 'expanded'}
       </span>
+      <span data-testid="sessions">
+        {sessions
+          .map((session) => `${session.id}|${session.clusterName}`)
+          .join(',')}
+      </span>
       <button type="button" onClick={() => openTerminal()}>
         open
+      </button>
+      <button
+        type="button"
+        onClick={() =>
+          openSession({
+            type: 'pod',
+            namespace: 'default',
+            podName: 'web-abc',
+            containerName: 'nginx',
+          })
+        }
+      >
+        open pod
       </button>
       <button type="button" onClick={closeTerminal}>
         close
@@ -69,6 +89,7 @@ function TerminalConsumer() {
 describe('TerminalProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
   })
 
   it('drives the terminal state through its public actions', async () => {
@@ -88,6 +109,8 @@ describe('TerminalProvider', () => {
       runtime: 'desktop',
       entry: 'button',
       page: 'overview',
+      type: 'kubectl',
+      source: 'global',
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'toggle' }))
@@ -105,6 +128,31 @@ describe('TerminalProvider', () => {
     fireEvent.click(screen.getByRole('button', { name: 'close' }))
     await waitFor(() => {
       expect(screen.getByTestId('state')).toHaveTextContent('closed/expanded')
+    })
+  })
+
+  it('freezes the current cluster on new sessions', async () => {
+    localStorage.setItem('current-cluster', 'cluster-a')
+
+    render(
+      <TerminalProvider>
+        <TerminalConsumer />
+      </TerminalProvider>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'open pod' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('sessions')).toHaveTextContent(
+        'cluster-a:pod:default:web-abc::nginx|cluster-a'
+      )
+    })
+
+    localStorage.setItem('current-cluster', 'cluster-b')
+    fireEvent.click(screen.getByRole('button', { name: 'open pod' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('sessions')).toHaveTextContent(
+        'cluster-b:pod:default:web-abc::nginx|cluster-b'
+      )
     })
   })
 })

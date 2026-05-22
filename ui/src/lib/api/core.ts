@@ -13,6 +13,7 @@ import {
 } from '@/types/api'
 
 import { API_BASE_URL, apiClient } from '../api-client'
+import { appendClusterNameParam } from '../cluster-transport'
 import { downloadNativeFile, openURL } from '../desktop'
 import { withSubPath } from '../subpath'
 import { fetchAPI } from './shared'
@@ -592,16 +593,23 @@ export const podDownloadFile = (
   namespace: string,
   podName: string,
   container: string,
-  path: string
+  path: string,
+  options?: { clusterName?: string; isDirectory?: boolean }
 ) => {
   const params = new URLSearchParams({
     container,
     path,
   })
-  const url = withSubPath(
-    `${API_BASE_URL}/pods/${namespace}/${podName}/files/download?${params.toString()}`
+  const url = appendClusterNameParam(
+    withSubPath(
+      `${API_BASE_URL}/pods/${namespace}/${podName}/files/download?${params.toString()}`
+    ),
+    options?.clusterName
   )
-  const suggestedName = path.split('/').filter(Boolean).pop() || 'download'
+  const baseName = path.split('/').filter(Boolean).pop() || 'download'
+  const suggestedName = options?.isDirectory
+    ? `${baseName}.tar`
+    : baseName
 
   void downloadNativeFile({
     title: 'Save File',
@@ -620,14 +628,18 @@ export const podPreviewFile = (
   namespace: string,
   podName: string,
   container: string,
-  path: string
+  path: string,
+  options?: { clusterName?: string }
 ) => {
   const params = new URLSearchParams({
     container,
     path,
   })
-  const url = withSubPath(
-    `${API_BASE_URL}/pods/${namespace}/${podName}/files/preview?${params.toString()}`
+  const url = appendClusterNameParam(
+    withSubPath(
+      `${API_BASE_URL}/pods/${namespace}/${podName}/files/preview?${params.toString()}`
+    ),
+    options?.clusterName
   )
   void openURL(url)
 }
@@ -637,7 +649,8 @@ export const podUploadFile = async (
   podName: string,
   container: string,
   path: string,
-  file: File
+  file: File,
+  options?: { clusterName?: string }
 ): Promise<void> => {
   const formData = new FormData()
   formData.append('file', file)
@@ -648,7 +661,70 @@ export const podUploadFile = async (
 
   await apiClient.put(
     `/pods/${namespace}/${podName}/files/upload?${params.toString()}`,
-    formData
+    formData,
+    options?.clusterName
+      ? { headers: { 'x-cluster-name': options.clusterName } }
+      : undefined
+  )
+}
+
+export const podReadFileContent = async (
+  namespace: string,
+  podName: string,
+  container: string,
+  path: string,
+  options?: { clusterName?: string }
+): Promise<string> => {
+  const params = new URLSearchParams({
+    container,
+    path,
+  })
+  const headers = options?.clusterName
+    ? { 'x-cluster-name': options.clusterName }
+    : undefined
+  return apiClient.get<string>(
+    `/pods/${namespace}/${podName}/files/preview?${params.toString()}`,
+    { headers }
+  )
+}
+
+export const podUpdateFileContent = async (
+  namespace: string,
+  podName: string,
+  container: string,
+  path: string,
+  content: string,
+  options?: { clusterName?: string }
+): Promise<void> => {
+  const params = new URLSearchParams({
+    container,
+    path,
+  })
+  await apiClient.put(
+    `/pods/${namespace}/${podName}/files/content?${params.toString()}`,
+    { content },
+    options?.clusterName
+      ? { headers: { 'x-cluster-name': options.clusterName } }
+      : undefined
+  )
+}
+
+export const podDeleteFile = async (
+  namespace: string,
+  podName: string,
+  container: string,
+  path: string,
+  options?: { clusterName?: string }
+): Promise<void> => {
+  const params = new URLSearchParams({
+    container,
+    path,
+  })
+  await apiClient.delete(
+    `/pods/${namespace}/${podName}/files?${params.toString()}`,
+    options?.clusterName
+      ? { headers: { 'x-cluster-name': options.clusterName } }
+      : undefined
   )
 }
 
@@ -761,11 +837,23 @@ export const usePodFiles = (
   podName: string,
   container: string,
   path: string,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean; clusterName?: string }
 ) => {
   return useQuery({
-    queryKey: ['pod-files', namespace, podName, container, path],
-    queryFn: () => podListFiles(namespace, podName, container, path),
+    queryKey: [
+      'pod-files',
+      options?.clusterName ?? '',
+      namespace,
+      podName,
+      container,
+      path,
+    ],
+    queryFn: () =>
+      podListFiles(namespace, podName, container, path, {
+        headers: options?.clusterName
+          ? { 'x-cluster-name': options.clusterName }
+          : undefined,
+      }),
     enabled: options?.enabled !== false,
     staleTime: 10000, // 10 seconds cache
   })

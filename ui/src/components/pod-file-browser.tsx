@@ -92,7 +92,10 @@ export function PodFileBrowser({
   const handleDownload = (fileName: string) => {
     const filePath =
       currentPath === '/' ? `/${fileName}` : `${currentPath}/${fileName}`
-    podDownloadFile(namespace, podName, selectedContainer, filePath)
+    const file = files?.find((item) => item.name === fileName)
+    podDownloadFile(namespace, podName, selectedContainer, filePath, {
+      isDirectory: file?.isDir,
+    })
   }
 
   const handlePreview = (fileName: string) => {

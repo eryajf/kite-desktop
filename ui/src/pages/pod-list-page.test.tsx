@@ -10,6 +10,7 @@ const mockNavigate = vi.fn()
 const mockResourceTable = vi.fn(({ resourceName }: { resourceName: string }) => (
   <div>{resourceName}</div>
 ))
+const mockOpenSession = vi.fn()
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -40,6 +41,12 @@ vi.mock('sonner', () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+}))
+
+vi.mock('@/contexts/terminal-context', () => ({
+  useTerminal: () => ({
+    openSession: mockOpenSession,
+  }),
 }))
 
 vi.mock('@/components/resource-table', () => ({
@@ -88,6 +95,7 @@ describe('PodListPage', () => {
   beforeEach(() => {
     mockNavigate.mockReset()
     mockResourceTable.mockClear()
+    mockOpenSession.mockClear()
   })
 
   it('provides unified row actions for pods', async () => {
@@ -127,9 +135,15 @@ describe('PodListPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/pods/default/api-0?tab=yaml')
 
     await items[1].onSelect?.()
-    expect(mockNavigate).toHaveBeenCalledWith(
-      '/pods/default/api-0?tab=terminal'
-    )
+    expect(mockOpenSession).toHaveBeenCalledWith({
+      type: 'pod',
+      namespace: 'default',
+      podName: 'api-0',
+      containers: undefined,
+      initContainers: undefined,
+      source: 'pod/api-0',
+      entry: 'pod-list',
+    })
 
     await items[2].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith('/pods/default/api-0?tab=logs')

@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { createPortal } from 'react-dom'
 import {
   IconClearAll,
   IconFolder,
   IconMaximize,
   IconMinimize,
-  IconPalette,
   IconSettings,
   IconTerminal,
 } from '@tabler/icons-react'
@@ -51,25 +57,35 @@ import { PodSelector } from './selector/pod-selector'
 
 export interface TerminalProps {
   type?: 'node' | 'pod' | 'kubectl'
+  clusterName?: string
   namespace?: string
   podName?: string
   nodeName?: string
   pods?: Pod[]
   containers?: Container[]
   initContainers?: Container[]
+  initialContainerName?: string
   /** When true, hides the internal toolbar and fills parent container */
   embedded?: boolean
+  /** When true with embedded mode, shows session-scoped terminal controls */
+  embeddedToolbar?: boolean
+  /** Optional host for rendering embedded controls into the workspace header */
+  toolbarPortalElement?: HTMLElement | null
 }
 
 export function Terminal({
+  clusterName,
   namespace,
   podName,
   pods,
   nodeName,
   containers: _containers = [],
   initContainers = [],
+  initialContainerName,
   type = 'pod',
   embedded = false,
+  embeddedToolbar = false,
+  toolbarPortalElement,
 }: TerminalProps) {
   const containers = useMemo(() => {
     return toSimpleContainer(initContainers, _containers)
@@ -83,20 +99,29 @@ export function Terminal({
     const saved = localStorage.getItem('terminal-theme')
     return (saved as TerminalTheme) || 'classic'
   })
+  const [previewTerminalTheme, setPreviewTerminalTheme] =
+    useState<TerminalTheme | null>(null)
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('log-viewer-font-size')
     return saved ? parseInt(saved, 10) : 14
   })
+  const [previewFontSize, setPreviewFontSize] = useState<number | null>(null)
   const [cursorStyle, setCursorStyle] = useState<'block' | 'underline' | 'bar'>(
     () => {
       const saved = localStorage.getItem('terminal-cursor-style')
       return (saved as 'block' | 'underline' | 'bar') || 'bar'
     }
   )
+  const [previewCursorStyle, setPreviewCursorStyle] = useState<
+    'block' | 'underline' | 'bar' | null
+  >(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showFileTree, setShowFileTree] = useState(false)
   const viewerPreferenceReadyRef = useRef(false)
   const lastPersistedViewerPreferenceRef = useRef<string | null>(null)
+  const selectedTerminalThemeRef = useRef<TerminalTheme>(terminalTheme)
+  const selectedFontSizeRef = useRef(fontSize)
+  const selectedCursorStyleRef = useRef(cursorStyle)
 
   const terminalRef = useRef<HTMLDivElement>(null)
   const xtermRef = useRef<XTerm | null>(null)
@@ -111,6 +136,21 @@ export function Terminal({
   const speedUpdateTimerRef = useRef<NodeJS.Timeout | null>(null)
   const pingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const { t } = useTranslation()
+  const visibleTerminalTheme = previewTerminalTheme ?? terminalTheme
+  const visibleFontSize = previewFontSize ?? fontSize
+  const visibleCursorStyle = previewCursorStyle ?? cursorStyle
+
+  useEffect(() => {
+    selectedTerminalThemeRef.current = terminalTheme
+  }, [terminalTheme])
+
+  useEffect(() => {
+    selectedFontSizeRef.current = fontSize
+  }, [fontSize])
+
+  useEffect(() => {
+    selectedCursorStyleRef.current = cursorStyle
+  }, [cursorStyle])
 
   useEffect(() => {
     let cancelled = false
@@ -166,17 +206,16 @@ export function Terminal({
 
     setSelectedContainer((current) => {
       if (!current || !containers.find((c) => c.name === current)) {
-        return containers[0].name
+        return initialContainerName &&
+          containers.find((c) => c.name === initialContainerName)
+          ? initialContainerName
+          : containers[0].name
       }
       return current
     })
-  }, [containers])
+  }, [containers, initialContainerName])
 
-  // Handle theme change and persist to localStorage
-  const handleThemeChange = useCallback((theme: TerminalTheme) => {
-    setTerminalTheme(theme)
-    localStorage.setItem('terminal-theme', theme)
-    // Update terminal theme without recreating the instance
+  const applyTerminalTheme = useCallback((theme: TerminalTheme) => {
     if (xtermRef.current) {
       const currentTheme = TERMINAL_THEMES[theme]
       xtermRef.current.options.theme = {
@@ -206,14 +245,34 @@ export function Terminal({
     }
   }, [])
 
-  // Handle font size change and persist to localStorage
-  const handleFontSizeChange = useCallback((size: number) => {
-    setFontSize(size)
-    localStorage.setItem('log-viewer-font-size', size.toString()) // 与 log viewer 共用同一个 key
-    // Update terminal font size without recreating the instance
+  // Handle theme change and persist to localStorage
+  const handleThemeChange = useCallback(
+    (theme: TerminalTheme) => {
+      selectedTerminalThemeRef.current = theme
+      setPreviewTerminalTheme(null)
+      setTerminalTheme(theme)
+      localStorage.setItem('terminal-theme', theme)
+      applyTerminalTheme(theme)
+    },
+    [applyTerminalTheme]
+  )
+
+  const handleThemePreview = useCallback(
+    (theme: TerminalTheme) => {
+      setPreviewTerminalTheme(theme)
+      applyTerminalTheme(theme)
+    },
+    [applyTerminalTheme]
+  )
+
+  const restoreThemePreview = useCallback(() => {
+    setPreviewTerminalTheme(null)
+    applyTerminalTheme(selectedTerminalThemeRef.current)
+  }, [applyTerminalTheme])
+
+  const applyFontSize = useCallback((size: number) => {
     if (xtermRef.current && fitAddonRef.current) {
       xtermRef.current.options.fontSize = size
-      // Delay fit to ensure font size has been applied
       setTimeout(() => {
         if (fitAddonRef.current) {
           fitAddonRef.current.fit()
@@ -222,16 +281,75 @@ export function Terminal({
     }
   }, [])
 
-  const handleCursorStyleChange = useCallback(
+  // Handle font size change and persist to localStorage
+  const handleFontSizeChange = useCallback(
+    (size: number) => {
+      selectedFontSizeRef.current = size
+      setPreviewFontSize(null)
+      setFontSize(size)
+      localStorage.setItem('log-viewer-font-size', size.toString()) // 与 log viewer 共用同一个 key
+      applyFontSize(size)
+    },
+    [applyFontSize]
+  )
+
+  const handleFontSizePreview = useCallback(
+    (size: number) => {
+      setPreviewFontSize(size)
+      applyFontSize(size)
+    },
+    [applyFontSize]
+  )
+
+  const restoreFontSizePreview = useCallback(() => {
+    setPreviewFontSize(null)
+    applyFontSize(selectedFontSizeRef.current)
+  }, [applyFontSize])
+
+  const applyCursorStyle = useCallback(
     (style: 'block' | 'underline' | 'bar') => {
-      setCursorStyle(style)
-      localStorage.setItem('terminal-cursor-style', style)
       if (xtermRef.current) {
         xtermRef.current.options.cursorStyle = style
       }
     },
     []
   )
+
+  const handleCursorStyleChange = useCallback(
+    (style: 'block' | 'underline' | 'bar') => {
+      selectedCursorStyleRef.current = style
+      setPreviewCursorStyle(null)
+      setCursorStyle(style)
+      localStorage.setItem('terminal-cursor-style', style)
+      applyCursorStyle(style)
+    },
+    [applyCursorStyle]
+  )
+
+  const handleCursorStylePreview = useCallback(
+    (style: 'block' | 'underline' | 'bar') => {
+      setPreviewCursorStyle(style)
+      applyCursorStyle(style)
+    },
+    [applyCursorStyle]
+  )
+
+  const restoreCursorStylePreview = useCallback(() => {
+    setPreviewCursorStyle(null)
+    applyCursorStyle(selectedCursorStyleRef.current)
+  }, [applyCursorStyle])
+
+  useEffect(() => {
+    if (previewFontSize === null) {
+      applyFontSize(fontSize)
+    }
+  }, [applyFontSize, fontSize, previewFontSize])
+
+  useEffect(() => {
+    if (previewCursorStyle === null) {
+      applyCursorStyle(cursorStyle)
+    }
+  }, [applyCursorStyle, cursorStyle, previewCursorStyle])
 
   useEffect(() => {
     if (!viewerPreferenceReadyRef.current) {
@@ -259,14 +377,6 @@ export function Terminal({
       console.error('Failed to save viewer preference to storage:', error)
     })
   }, [cursorStyle, fontSize, terminalTheme])
-
-  // Quick theme cycling function
-  const cycleTheme = useCallback(() => {
-    const themes = Object.keys(TERMINAL_THEMES) as TerminalTheme[]
-    const currentIndex = themes.indexOf(terminalTheme)
-    const nextIndex = (currentIndex + 1) % themes.length
-    handleThemeChange(themes[nextIndex])
-  }, [terminalTheme, handleThemeChange])
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((v) => !v)
@@ -377,7 +487,7 @@ export function Terminal({
 
     // WebSocket connection
     setIsConnected(false)
-    const currentCluster = localStorage.getItem('current-cluster')
+    const currentCluster = clusterName ?? localStorage.getItem('current-cluster')
     const wsPath =
       type === 'pod'
         ? appendClusterNameParam(
@@ -566,6 +676,7 @@ export function Terminal({
   }, [
     selectedPod,
     selectedContainer,
+    clusterName,
     namespace,
     type,
     updateNetworkStats,
@@ -595,8 +706,254 @@ export function Terminal({
     />
   )
 
+  const toolbarControls = (
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+      {embeddedToolbar && (
+        <NetworkSpeedIndicator
+          uploadSpeed={networkSpeed.upload}
+          downloadSpeed={networkSpeed.download}
+        />
+      )}
+
+      {containers.length > 1 && (
+        <ContainerSelector
+          containers={containers}
+          showAllOption={false}
+          selectedContainer={selectedContainer}
+          onContainerChange={handleContainerChange}
+        />
+      )}
+
+      {pods && pods.length > 0 && (
+        <PodSelector
+          pods={pods}
+          selectedPod={selectedPod}
+          onPodChange={handlePodChange}
+        />
+      )}
+
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            aria-label={t('terminalContent.settings', 'Terminal settings')}
+            title={t('terminalContent.settings', 'Terminal settings')}
+          >
+            <IconSettings className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" align="end">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="terminal-theme">
+                  {t('terminalContent.terminalTheme')}
+                </Label>
+                <Select value={terminalTheme} onValueChange={handleThemeChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent onPointerLeave={restoreThemePreview}>
+                    {Object.entries(TERMINAL_THEMES).map(([key, theme]) => (
+                      <SelectItem
+                        key={key}
+                        value={key}
+                        onPointerEnter={() =>
+                          handleThemePreview(key as TerminalTheme)
+                        }
+                        onFocus={() => handleThemePreview(key as TerminalTheme)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full border border-gray-400"
+                            style={{
+                              backgroundColor: theme.background,
+                            }}
+                          />
+                          <span className="text-sm">{theme.name}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div
+                className="p-3 rounded space-y-1"
+                style={{
+                  backgroundColor:
+                    TERMINAL_THEMES[visibleTerminalTheme].background,
+                  color: TERMINAL_THEMES[visibleTerminalTheme].foreground,
+                  fontSize: `${visibleFontSize}px`,
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      color: TERMINAL_THEMES[visibleTerminalTheme].green,
+                    }}
+                  >
+                    user@pod:~$
+                  </span>{' '}
+                  ls -la
+                </div>
+                <div style={{ color: TERMINAL_THEMES[visibleTerminalTheme].blue }}>
+                  drwxr-xr-x 3 user user 4096 Dec 9 10:30 .
+                </div>
+                <div
+                  style={{ color: TERMINAL_THEMES[visibleTerminalTheme].yellow }}
+                >
+                  -rw-r--r-- 1 user user 220 Dec 9 10:30 README.md
+                </div>
+                <div style={{ color: TERMINAL_THEMES[visibleTerminalTheme].red }}>
+                  -rwx------ 1 user user 1024 Dec 9 10:30 script.sh
+                </div>
+                <div className="flex items-center gap-1 opacity-80">
+                  <span>{t('terminalContent.cursorStyle')}</span>
+                  <span>
+                    {visibleCursorStyle === 'block'
+                      ? t('terminalContent.block')
+                      : visibleCursorStyle === 'underline'
+                        ? t('terminalContent.underline')
+                        : t('terminalContent.bar')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="font-size">{t('logViewer.fontSize')}</Label>
+                <Select
+                  value={fontSize.toString()}
+                  onValueChange={(value) => handleFontSizeChange(Number(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent onPointerLeave={restoreFontSizePreview}>
+                    {[10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24].map(
+                      (size) => (
+                        <SelectItem
+                          key={size}
+                          value={size.toString()}
+                          onPointerEnter={() => handleFontSizePreview(size)}
+                          onFocus={() => handleFontSizePreview(size)}
+                        >
+                          {size}px
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="cursor-style">
+                  {t('terminalContent.cursorStyle')}
+                </Label>
+                <Select
+                  value={cursorStyle}
+                  onValueChange={handleCursorStyleChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent onPointerLeave={restoreCursorStylePreview}>
+                    <SelectItem
+                      value="block"
+                      onPointerEnter={() => handleCursorStylePreview('block')}
+                      onFocus={() => handleCursorStylePreview('block')}
+                    >
+                      {t('terminalContent.block')}
+                    </SelectItem>
+                    <SelectItem
+                      value="underline"
+                      onPointerEnter={() =>
+                        handleCursorStylePreview('underline')
+                      }
+                      onFocus={() => handleCursorStylePreview('underline')}
+                    >
+                      {t('terminalContent.underline')}
+                    </SelectItem>
+                    <SelectItem
+                      value="bar"
+                      onPointerEnter={() => handleCursorStylePreview('bar')}
+                      onFocus={() => handleCursorStylePreview('bar')}
+                    >
+                      {t('terminalContent.bar')}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      {canShowFileTree && (
+        <Button
+          variant={showFileTree ? 'secondary' : 'outline'}
+          size="sm"
+          aria-label={t('terminalContent.toggleFileTree')}
+          title={t('terminalContent.toggleFileTree')}
+          onClick={() => setShowFileTree((value) => !value)}
+        >
+          <IconFolder className="h-4 w-4" />
+        </Button>
+      )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={clearTerminal}
+        aria-label={t('terminalContent.clear', 'Clear terminal')}
+        title={t('terminalContent.clear', 'Clear terminal')}
+      >
+        <IconClearAll className="h-4 w-4" />
+      </Button>
+    </div>
+  )
+  const shouldRenderEmbeddedToolbarInline =
+    embeddedToolbar && !toolbarPortalElement
+
+  const terminalBody = (
+    <div className="flex h-full min-h-0">
+      {canShowFileTree && showFileTree ? (
+        <div className="h-full min-h-0 w-[360px] shrink-0 max-w-[45%]">
+          <PodTerminalFileTree
+            clusterName={clusterName}
+            namespace={namespace}
+            podName={selectedPod}
+            containerName={selectedContainer}
+          />
+        </div>
+      ) : null}
+      {terminalDiv}
+    </div>
+  )
+
   // Embedded mode: no header, fills parent completely
   if (embedded) {
+    if (embeddedToolbar) {
+      return (
+        <div className="flex h-full min-h-0 w-full flex-col">
+          {toolbarPortalElement
+            ? createPortal(toolbarControls, toolbarPortalElement)
+            : null}
+          {shouldRenderEmbeddedToolbarInline ? (
+            <div className="flex min-h-10 shrink-0 items-center justify-end gap-3 border-b bg-muted/30 px-3 py-1">
+              {toolbarControls}
+            </div>
+          ) : null}
+          <div className="min-h-0 flex-1">{terminalBody}</div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col h-full w-full min-h-0">{terminalDiv}</div>
     )
@@ -626,201 +983,7 @@ export function Terminal({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Container Selector */}
-            {containers.length > 1 && (
-              <ContainerSelector
-                containers={containers}
-                showAllOption={false}
-                selectedContainer={selectedContainer}
-                onContainerChange={handleContainerChange}
-              />
-            )}
-
-            {/* Pod Selector */}
-            {pods && pods.length > 0 && (
-              <PodSelector
-                pods={pods}
-                selectedPod={selectedPod}
-                onPodChange={handlePodChange}
-              />
-            )}
-
-            {/* Quick Theme Toggle */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={cycleTheme}
-              title={t('terminalContent.currentThemeShortcut', {
-                name: TERMINAL_THEMES[terminalTheme].name,
-              })}
-              className="relative"
-            >
-              <IconPalette className="h-4 w-4" />
-              <div
-                className="absolute -top-1 -right-1 w-3 h-3 rounded-full border border-gray-400"
-                style={{
-                  backgroundColor: TERMINAL_THEMES[terminalTheme].background,
-                }}
-              ></div>
-            </Button>
-
-            {/* Settings */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <IconSettings className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align="end">
-                <div className="space-y-4">
-                  {/* Terminal Theme Selector */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="terminal-theme">
-                        {t('terminalContent.terminalTheme')}
-                      </Label>
-                      <Select
-                        value={terminalTheme}
-                        onValueChange={handleThemeChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Object.entries(TERMINAL_THEMES).map(
-                            ([key, theme]) => (
-                              <SelectItem key={key} value={key}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-3 h-3 rounded-full border border-gray-400"
-                                    style={{
-                                      backgroundColor: theme.background,
-                                    }}
-                                  ></div>
-                                  <span className="text-sm">{theme.name}</span>
-                                </div>
-                              </SelectItem>
-                            )
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Theme Preview */}
-                    <div
-                      className="p-3 rounded space-y-1"
-                      style={{
-                        backgroundColor:
-                          TERMINAL_THEMES[terminalTheme].background,
-                        color: TERMINAL_THEMES[terminalTheme].foreground,
-                        fontSize: `${fontSize}px`,
-                      }}
-                    >
-                      <div>
-                        <span
-                          style={{
-                            color: TERMINAL_THEMES[terminalTheme].green,
-                          }}
-                        >
-                          user@pod:~$
-                        </span>{' '}
-                        ls -la
-                      </div>
-                      <div
-                        style={{ color: TERMINAL_THEMES[terminalTheme].blue }}
-                      >
-                        drwxr-xr-x 3 user user 4096 Dec 9 10:30 .
-                      </div>
-                      <div
-                        style={{ color: TERMINAL_THEMES[terminalTheme].yellow }}
-                      >
-                        -rw-r--r-- 1 user user 220 Dec 9 10:30 README.md
-                      </div>
-                      <div
-                        style={{ color: TERMINAL_THEMES[terminalTheme].red }}
-                      >
-                        -rwx------ 1 user user 1024 Dec 9 10:30 script.sh
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Font Size Selector */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="font-size">{t('logViewer.fontSize')}</Label>
-                      <Select
-                        value={fontSize.toString()}
-                        onValueChange={(value) =>
-                          handleFontSizeChange(Number(value))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="10">10px</SelectItem>
-                          <SelectItem value="11">11px</SelectItem>
-                          <SelectItem value="12">12px</SelectItem>
-                          <SelectItem value="13">13px</SelectItem>
-                          <SelectItem value="14">14px</SelectItem>
-                          <SelectItem value="15">15px</SelectItem>
-                          <SelectItem value="16">16px</SelectItem>
-                          <SelectItem value="18">18px</SelectItem>
-                          <SelectItem value="20">20px</SelectItem>
-                          <SelectItem value="22">22px</SelectItem>
-                          <SelectItem value="24">24px</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Cursor Style Selector */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="cursor-style">
-                        {t('terminalContent.cursorStyle')}
-                      </Label>
-                      <Select
-                        value={cursorStyle}
-                        onValueChange={handleCursorStyleChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="block">
-                            {t('terminalContent.block')}
-                          </SelectItem>
-                          <SelectItem value="underline">
-                            {t('terminalContent.underline')}
-                          </SelectItem>
-                          <SelectItem value="bar">
-                            {t('terminalContent.bar')}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {canShowFileTree && (
-              <Button
-                variant={showFileTree ? 'secondary' : 'outline'}
-                size="sm"
-                aria-label={t('terminalContent.toggleFileTree')}
-                title={t('terminalContent.toggleFileTree')}
-                onClick={() => setShowFileTree((value) => !value)}
-              >
-                <IconFolder className="h-4 w-4" />
-              </Button>
-            )}
-
-            {/* Clear Terminal */}
-            <Button variant="outline" size="sm" onClick={clearTerminal}>
-              <IconClearAll className="h-4 w-4" />
-            </Button>
+            {toolbarControls}
 
             <Button variant="outline" size="sm" onClick={toggleFullscreen}>
               {isFullscreen ? (
@@ -833,18 +996,7 @@ export function Terminal({
         </div>
       </CardHeader>
 
-      <CardContent className="flex h-full min-h-0 p-0">
-        {canShowFileTree && showFileTree ? (
-          <div className="h-full min-h-0 w-[360px] shrink-0 max-w-[45%]">
-            <PodTerminalFileTree
-              namespace={namespace}
-              podName={selectedPod}
-              containerName={selectedContainer}
-            />
-          </div>
-        ) : null}
-        {terminalDiv}
-      </CardContent>
+      <CardContent className="h-full min-h-0 p-0">{terminalBody}</CardContent>
     </Card>
   )
 }

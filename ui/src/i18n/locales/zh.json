@@ -1942,7 +1942,18 @@
     "enterDirectory": "进入目录 {{name}}",
     "previewFile": "预览文件",
     "downloadDirectoryArchive": "将目录下载为 .tar 压缩包",
-    "downloadFile": "下载文件"
+    "downloadFile": "下载文件",
+    "copyPath": "复制路径",
+    "pathCopied": "路径已复制",
+    "edit": "编辑",
+    "editFile": "编辑文件",
+    "loadingFileContent": "正在加载文件内容...",
+    "fileSaved": "文件已保存",
+    "delete": "删除",
+    "fileDeleted": "文件已删除",
+    "directoryDeleted": "目录已删除",
+    "deleteConfirmTitle": "删除路径",
+    "deleteConfirmDescription": "确认删除 {{path}} 吗？此操作不可撤销。"
   },
   "siteHeader": {
     "createNewResource": "创建新资源",
@@ -2295,21 +2306,33 @@
     "seconds": "{{count}} 秒"
   },
   "terminalContent": {
-    "currentThemeShortcut": "当前主题：{{name}}（Ctrl+T 可循环切换）",
     "terminalTheme": "终端主题",
     "cursorStyle": "光标样式",
     "block": "块状",
     "underline": "下划线",
     "bar": "竖线",
     "toggleFileTree": "切换 Pod 文件树",
-    "fileTreeUnavailable": "请选择 Pod 和容器后浏览文件。"
+    "fileTreeUnavailable": "请选择 Pod 和容器后浏览文件。",
+    "settings": "终端设置",
+    "clear": "清空终端"
   },
   "floatingTerminal": {
+    "workspace": "终端工作台",
     "fullscreen": "全屏",
     "exitFullscreen": "退出全屏",
     "restore": "恢复",
     "minimize": "最小化",
-    "closeSession": "关闭（结束会话）"
+    "closeSession": "关闭会话",
+    "closeAllSessions": "关闭全部会话"
+  },
+  "terminalLauncher": {
+    "title": "打开终端工作台",
+    "description": "在底部终端工作台中启动 Shell，会话会在你查看其他页面时继续保持。",
+    "nodeTitle": "打开节点终端",
+    "nodeDescription": "在底部终端工作台中启动 Shell，会话会在你查看其他页面时继续保持。",
+    "selectPod": "选择 Pod",
+    "selectContainer": "选择容器",
+    "open": "打开终端"
   },
   "containerInfo": {
     "running": "运行中",

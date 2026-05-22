@@ -16,6 +16,7 @@ const mockDrainNode = vi.fn()
 const mockTrackResourceAction = vi.fn()
 const mockToastSuccess = vi.fn()
 const mockToastError = vi.fn()
+const mockOpenSession = vi.fn()
 
 vi.mock('react-i18next', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-i18next')>()
@@ -82,6 +83,12 @@ vi.mock('@/lib/analytics', () => ({
   trackResourceAction: (...args: unknown[]) => mockTrackResourceAction(...args),
 }))
 
+vi.mock('@/contexts/terminal-context', () => ({
+  useTerminal: () => ({
+    openSession: mockOpenSession,
+  }),
+}))
+
 vi.mock('sonner', () => ({
   toast: {
     success: (value: string) => mockToastSuccess(value),
@@ -99,6 +106,7 @@ describe('NodeListPage', () => {
     mockTrackResourceAction.mockClear()
     mockToastSuccess.mockClear()
     mockToastError.mockClear()
+    mockOpenSession.mockClear()
     mockDrainNode.mockResolvedValue(undefined)
   })
 
@@ -261,7 +269,13 @@ describe('NodeListPage', () => {
     await act(async () => {
       await items[5].onSelect?.()
     })
-    expect(screen.getByText('nodes.terminalDialogTitle')).toBeInTheDocument()
+    expect(mockOpenSession).toHaveBeenCalledWith({
+      type: 'node',
+      nodeName: 'orbstack',
+      title: 'orbstack',
+      source: 'node/orbstack',
+      entry: 'node-list',
+    })
   })
 
   it('explains drain options and submits the selected values', async () => {
