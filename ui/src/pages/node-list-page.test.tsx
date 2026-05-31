@@ -248,11 +248,11 @@ describe('NodeListPage', () => {
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
+      'open-terminal',
       'primary-actions-separator',
       'copy-name',
       'copy-ip',
       'node-operations-separator',
-      'open-terminal',
       'cordon',
       'drain',
     ])
@@ -260,14 +260,8 @@ describe('NodeListPage', () => {
     await items[0].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith('/nodes/orbstack?tab=yaml')
 
-    await items[2].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('orbstack')
-
-    await items[3].onSelect?.()
-    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('192.168.64.3')
-
     await act(async () => {
-      await items[5].onSelect?.()
+      await items[1].onSelect?.()
     })
     expect(mockOpenSession).toHaveBeenCalledWith({
       type: 'node',
@@ -276,6 +270,12 @@ describe('NodeListPage', () => {
       source: 'node/orbstack',
       entry: 'node-list',
     })
+
+    await items[3].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('orbstack')
+
+    await items[4].onSelect?.()
+    expect(mockCopyTextToClipboard).toHaveBeenCalledWith('192.168.64.3')
   })
 
   it('explains drain options and submits the selected values', async () => {

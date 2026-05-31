@@ -390,7 +390,7 @@
       "diskPressure": "Disk pressure",
       "pidPressure": "PID pressure"
     },
-    "openShellTerminal": "Open shell terminal",
+    "openShellTerminal": "Terminal",
     "terminalDialogTitle": "{{name}} · Terminal",
     "terminalDialogDescription": "Open a shell session on the selected node.",
     "cordonDialogTitle": "Set {{name}} as unschedulable",
@@ -2041,7 +2041,9 @@
     "nodeDescription": "Start the shell in the bottom terminal workspace. The session stays alive while you inspect other pages.",
     "selectPod": "Select pod",
     "selectContainer": "Select container",
-    "open": "Open terminal"
+    "open": "Open terminal",
+    "noAvailablePod": "No available pod found for {{source}}.",
+    "openFailed": "Failed to open terminal for {{source}}."
   },
   "containerInfo": {
     "running": "Running",

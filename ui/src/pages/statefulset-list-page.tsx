@@ -10,18 +10,21 @@ import {
   Image,
   RefreshCcw,
   Tags,
+  TerminalSquare,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { useTerminal } from '@/contexts/terminal-context'
 import { patchResource } from '@/lib/api'
 import {
   formatDate,
   formatRelativeTimeStrict,
   translateError,
 } from '@/lib/utils'
+import { openWorkloadTerminal } from '@/lib/workload-terminal'
 import { WorkloadWithPodTemplate } from '@/hooks/use-deployment-container-editor'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -57,6 +60,7 @@ export function StatefulSetListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { openSession } = useTerminal()
   const [labelsStatefulSet, setLabelsStatefulSet] =
     useState<StatefulSet | null>(null)
   const [annotationsStatefulSet, setAnnotationsStatefulSet] =
@@ -312,6 +316,19 @@ export function StatefulSetListPage() {
           onSelect: () => navigate(`${detailPath}?tab=yaml`),
         },
         {
+          key: 'open-terminal',
+          label: t('terminalLauncher.open', 'Open terminal'),
+          icon: <TerminalSquare className="h-4 w-4" />,
+          onSelect: () =>
+            openWorkloadTerminal({
+              workload: statefulSet,
+              kind: 'StatefulSet',
+              sourcePrefix: 'statefulset',
+              openSession,
+              t,
+            }),
+        },
+        {
           key: 'edit-image',
           label: t('deploymentList.editImage'),
           icon: <Image className="h-4 w-4" />,
@@ -351,7 +368,7 @@ export function StatefulSetListPage() {
         },
       ]
     },
-    [getStatefulSetDetailPath, navigate, t]
+    [getStatefulSetDetailPath, navigate, openSession, t]
   )
 
   return (

@@ -139,6 +139,8 @@ export function Terminal({
   const visibleTerminalTheme = previewTerminalTheme ?? terminalTheme
   const visibleFontSize = previewFontSize ?? fontSize
   const visibleCursorStyle = previewCursorStyle ?? cursorStyle
+  const visibleTerminalBackground =
+    TERMINAL_THEMES[visibleTerminalTheme].background
 
   useEffect(() => {
     selectedTerminalThemeRef.current = terminalTheme
@@ -470,6 +472,7 @@ export function Terminal({
 
     // Apply additional styles to prevent scroll bubbling
     if (terminal.element) {
+      terminal.element.style.backgroundColor = currentTheme.background
       terminal.element.style.overscrollBehavior = 'none'
       terminal.element.style.touchAction = 'none'
       terminal.element.addEventListener(
@@ -696,6 +699,7 @@ export function Terminal({
       ref={terminalRef}
       className="flex-1 h-full min-h-0 w-full"
       style={{
+        backgroundColor: visibleTerminalBackground,
         maxHeight: '100%',
         overflow: 'hidden',
         overscrollBehavior: 'none',
@@ -921,7 +925,10 @@ export function Terminal({
     embeddedToolbar && !toolbarPortalElement
 
   const terminalBody = (
-    <div className="flex h-full min-h-0">
+    <div
+      className="flex h-full min-h-0"
+      style={{ backgroundColor: visibleTerminalBackground }}
+    >
       {canShowFileTree && showFileTree ? (
         <div className="h-full min-h-0 w-[360px] shrink-0 max-w-[45%]">
           <PodTerminalFileTree
@@ -940,7 +947,10 @@ export function Terminal({
   if (embedded) {
     if (embeddedToolbar) {
       return (
-        <div className="flex h-full min-h-0 w-full flex-col">
+        <div
+          className="flex h-full min-h-0 w-full flex-col"
+          style={{ backgroundColor: visibleTerminalBackground }}
+        >
           {toolbarPortalElement
             ? createPortal(toolbarControls, toolbarPortalElement)
             : null}
@@ -949,13 +959,23 @@ export function Terminal({
               {toolbarControls}
             </div>
           ) : null}
-          <div className="min-h-0 flex-1">{terminalBody}</div>
+          <div
+            className="min-h-0 flex-1"
+            style={{ backgroundColor: visibleTerminalBackground }}
+          >
+            {terminalBody}
+          </div>
         </div>
       )
     }
 
     return (
-      <div className="flex flex-col h-full w-full min-h-0">{terminalDiv}</div>
+      <div
+        className="flex flex-col h-full w-full min-h-0"
+        style={{ backgroundColor: visibleTerminalBackground }}
+      >
+        {terminalDiv}
+      </div>
     )
   }
 

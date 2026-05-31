@@ -11,12 +11,14 @@ import {
   Play,
   RefreshCcw,
   Tags,
+  TerminalSquare,
   Trash2,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { useTerminal } from '@/contexts/terminal-context'
 import { patchResource } from '@/lib/api'
 import { getDeploymentStatus } from '@/lib/k8s'
 import {
@@ -24,6 +26,7 @@ import {
   formatRelativeTimeStrict,
   translateError,
 } from '@/lib/utils'
+import { openWorkloadTerminal } from '@/lib/workload-terminal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -60,6 +63,7 @@ export function DeploymentListPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { openSession } = useTerminal()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [labelsDeployment, setLabelsDeployment] = useState<Deployment | null>(
     null
@@ -316,6 +320,19 @@ export function DeploymentListPage() {
           onSelect: () => navigate(`${detailPath}?tab=yaml`),
         },
         {
+          key: 'open-terminal',
+          label: t('terminalLauncher.open', 'Open terminal'),
+          icon: <TerminalSquare className="h-4 w-4" />,
+          onSelect: () =>
+            openWorkloadTerminal({
+              workload: deployment,
+              kind: 'Deployment',
+              sourcePrefix: 'deployment',
+              openSession,
+              t,
+            }),
+        },
+        {
           key: 'edit-image',
           label: t('deploymentList.editImage'),
           icon: <Image className="h-4 w-4" />,
@@ -368,7 +385,14 @@ export function DeploymentListPage() {
         },
       ]
     },
-    [getDeploymentDetailPath, handlePauseToggle, isPauseToggling, navigate, t]
+    [
+      getDeploymentDetailPath,
+      handlePauseToggle,
+      isPauseToggling,
+      navigate,
+      openSession,
+      t,
+    ]
   )
 
   return (

@@ -10,6 +10,8 @@ const mockToastSuccess = vi.fn()
 const mockToastError = vi.fn()
 const mockInvalidateQueries = vi.fn()
 const mockPatchResource = vi.fn()
+const mockOpenSession = vi.fn()
+const mockOpenWorkloadTerminal = vi.fn()
 const mockT = (key: string) => key
 const mockResourceTable = vi.fn(() => <div>statefulset-table</div>)
 
@@ -52,6 +54,17 @@ vi.mock('@tanstack/react-query', async () => {
 
 vi.mock('@/lib/api', () => ({
   patchResource: (...args: unknown[]) => mockPatchResource(...args),
+}))
+
+vi.mock('@/contexts/terminal-context', () => ({
+  useTerminal: () => ({
+    openSession: mockOpenSession,
+  }),
+}))
+
+vi.mock('@/lib/workload-terminal', () => ({
+  openWorkloadTerminal: (...args: unknown[]) =>
+    mockOpenWorkloadTerminal(...args),
 }))
 
 vi.mock('sonner', () => ({
@@ -147,6 +160,8 @@ describe('StatefulSetListPage', () => {
     mockToastError.mockReset()
     mockInvalidateQueries.mockReset()
     mockPatchResource.mockReset()
+    mockOpenSession.mockReset()
+    mockOpenWorkloadTerminal.mockReset()
     mockResourceTable.mockClear()
   })
 
@@ -185,6 +200,7 @@ describe('StatefulSetListPage', () => {
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
+      'open-terminal',
       'edit-image',
       'rollout-restart',
       'rollback',
@@ -193,7 +209,7 @@ describe('StatefulSetListPage', () => {
       'manage-annotations',
       'delete-statefulset',
     ])
-    expect(items[3].label).toBe('deploymentList.rollback')
+    expect(items[4].label).toBe('deploymentList.rollback')
 
     await items[0].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith(
@@ -203,24 +219,36 @@ describe('StatefulSetListPage', () => {
     await act(async () => {
       await items[1].onSelect?.()
     })
+    expect(mockOpenWorkloadTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workload: statefulSet,
+        kind: 'StatefulSet',
+        sourcePrefix: 'statefulset',
+        openSession: mockOpenSession,
+      })
+    )
+
+    await act(async () => {
+      await items[2].onSelect?.()
+    })
     expect(screen.getByText('container-edit-dialog')).toBeInTheDocument()
 
     await act(async () => {
-      await items[5].onSelect?.()
+      await items[6].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-labels')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[6].onSelect?.()
+      await items[7].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[7].onSelect?.()
+      await items[8].onSelect?.()
     })
     expect(
       screen.getByText('resource-delete-confirmation-dialog')
@@ -263,7 +291,7 @@ describe('StatefulSetListPage', () => {
     const items = resourceTableProps.getRowContextMenuItems(statefulSet)
 
     await act(async () => {
-      await items[1].onSelect?.()
+      await items[2].onSelect?.()
     })
     await act(async () => {
       fireEvent.click(screen.getByText('save-container-edit'))

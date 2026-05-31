@@ -242,7 +242,7 @@ export function PodListPage() {
         },
         {
           key: 'open-terminal',
-          label: t('detail.tabs.terminal'),
+          label: t('terminalLauncher.open', 'Open terminal'),
           icon: <TerminalSquare className="h-4 w-4" />,
           onSelect: () => {
             openSession({

@@ -14,6 +14,8 @@ const mockToastSuccess = vi.fn()
 const mockToastError = vi.fn()
 const mockInvalidateQueries = vi.fn()
 const mockPatchResource = vi.fn()
+const mockOpenSession = vi.fn()
+const mockOpenWorkloadTerminal = vi.fn()
 const mockT = (key: string) => key
 const mockResourceTable = vi.fn(
   ({
@@ -73,6 +75,17 @@ vi.mock('@/lib/desktop', () => ({
 
 vi.mock('@/lib/api', () => ({
   patchResource: (...args: unknown[]) => mockPatchResource(...args),
+}))
+
+vi.mock('@/contexts/terminal-context', () => ({
+  useTerminal: () => ({
+    openSession: mockOpenSession,
+  }),
+}))
+
+vi.mock('@/lib/workload-terminal', () => ({
+  openWorkloadTerminal: (...args: unknown[]) =>
+    mockOpenWorkloadTerminal(...args),
 }))
 
 vi.mock('sonner', () => ({
@@ -201,6 +214,8 @@ describe('DeploymentListPage', () => {
     mockToastError.mockReset()
     mockInvalidateQueries.mockReset()
     mockPatchResource.mockReset()
+    mockOpenSession.mockReset()
+    mockOpenWorkloadTerminal.mockReset()
     mockResourceTable.mockClear()
   })
 
@@ -397,6 +412,7 @@ describe('DeploymentListPage', () => {
 
     expect(items.map((item) => item.key)).toEqual([
       'view-yaml',
+      'open-terminal',
       'edit-image',
       'pause-orchestration',
       'rollout-restart',
@@ -415,36 +431,48 @@ describe('DeploymentListPage', () => {
     await act(async () => {
       await items[1].onSelect?.()
     })
+    expect(mockOpenWorkloadTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workload: deployment,
+        kind: 'Deployment',
+        sourcePrefix: 'deployment',
+        openSession: mockOpenSession,
+      })
+    )
+
+    await act(async () => {
+      await items[2].onSelect?.()
+    })
     expect(screen.getByText('container-edit-dialog')).toBeInTheDocument()
 
     await act(async () => {
-      await items[3].onSelect?.()
+      await items[4].onSelect?.()
     })
     expect(
       screen.getByText('detail.dialogs.restartDeployment.title')
     ).toBeInTheDocument()
 
-    await items[4].onSelect?.()
+    await items[5].onSelect?.()
     expect(mockNavigate).toHaveBeenCalledWith(
       '/deployments/default/web?tab=history'
     )
 
     await act(async () => {
-      await items[6].onSelect?.()
+      await items[7].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-labels')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[7].onSelect?.()
+      await items[8].onSelect?.()
     })
     expect(
       screen.getByText('resource-metadata-dialog-annotations')
     ).toBeInTheDocument()
 
     await act(async () => {
-      await items[8].onSelect?.()
+      await items[9].onSelect?.()
     })
     expect(
       screen.getByText('resource-delete-confirmation-dialog')
@@ -477,7 +505,7 @@ describe('DeploymentListPage', () => {
     const items = resourceTableProps.getRowContextMenuItems(deployment)
 
     await act(async () => {
-      await items[3].onSelect?.()
+      await items[4].onSelect?.()
     })
     expect(
       screen.getByText('detail.dialogs.restartDeployment.title')
@@ -547,7 +575,7 @@ describe('DeploymentListPage', () => {
     const items = resourceTableProps.getRowContextMenuItems(deployment)
 
     await act(async () => {
-      await items[2].onSelect?.()
+      await items[3].onSelect?.()
     })
     await waitFor(() => {
       expect(mockPatchResource).toHaveBeenCalledWith(
@@ -563,7 +591,7 @@ describe('DeploymentListPage', () => {
     })
 
     await act(async () => {
-      await items[1].onSelect?.()
+      await items[2].onSelect?.()
     })
     await act(async () => {
       fireEvent.click(screen.getByText('save-container-edit'))
@@ -617,11 +645,11 @@ describe('DeploymentListPage', () => {
 
     const items = resourceTableProps.getRowContextMenuItems(deployment)
 
-    expect(items[2].key).toBe('resume-orchestration')
-    expect(items[2].label).toBe('deploymentList.resumeOrchestration')
+    expect(items[3].key).toBe('resume-orchestration')
+    expect(items[3].label).toBe('deploymentList.resumeOrchestration')
 
     await act(async () => {
-      await items[2].onSelect?.()
+      await items[3].onSelect?.()
     })
     await waitFor(() => {
       expect(mockPatchResource).toHaveBeenCalledWith(

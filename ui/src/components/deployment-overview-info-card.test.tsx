@@ -120,7 +120,7 @@ describe('DeploymentOverviewInfoCard', () => {
 
     expect(screen.getByText('选择器')).toBeInTheDocument()
     expect(screen.getByText('资源请求总计')).toBeInTheDocument()
-    expect(screen.getByText('资源限制总计')).toBeInTheDocument()
+    expect(screen.getByText('资源限制')).toBeInTheDocument()
     expect(screen.getByText('app: ops-whoami')).toBeInTheDocument()
     expect(screen.getByText('CPU: 200m')).toBeInTheDocument()
     expect(screen.getByText('CPU: 500m')).toBeInTheDocument()

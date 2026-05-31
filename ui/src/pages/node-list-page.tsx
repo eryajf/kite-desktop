@@ -532,6 +532,12 @@ export function NodeListPage() {
           icon: <FileCode2 className="h-4 w-4" />,
           onSelect: () => navigate(`/nodes/${node.metadata!.name}?tab=yaml`),
         },
+        {
+          key: 'open-terminal',
+          label: t('terminalLauncher.open', 'Open terminal'),
+          icon: <TerminalSquare className="h-4 w-4" />,
+          onSelect: () => handleOpenNodeTerminal(node),
+        },
         { type: 'separator', key: 'primary-actions-separator' },
         {
           key: 'copy-name',
@@ -547,12 +553,6 @@ export function NodeListPage() {
           onSelect: () => handleCopy(nodeIP),
         },
         { type: 'separator', key: 'node-operations-separator' },
-        {
-          key: 'open-terminal',
-          label: t('nodes.openShellTerminal', 'Open shell terminal'),
-          icon: <TerminalSquare className="h-4 w-4" />,
-          onSelect: () => handleOpenNodeTerminal(node),
-        },
         isUnschedulable
           ? {
               key: 'uncordon',

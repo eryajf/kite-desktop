@@ -415,7 +415,7 @@
       "diskPressure": "磁盘压力",
       "pidPressure": "PID 压力"
     },
-    "openShellTerminal": "进入 Shell 终端",
+    "openShellTerminal": "终端",
     "terminalDialogTitle": "{{name}} · 终端",
     "terminalDialogDescription": "打开所选节点的 Shell 会话。",
     "cordonDialogTitle": "将 {{name}} 设为不可调度",
@@ -1979,7 +1979,7 @@
     "rolloutPendingTitle": "部署尚未完全收敛",
     "rolloutPendingDescription": "控制器当前观察到的 generation 为 {{observed}}，期望 generation 为 {{generation}}。",
     "resourceRequests": "资源请求总计",
-    "resourceLimits": "资源限制总计",
+    "resourceLimits": "资源限制",
     "containers": "容器",
     "containersAndImages": "容器与镜像",
     "notSet": "未指定",
@@ -2332,7 +2332,9 @@
     "nodeDescription": "在底部终端工作台中启动 Shell，会话会在你查看其他页面时继续保持。",
     "selectPod": "选择 Pod",
     "selectContainer": "选择容器",
-    "open": "打开终端"
+    "open": "终端",
+    "noAvailablePod": "没有找到可用的 Pod：{{source}}",
+    "openFailed": "打开终端失败：{{source}}"
   },
   "containerInfo": {
     "running": "运行中",

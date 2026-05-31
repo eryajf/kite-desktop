@@ -14,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 
 import { useGeneralSetting } from '@/lib/api'
+import { TERMINAL_THEMES, TerminalTheme } from '@/types/themes'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -49,6 +50,12 @@ export function FloatingTerminal() {
   const [height, setHeight] = useState(
     () => (window.innerHeight * DEFAULT_HEIGHT_VH) / 100
   )
+  const terminalThemeName =
+    (localStorage.getItem('terminal-theme') as TerminalTheme | null) ??
+    'classic'
+  const terminalBackground =
+    TERMINAL_THEMES[terminalThemeName]?.background ??
+    TERMINAL_THEMES.classic.background
   const dragging = useRef(false)
   const startY = useRef(0)
   const startH = useRef(0)
@@ -312,7 +319,10 @@ export function FloatingTerminal() {
           })}
         </div>
 
-        <div className="relative min-h-0 flex-1">
+        <div
+          className="relative min-h-0 flex-1"
+          style={{ backgroundColor: terminalBackground }}
+        >
           {sessions.map((session) => (
             <div
               key={session.id}
@@ -320,6 +330,7 @@ export function FloatingTerminal() {
                 'absolute inset-0 min-h-0',
                 session.id === activeSessionId ? 'block' : 'hidden'
               )}
+              style={{ backgroundColor: terminalBackground }}
             >
               <Terminal
                 type={session.type}
